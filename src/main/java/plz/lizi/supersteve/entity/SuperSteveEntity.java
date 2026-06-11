@@ -197,7 +197,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				}
 				att.tick++;
 			}
-			if (state == State.ALIVE) {
+			if (state == State.ENTER || state == State.ALIVE) {
 				SSMusic.playWithEntity(this, SSModSounds.FUKUMA_MIZUSHI1.get(), true);
 			} else if (state == State.EXIT) {
 				float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;

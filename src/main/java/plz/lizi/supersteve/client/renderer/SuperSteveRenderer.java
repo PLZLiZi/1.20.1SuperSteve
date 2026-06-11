@@ -200,8 +200,6 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 			p_115318_.mulPose(Axis.YP.rotationDegrees(180.0F - p_115320_));
 		}
 		if (p_115317_.getState() != State.ALIVE) {
-			// float scale = (float)Math.cos(Math.PI / 40D * p_115317_.iDeathTime);
-			// p_115318_.scale(scale, scale, scale);
 		} else if (p_115317_.isAutoSpinAttack()) {
 			p_115318_.mulPose(Axis.XP.rotationDegrees(-90.0F - p_115317_.getXRot()));
 			p_115318_.mulPose(Axis.YP.rotationDegrees(((float) p_115317_.tickCount + p_115321_) * -75.0F));
