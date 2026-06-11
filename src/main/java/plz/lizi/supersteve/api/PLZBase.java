@@ -1172,31 +1172,8 @@ public class PLZBase {
 		sb.append("}");
 		return sb.toString();
 	}
-
-	public static double rgba2dbl(int r, int g, int b, int a) {
-		int rgbaInt = ((r & 0xFF) << 24) |
-				((g & 0xFF) << 16) |
-				((b & 0xFF) << 8) |
-				(a & 0xFF);
-		long safeLong = (long) rgbaInt & 0xFFFFFFFFL;
-		return Double.longBitsToDouble(safeLong);
-	}
-
-	public static int[] dbl2rgba(double value) {
-		long bits = Double.doubleToRawLongBits(value);
-		int r = (int) ((bits >> 24) & 0xFF);
-		int g = (int) ((bits >> 16) & 0xFF);
-		int b = (int) ((bits >> 8) & 0xFF);
-		int a = (int) (bits & 0xFF);
-		return new int[] { r, g, b, a };
-	}
-
-	public static double shrt2dbl(short s1, short s2, short s3) {
-		return Double.longBitsToDouble((((long) s1 & 0xFFFFL) << 32) | (((long) s2 & 0xFFFFL) << 16) | ((long) s3 & 0xFFFFL));
-	}
-
-	public static short[] dbl2shrt(double value) {
-		long bits = Double.doubleToRawLongBits(value);
-		return new short[] { (short) ((bits >> 32) & 0xFFFFL), (short) ((bits >> 16) & 0xFFFFL), (short) (bits & 0xFFFFL) };
+	
+	public static float progress(float f) {
+		return Math.max(0F, Math.min(1F, f));
 	}
 }

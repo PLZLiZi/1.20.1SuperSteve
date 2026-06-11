@@ -23,18 +23,6 @@ public class AttackParticle extends Particle {
 
     protected AttackParticle(ClientLevel level, double x, double y, double z, double data1, double data2, double data3) {
         super(level, x, y, z);
-        System.out.println(data1 + "  " + data2 + " " + data3);
-        var colorData = PLZBase.dbl2rgba(data1);
-        var rotData = PLZBase.dbl2shrt(data2);
-        var sizeAndLife = PLZBase.dbl2shrt(data3);
-        System.out.println(Arrays.toString(colorData) + Arrays.toString(rotData) + Arrays.toString(sizeAndLife));
-        this.rCol = (float) colorData[0] / 255f;
-        this.gCol = (float) colorData[1] / 255f;
-        this.bCol = (float) colorData[2] / 255f;
-        this.alpha = (float) colorData[3] / 255f;
-        this.lifetime = sizeAndLife[2];
-        size = new Vec2(sizeAndLife[0] / 10F, sizeAndLife[1] / 10F);
-        rot = new Vec3(rotData[0] / 10F, rotData[1] / 10F, rotData[2] / 10F);
         this.hasPhysics = false;
         this.gravity = 0;
         this.xd = 0;

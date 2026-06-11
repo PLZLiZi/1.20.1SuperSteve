@@ -21,6 +21,7 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 import plz.lizi.supersteve.level.SSBossEvent;
@@ -28,20 +29,21 @@ import plz.lizi.supersteve.level.SSBossEvent;
 public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 4F;
 	public static final int MAX_INVULNERABLE_TIME = 40;
-	public static final int[] ENTER_ACTIVE = new int[] { 100 };
+	public static final int[] ENTER_ACTIVE = new int[] { 100/* 入场时长 */, 95/*爆炸产生 */ };
 	public static final int[] DEATH_ACTIVE = new int[] { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */ };
-	public static final EntityDataAccessor<String> DATA_SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
-	public static final EntityDataAccessor<String> DATA_SS_TYPE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
-	public static final EntityDataAccessor<Integer> DATA_SS_TICK = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
-	public static final EntityDataAccessor<String> DATA_SS_STATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
+	public static final EntityDataAccessor<String> SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
+	public static final EntityDataAccessor<String> SS_TYPE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
+	public static final EntityDataAccessor<Integer> SS_TICK = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
+	public static final EntityDataAccessor<String> SS_STATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
+	public static final EntityDataAccessor<Integer> SS_LSTATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
 	public final List<Attack> attacks = new ArrayList<>();
 	public final Consumer<Object> setHealth = health -> {
 		if (health instanceof Float fhealth)
-			getEntityData().set(DATA_SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(fhealth) ^ 0xF917813F));
+			getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(fhealth) ^ 0xF917813F));
 	};
 	public final Supplier<Object> getHealth = () -> {
 		try {
-			String ssh = getEntityData().get(SuperSteveEntityBase.DATA_SS_HEALTH);
+			String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
 			if (ssh.startsWith("SSH="))
 				return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
 		} catch (Throwable e) {
@@ -50,8 +52,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		return 20F;
 	};
 	public int iInvulnerableTime = 0;
-	//public int iDeathTime = 0;
-	public int lastStateTime = 0;
+	// public int iDeathTime = 0;
 	public SSBossEvent bossEvent;
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
@@ -80,20 +81,24 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 
 	public abstract int ssGetTick();
 
-	public abstract float ssGetAttR(boolean render);
-	
+	public abstract float ssGetAttR(boolean noDeathReduce);
+
 	public State getState() {
-		return ssGetTick() >= 0 ? State.ALIVE : (isAlive() ? State.ENTER : State.EXIT);
+		try {
+			return State.valueOf(getEntityData().get(SS_STATE));
+		} catch (Throwable e) {
+			setState(State.ALIVE);
+			return State.ALIVE;
+		}
 	}
 
-	public float getState(State state, float partialTick) {
-		if (state == State.ALIVE)
-			return 1F;
-		else if (state == State.ENTER)
-			return (ssGetTick() - lastStateTime + partialTick) / ENTER_ACTIVE[0];
-		else if (state == State.EXIT)
-			return (ssGetTick() - lastStateTime + partialTick) / DEATH_ACTIVE[0];
-		return -1F;
+	public void setState(State state) {
+		getEntityData().set(SS_STATE, state.name());
+		getEntityData().set(SS_LSTATE, ssGetTick());
+	}
+
+	public int stateTime() {
+		return ssGetTick() - getEntityData().get(SS_LSTATE);
 	}
 
 	protected static void registerGoals(PathfinderMob zhis) {
@@ -107,6 +112,10 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		zhis.goalSelector.addGoal(3, new RandomStrollGoal(zhis, 1.5));
 		zhis.goalSelector.addGoal(4, new RandomLookAroundGoal(zhis));
 		zhis.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(zhis, LivingEntity.class, false, false));
+	}
+
+	public static float openFieldPgs(int stateTime, float partialTick) {
+		return (float) Math.pow(Math.max(0F, Math.min(1f, (stateTime + partialTick) < SuperSteveEntityBase.DEATH_ACTIVE[4] ? ((float) (stateTime + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[3]) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0] * 5F) : (1f - (((float) stateTime + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[4]) / ((float) SuperSteveEntityBase.DEATH_ACTIVE[0] - SuperSteveEntityBase.DEATH_ACTIVE[4]))))), 4);
 	}
 
 	public static enum SSMode {
@@ -126,8 +135,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			this.size = size;
 		}
 	}
-
 	public static enum State {
-		ENTER,ALIVE,EXIT;
+		ENTER, ALIVE, EXIT;
 	}
 }

@@ -214,6 +214,11 @@ public class EndOfPLZLite extends Item {
 	}
 
 	@Override
+	public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
+		return true;
+	}
+
+	@Override
 	public boolean hurtEnemy(ItemStack itemstack, LivingEntity entity, LivingEntity sourceentity) {
 		SSUtil.killEntity(entity);
 		// sourceentity.setHealth(sourceentity.getMaxHealth());

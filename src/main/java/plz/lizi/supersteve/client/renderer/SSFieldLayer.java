@@ -27,17 +27,18 @@ public class SSFieldLayer extends SSLayer {
     @Override
     public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         poseStack.pushPose();
-		if (-entity.ssGetTick() > SuperSteveEntityBase.DEATH_ACTIVE[1]) {
+        int stateTime = entity.stateTime();
+		if (stateTime > SuperSteveEntityBase.DEATH_ACTIVE[1]) {
 			poseStack.pushPose();
-			float pgs = Math.max(0, Math.min(1, (-entity.ssGetTick() + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[1]) / SuperSteveEntityBase.DEATH_ACTIVE[2]));
+			float pgs = Math.max(0, Math.min(1, (stateTime + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[1]) / SuperSteveEntityBase.DEATH_ACTIVE[2]));
 			poseStack.translate(0, (float) Math.cos(Math.PI / 2F * pgs) * SuperSteveEntityBase.DEATH_ACTIVE[0] + 10, 0);
 			poseStack.scale(25, 25, 25);
 			poseStack.mulPose(Axis.YP.rotationDegrees(45F));
 			poseStack.mulPose(Axis.ZN.rotationDegrees(135F));
-			Minecraft.getInstance().getItemRenderer().renderStatic(entity.getItemInHand(InteractionHand.MAIN_HAND), ItemDisplayContext.NONE, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, poseStack, bufferSource, entity.level(), 0);
+			Minecraft.getInstance().getItemRenderer().renderStatic(entity.getItemInHand(InteractionHand.MAIN_HAND), ItemDisplayContext.NONE, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, poseStack, buffer, entity.level(), 0);
 			poseStack.popPose();
 		}
-        float openFieldPgs = (float) Math.pow(Math.max(0F, Math.min(1f, (entity.ssGetTick() + partialTick) < SuperSteveEntityBase.DEATH_ACTIVE[4] ? ((float) (entity.iDeathTime + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[3]) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0] * 5F) : (1f - (((float) entity.iDeathTime + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[4]) / ((float) SuperSteveEntityBase.DEATH_ACTIVE[0] - SuperSteveEntityBase.DEATH_ACTIVE[4]))))), 4);
+        float openFieldPgs = SuperSteveEntityBase.openFieldPgs(stateTime, partialTick);
         float fieldSz = openFieldPgs * entity.ssGetAttR(true) * 8f;
         SSRenders.renderBall(buffer.getBuffer(SSRenders.POSITION_COLOR_H), poseStack, fieldSz, 0/* 黑色到红色领域用这个153f / 255f * openFieldPgs */, 0, 0, openFieldPgs, packedLight);
         //if (openFieldPgs >= 1)
@@ -47,7 +48,7 @@ public class SSFieldLayer extends SSLayer {
         var erd = mc.getEntityRenderDispatcher();
         var myPos = entity.getPosition(partialTick);
         for (var t : ((ClientLevel) entity.level).entitiesForRendering()) {
-            if (t == null || !(t instanceof LivingEntity) || t instanceof SuperSteveEntityBase || t instanceof ItemEntity || entity.distanceTo(t) > fieldSz)
+            if (t == null || !(t instanceof LivingEntity) || t instanceof SuperSteveEntityBase || entity.distanceTo(t) > fieldSz)
                 continue;
             if (Objects.equal(t, mc.gameRenderer.getMainCamera().getEntity()) && mc.options.getCameraType().isFirstPerson())
                 continue;

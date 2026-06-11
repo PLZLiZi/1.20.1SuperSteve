@@ -37,7 +37,8 @@ public class SSEnterLayer extends SSLayer {
 
     @Override
     public void render(PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
-        float enterpgs = (SuperSteveEntityBase.ENTER_ACTIVE[0] + entity.ssGetTick() + partialTick) / SuperSteveEntityBase.ENTER_ACTIVE[0];
+        float stateTime = entity.stateTime();
+        float enterpgs = (stateTime + partialTick) / SuperSteveEntityBase.ENTER_ACTIVE[0];
         float $$15 = Math.min(enterpgs > 0.8F ? (enterpgs - 0.8F) / 0.2F : 0.0F, 1.0F);
         RandomSource $$16 = RandomSource.create(entity.getUUID().getMostSignificantBits());
         VertexConsumer $$17 = bufferSource.getBuffer(SSRenders.POSITION_COLOR_NC);

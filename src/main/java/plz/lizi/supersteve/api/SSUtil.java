@@ -338,7 +338,6 @@ public class SSUtil {
 				if (superSteveEntity.isAlive()) {
 					SuperSteveMod.SS_INSTANCES.putIfAbsent(superSteveEntity.getId(), new EntityInstance<>());
 					SuperSteveMod.SS_INSTANCES.get(superSteveEntity.getId()).put(superSteveEntity);
-					superSteveEntity.iDeathTime = -1;
 				}
 			}
 			entity.canUpdate = true;

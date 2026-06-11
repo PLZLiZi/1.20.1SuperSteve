@@ -25,9 +25,7 @@ public class SSBackLayer extends SSLayer {
 
 	@Override
 	public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch) {
-		
 		poseStack.pushPose();
-		SuperSteveRenderer.deathReduce(poseStack, entity, partialTicks);
 		float tick = entity.ssGetTick() + partialTicks;
 		double time = tick / FLOAT_SPEED;
 		double yOffset = Math.sin(time * 2 * Math.PI) * FLOAT;

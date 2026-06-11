@@ -29,6 +29,7 @@ import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import plz.lizi.supersteve.SuperSteveMod;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.SuperSteveRenderer;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
@@ -56,71 +57,43 @@ public class SSEvents {
 			float barWidth = 180;
 			float barHeight = 22;
 			float progress = bossEvent.getProgress();
+			PoseStack poseStack = guiGraphics.pose();
+			poseStack.pushPose();
+			poseStack.translate(x, y, 0);
+			poseStack.scale(1.5F, 1.5F, 1F);
+			var sidePgs = 0F;
+			var dsidePgs = 1f;
 			if (ss.getState() == State.ENTER) {
-				progress = (SuperSteveEntityBase.ENTER_ACTIVE[0] + ss.ssGetTick() + event.getPartialTick()) / SuperSteveEntityBase.ENTER_ACTIVE[0];
+				progress = (ss.stateTime() + event.getPartialTick()) / SuperSteveEntityBase.ENTER_ACTIVE[0];
+			} else if (ss.getState() == State.EXIT) {
+				sidePgs = (((float) ss.stateTime() + event.getPartialTick()) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0]);
+				dsidePgs = 1f - sidePgs;
 			}
-			if (!ss.isAlive())
-				progress = 0;
-			if (progress >= 0) {
-				PoseStack poseStack = guiGraphics.pose();
-				poseStack.pushPose();
-				// poseStack.translate(x, y, 0);
-				// poseStack.scale(1.5F, 1.5F, 1F);
-				// Matrix4f pose = poseStack.last().pose();
-				// BufferBuilder builder = Tesselator.getInstance().getBuilder();
-				// builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-				// float xStart = x - barWidth / 2F + 10F;
-				// float yStart = y - barHeight / 2F + 9F;
-				// builder.vertex(pose, x - barWidth / 2F, y - barHeight / 2F, 0).uv(0, 0).endVertex();
-				// builder.vertex(pose, x - barWidth / 2F, y + barHeight / 2F, 0).uv(0, 22F / 27F).endVertex();
-				// builder.vertex(pose, x + barWidth / 2F, y + barHeight / 2F, 0).uv(1, 22F / 27F).endVertex();
-				// builder.vertex(pose, x + barWidth / 2F, y - barHeight / 2F, 0).uv(1, 0).endVertex();
-				// RenderSystem.setShader(GameRenderer::getPositionTexShader);
-				// RenderSystem.setShaderTexture(0, SS_BAR);
-				// RenderStateShard.TRANSLUCENT_TRANSPARENCY.setupRenderState();
-				// BufferUploader.drawWithShader(builder.end());
-				// builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-				// float hWidth = 165;
-				// float hHeight = 5;
-				// builder.vertex(pose, xStart, yStart, 0).uv(0, 22F / 27F).endVertex();
-				// builder.vertex(pose, xStart, yStart + hHeight, 0).uv(0, 1).endVertex();
-				// builder.vertex(pose, xStart + (progress * hWidth), yStart + hHeight, 0).uv(165F / 180F * progress, 1).endVertex();
-				// builder.vertex(pose, xStart + (progress * hWidth), yStart, 0).uv(165F / 180F * progress, 22F / 27F).endVertex();
-				// BufferUploader.drawWithShader(builder.end());
-				// RenderStateShard.TRANSLUCENT_TRANSPARENCY.clearRenderState();
-				poseStack.translate(x, y, 0);
-				poseStack.scale(1.5F, 1.5F, 1F);
-				var barpgs = 0F;
-				var dbarpgs = 1f;
-				if (progress == 0) {
-					barpgs = (((float) (ss.ssGetTick() + SuperSteveEntityBase.DEATH_ACTIVE[0]) + event.getPartialTick()) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0]);
-					dbarpgs = 1f - barpgs;
-				}
-				Matrix4f pose = poseStack.last().pose();
-				BufferBuilder builder = Tesselator.getInstance().getBuilder();
-				builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-				builder.vertex(pose, -barWidth / 2F * dbarpgs, -barHeight / 2F, 0).uv(barpgs * 0.5f, 0).endVertex();
-				builder.vertex(pose, -barWidth / 2F * dbarpgs, +barHeight / 2F, 0).uv(barpgs * 0.5f, 22F / 27F).endVertex();
-				builder.vertex(pose, +barWidth / 2F * dbarpgs, +barHeight / 2F, 0).uv((dbarpgs + 1f) * 0.5f, 22F / 27F).endVertex();
-				builder.vertex(pose, +barWidth / 2F * dbarpgs, -barHeight / 2F, 0).uv((dbarpgs + 1f) * 0.5f, 0).endVertex();
-				RenderSystem.setShader(GameRenderer::getPositionTexShader);
-				RenderSystem.setShaderTexture(0, SS_BAR);
-				RenderStateShard.TRANSLUCENT_TRANSPARENCY.setupRenderState();
-				BufferUploader.drawWithShader(builder.end());
-				builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-				float xStart = -barWidth / 2F + 10F;
-				float yStart = -barHeight / 2F + 9F;
-				float hWidth = 165;
-				float hHeight = 5;
-				builder.vertex(pose, xStart, yStart, 0).uv(0, 22F / 27F).endVertex();
-				builder.vertex(pose, xStart, yStart + hHeight, 0).uv(0, 1).endVertex();
-				builder.vertex(pose, xStart + (progress * hWidth), yStart + hHeight, 0).uv(165F / 180F * progress, 1).endVertex();
-				builder.vertex(pose, xStart + (progress * hWidth), yStart, 0).uv(165F / 180F * progress, 22F / 27F).endVertex();
-				BufferUploader.drawWithShader(builder.end());
-				RenderStateShard.TRANSLUCENT_TRANSPARENCY.clearRenderState();
-				poseStack.popPose();
-				guiGraphics.drawCenteredString(mc.font, Component.literal(fss.getCustomName().getString() + " " + ss.ssGetHealth() + "/20.0").withStyle(Style.EMPTY.withBold(true).withItalic(true)), (int) x, (int) (y - barHeight / 2F), Color.HSBtoRGB(SSUtil.getRainbowHue(3000), 1, 1));
-			}
+			progress = PLZBase.progress(progress);
+			Matrix4f pose = poseStack.last().pose();
+			BufferBuilder builder = Tesselator.getInstance().getBuilder();
+			builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+			builder.vertex(pose, -barWidth / 2F * dsidePgs, -barHeight / 2F, 0).uv(sidePgs * 0.5f, 0).endVertex();
+			builder.vertex(pose, -barWidth / 2F * dsidePgs, +barHeight / 2F, 0).uv(sidePgs * 0.5f, 22F / 27F).endVertex();
+			builder.vertex(pose, +barWidth / 2F * dsidePgs, +barHeight / 2F, 0).uv((dsidePgs + 1f) * 0.5f, 22F / 27F).endVertex();
+			builder.vertex(pose, +barWidth / 2F * dsidePgs, -barHeight / 2F, 0).uv((dsidePgs + 1f) * 0.5f, 0).endVertex();
+			RenderSystem.setShader(GameRenderer::getPositionTexShader);
+			RenderSystem.setShaderTexture(0, SS_BAR);
+			RenderStateShard.TRANSLUCENT_TRANSPARENCY.setupRenderState();
+			BufferUploader.drawWithShader(builder.end());
+			builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+			float xStart = -barWidth / 2F + 10F;
+			float yStart = -barHeight / 2F + 9F;
+			float hWidth = 165;
+			float hHeight = 5;
+			builder.vertex(pose, xStart, yStart, 0).uv(0, 22F / 27F).endVertex();
+			builder.vertex(pose, xStart, yStart + hHeight, 0).uv(0, 1).endVertex();
+			builder.vertex(pose, xStart + (progress * hWidth), yStart + hHeight, 0).uv(165F / 180F * progress, 1).endVertex();
+			builder.vertex(pose, xStart + (progress * hWidth), yStart, 0).uv(165F / 180F * progress, 22F / 27F).endVertex();
+			BufferUploader.drawWithShader(builder.end());
+			RenderStateShard.TRANSLUCENT_TRANSPARENCY.clearRenderState();
+			poseStack.popPose();
+			guiGraphics.drawCenteredString(mc.font, Component.literal(fss.getCustomName().getString() + " " + ss.ssGetHealth() + "/20.0").withStyle(Style.EMPTY.withBold(true).withItalic(true)), (int) x, (int) (y - barHeight / 2F), Color.HSBtoRGB(SSUtil.getRainbowHue(3000), 1, 1));
 			RenderSystem.disableBlend();
 		}
 	}

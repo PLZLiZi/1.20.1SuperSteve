@@ -32,6 +32,7 @@ public class SSStripeLayer extends SSLayer {
 	@Override
 	public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 		poseStack.pushPose();
+		float ptick = entity.ssGetTick() + partialTick;
 		float halfH = BASE_HEIGHT / 2.0F;
 		float r = 1.0F, g = 1.0F, b = 1.0F, a = 0.3F;
 		var color = SSUtil.getRainbowColor(3);
@@ -41,9 +42,9 @@ public class SSStripeLayer extends SSLayer {
 		VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucentEmissive(SSUtil.WHITE_TEXTURE, false));
 		for (int i = 0; i < COUNT; i++) {
 			poseStack.pushPose();
-			poseStack.mulPose(Axis.XP.rotationDegrees((entity.ssGetTick() + partialTick) * SPHERE_SPEEDS.get(i).x));
-			poseStack.mulPose(Axis.YP.rotationDegrees((entity.ssGetTick() + partialTick) * SPHERE_SPEEDS.get(i).y));
-			poseStack.mulPose(Axis.ZP.rotationDegrees((entity.ssGetTick() + partialTick) * SPHERE_SPEEDS.get(i).z));
+			poseStack.mulPose(Axis.XP.rotationDegrees(ptick * SPHERE_SPEEDS.get(i).x));
+			poseStack.mulPose(Axis.YP.rotationDegrees(ptick * SPHERE_SPEEDS.get(i).y));
+			poseStack.mulPose(Axis.ZP.rotationDegrees(ptick * SPHERE_SPEEDS.get(i).z));
 			SSRenders.renderStrip(poseStack, vc, entity.ssGetAttR(true) + (i * 0.3F), halfH + (i * 0.04F), SEGMENTS, r, g, b, a, packedLight);
 			poseStack.popPose();
 		}
