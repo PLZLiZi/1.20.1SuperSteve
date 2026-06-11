@@ -66,7 +66,6 @@ import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
 import net.minecraftforge.registries.ForgeRegistries;
-import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
@@ -126,14 +125,14 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	private void ssInit() {
 		if (!level.isClientSide()) {
-			SuperSteveMod.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-			SuperSteveMod.SS_INSTANCES.get(getId()).put(this);
+			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES.get(getId()).put(this);
 		} else {
 			if (SSUtil.ONLY_SERVER)
-				SuperSteveMod.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).put(this);
+				SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).put(this);
 			else {
-				SuperSteveMod.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-				SuperSteveMod.SS_INSTANCES.get(getId()).put(this);
+				SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
+				SSUtil.SS_INSTANCES.get(getId()).put(this);
 			}
 		}
 	}
@@ -871,7 +870,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			SSUtil.killEntity(entity);
 		} else {
 			Player player = (Player) entity;
-			if (!SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID())) {
+			if (!SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
 				if (level instanceof ServerLevel serverLevel) {
 					float hurtValue = (player.getMaxHealth() / 50.0F);
 					if (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) {

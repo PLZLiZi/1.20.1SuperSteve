@@ -14,12 +14,13 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.SSUtil;
 
 public class SSTransformer implements ClassFileTransformer {
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        if (className.equals("sun/instrument/InstrumentationImpl")) {
+        if (!SuperSteveMod.TWDR && className.equals("sun/instrument/InstrumentationImpl")) {
             ClassReader cr = new ClassReader(classfileBuffer);
             ClassNode cn = new ClassNode();
             cr.accept(cn, ClassReader.EXPAND_FRAMES);

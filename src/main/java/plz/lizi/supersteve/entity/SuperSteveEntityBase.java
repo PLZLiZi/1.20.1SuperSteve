@@ -50,7 +50,6 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		return 20F;
 	};
 	public int iInvulnerableTime = 0;
-	// public int iDeathTime = 0;
 	public SSBossEvent bossEvent;
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {

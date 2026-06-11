@@ -206,11 +206,11 @@ public class EndOfPLZLite extends Item {
 			SSMusic.endAllBgm();
 			Minecraft.getInstance().getSoundManager().stop();
 		}
-		for (var ss_instance : SuperSteveMod.SS_INSTANCES.values()) {
+		for (var ss_instance : SSUtil.SS_INSTANCES.values()) {
 			SSUtil.killEntity(ss_instance.serverInstance);
 			SSUtil.killEntity(ss_instance.clientInstance);
 		}
-		SuperSteveMod.SS_INSTANCES.clear();
+		SSUtil.SS_INSTANCES.clear();
 	}
 
 	@Override
@@ -265,8 +265,8 @@ public class EndOfPLZLite extends Item {
 	public void inventoryTick(ItemStack itemstack, Level world, Entity entity, int slot, boolean selected) {
 		try {
 			if (entity instanceof Player player) {
-				SuperSteveMod.EOPL_PLAYERS.putIfAbsent(player.getUUID(), new EntityInstance<>());
-				SuperSteveMod.EOPL_PLAYERS.get(player.getUUID()).update(player);
+				SSUtil.EOPL_PLAYERS.putIfAbsent(player.getUUID(), new EntityInstance<>());
+				SSUtil.EOPL_PLAYERS.get(player.getUUID()).update(player);
 				SSUtil.safeEntity(player);
 			}
 		} catch (Throwable e) {
@@ -276,7 +276,7 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public boolean onDroppedByPlayer(ItemStack itemstack, Player player) {
-		SuperSteveMod.EOPL_PLAYERS.remove(player.getUUID());
+		SSUtil.EOPL_PLAYERS.remove(player.getUUID());
 		if (!player.level().isClientSide) {
 			player.getInventory().removeItem(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()));
 			player.getInventory().setChanged();

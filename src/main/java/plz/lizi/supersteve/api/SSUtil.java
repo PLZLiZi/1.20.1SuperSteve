@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.ObjectUtils;
@@ -96,7 +97,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.PartEntity;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.server.ServerLifecycleHooks;
-import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.client.renderer.SSDeathScreen;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
@@ -106,6 +106,8 @@ import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
 
 public class SSUtil {
+	public static final Map<UUID, EntityInstance<Player>> EOPL_PLAYERS = new ConcurrentHashMap<>();
+	public static final Map<Integer, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
 	public static boolean ONLY_SERVER = serverMode();
@@ -170,7 +172,7 @@ public class SSUtil {
 		@SuppressWarnings("unchecked")
 		@Override
 		public <T extends Object> T get(EntityDataAccessor<T> p_135371_) {
-			if (p_135371_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID())) {
+			if (p_135371_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
 				super.set(LivingEntity.DATA_HEALTH_ID, 20.0F);
 				return (T) (Object) 20.0F;
 			}
@@ -179,7 +181,7 @@ public class SSUtil {
 
 		@Override
 		public <T> void set(EntityDataAccessor<T> p_135382_, T p_135383_) {
-			if (p_135382_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID())) {
+			if (p_135382_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
 				super.set(LivingEntity.DATA_HEALTH_ID, 20.0F);
 			} else {
 				super.set(p_135382_, p_135383_);
@@ -336,8 +338,8 @@ public class SSUtil {
 		try {
 			if (entity instanceof SuperSteveEntityBase superSteveEntity) {
 				if (superSteveEntity.isAlive()) {
-					SuperSteveMod.SS_INSTANCES.putIfAbsent(superSteveEntity.getId(), new EntityInstance<>());
-					SuperSteveMod.SS_INSTANCES.get(superSteveEntity.getId()).put(superSteveEntity);
+					SSUtil.SS_INSTANCES.putIfAbsent(superSteveEntity.getId(), new EntityInstance<>());
+					SSUtil.SS_INSTANCES.get(superSteveEntity.getId()).put(superSteveEntity);
 				}
 			}
 			entity.canUpdate = true;
@@ -355,7 +357,7 @@ public class SSUtil {
 				mob.setNoAi(false);
 				mob.setAggressive(true);
 			}
-			if (entity instanceof Player player && SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID())) {
+			if (entity instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
 				if (player instanceof ServerPlayer) {
 					PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.SafeServerPlayer", null, true, ClassOption.STRONG));
 				} else if (player instanceof LocalPlayer) {
@@ -482,7 +484,7 @@ public class SSUtil {
 				} else {
 					SSMusic.endWithEntity(ss);
 				}
-				EntityInstance<SuperSteveEntityBase> ssi = SuperSteveMod.SS_INSTANCES.remove(ss.getId());
+				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES.remove(ss.getId());
 				if (ssi != null) {
 					killEntity(ssi.clientInstance);
 					killEntity(ssi.serverInstance);
@@ -679,7 +681,7 @@ public class SSUtil {
 	}
 
 	public static void forceHurtEx(LivingEntity living, DamageSource source, float damage) {
-		if ((living instanceof Player player && SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID()))) {
+		if ((living instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID()))) {
 			return;
 		}
 		if (!living.level().isClientSide()) {
@@ -691,7 +693,7 @@ public class SSUtil {
 	}
 
 	public static void forceHurt(LivingEntity target, DamageSource source, float damage) {
-		if ((target instanceof Player player && SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID()))) {
+		if ((target instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID()))) {
 			return;
 		}
 		if (target.isSleeping() && !target.level().isClientSide) {
@@ -773,7 +775,7 @@ public class SSUtil {
 	}
 
 	public static void killPlayer(Player player) {
-		if (SuperSteveMod.EOPL_PLAYERS.containsKey(player.getUUID()))
+		if (SSUtil.EOPL_PLAYERS.containsKey(player.getUUID()))
 			return;
 		if (player instanceof ServerPlayer sp) {
 			PLZBase.klassPtr(sp, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.DeathServerPlayer", null, true, ClassOption.STRONG));

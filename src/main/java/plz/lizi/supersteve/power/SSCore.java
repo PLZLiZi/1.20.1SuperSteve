@@ -22,8 +22,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.level.entity.LevelEntityGetterAdapter;
-import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.SCPort;
+import plz.lizi.supersteve.api.SSUtil;
 
 public class SSCore {
     public static final Map<SCPort, Set<LevelEntityGetter<Entity>>> GETTERS = Map.of(SCPort.SERVER, new HashSet<>(), SCPort.CLIENT, new HashSet<>(), SCPort.UNKNOW, new HashSet<>());
@@ -32,7 +32,7 @@ public class SSCore {
         GETTERS.get(SCPort.of(zhis)).add(zhis.getEntities());
         Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
         Set<Entity> sss = new HashSet<>();
-        for (var istc : SuperSteveMod.SS_INSTANCES.values()) {
+        for (var istc : SSUtil.SS_INSTANCES.values()) {
             sss.add(istc.serverInstance);
         }
         sss.removeIf(Objects::isNull);
@@ -44,7 +44,7 @@ public class SSCore {
         GETTERS.get(SCPort.of(zhis)).add(zhis.getEntities());
         Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
         Set<Entity> sss = new HashSet<>();
-        for (var istc : SuperSteveMod.SS_INSTANCES.values()) {
+        for (var istc : SSUtil.SS_INSTANCES.values()) {
             sss.add(istc.clientInstance);
         }
         sss.removeIf(Objects::isNull);
@@ -60,7 +60,7 @@ public class SSCore {
             val = new HashSet<>();
         }
         Set<Entity> sss = new HashSet<>();
-        for (var istc : SuperSteveMod.SS_INSTANCES.values()) {
+        for (var istc : SSUtil.SS_INSTANCES.values()) {
             if (GETTERS.get(SCPort.SERVER).contains(zhis)) {
                 sss.add(istc.serverInstance);
             } else if (GETTERS.get(SCPort.CLIENT).contains(zhis)) {
