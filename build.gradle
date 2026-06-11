@@ -41,15 +41,15 @@ minecraft {
 sourceSets {
     main {
         java {
-            srcDir 'src/jd/java'
+            //srcDir 'src/jd/java'
         }
     }
 }
 
-jar {
-    exclude '/org/benf/**'
-    exclude '/org/jetbrains/**'
-}
+//jar {
+//    exclude '/org/benf/**'
+//    exclude '/org/jetbrains/**'
+//}
 
 repositories {
     flatDir {
