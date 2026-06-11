@@ -56,7 +56,7 @@ public class SSEvents {
 			float y = event.getY();
 			float barWidth = 180;
 			float barHeight = 22;
-			float progress = bossEvent.getProgress();
+			float inPgs = bossEvent.getProgress();
 			PoseStack poseStack = guiGraphics.pose();
 			poseStack.pushPose();
 			poseStack.translate(x, y, 0);
@@ -64,12 +64,15 @@ public class SSEvents {
 			var sidePgs = 0F;
 			var dsidePgs = 1f;
 			if (ss.getState() == State.ENTER) {
-				progress = (ss.stateTime() + event.getPartialTick()) / SuperSteveEntityBase.ENTER_ACTIVE[0];
+				inPgs = ((float) ss.stateTime() + event.getPartialTick()) / (float) SuperSteveEntityBase.ENTER_ACTIVE[0];
 			} else if (ss.getState() == State.EXIT) {
-				sidePgs = (((float) ss.stateTime() + event.getPartialTick()) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0]);
+				sidePgs = ((float) ss.stateTime() + event.getPartialTick()) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0];
 				dsidePgs = 1f - sidePgs;
+				inPgs = 0;
 			}
-			progress = PLZBase.progress(progress);
+			sidePgs = PLZBase.progress(sidePgs);
+			dsidePgs = PLZBase.progress(dsidePgs);
+			inPgs = PLZBase.progress(inPgs);
 			Matrix4f pose = poseStack.last().pose();
 			BufferBuilder builder = Tesselator.getInstance().getBuilder();
 			builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
@@ -88,8 +91,8 @@ public class SSEvents {
 			float hHeight = 5;
 			builder.vertex(pose, xStart, yStart, 0).uv(0, 22F / 27F).endVertex();
 			builder.vertex(pose, xStart, yStart + hHeight, 0).uv(0, 1).endVertex();
-			builder.vertex(pose, xStart + (progress * hWidth), yStart + hHeight, 0).uv(165F / 180F * progress, 1).endVertex();
-			builder.vertex(pose, xStart + (progress * hWidth), yStart, 0).uv(165F / 180F * progress, 22F / 27F).endVertex();
+			builder.vertex(pose, xStart + (inPgs * hWidth), yStart + hHeight, 0).uv(165F / 180F * inPgs, 1).endVertex();
+			builder.vertex(pose, xStart + (inPgs * hWidth), yStart, 0).uv(165F / 180F * inPgs, 22F / 27F).endVertex();
 			BufferUploader.drawWithShader(builder.end());
 			RenderStateShard.TRANSLUCENT_TRANSPARENCY.clearRenderState();
 			poseStack.popPose();

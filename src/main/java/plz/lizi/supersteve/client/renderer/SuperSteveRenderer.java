@@ -2,25 +2,18 @@ package plz.lizi.supersteve.client.renderer;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.phys.Vec3;
 import plz.lizi.supersteve.SuperSteveMod;
-import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -30,11 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import net.minecraft.client.Minecraft;
 
 public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase, SuperSteveModel> {
 	private static final ResourceLocation TEXTURE = ResourceLocation.tryBuild(SuperSteveMod.MODID, "textures/entities/steve.png");
@@ -62,7 +53,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 	public void addSSLayer(SSLayer sl) {
 		if (sl.isStatic())
 			staticLayers.add(sl);
-		else 
+		else
 			moveLayers.add(sl);
 	}
 
@@ -77,7 +68,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 
 	public static void deathReduce(PoseStack poseStack, SuperSteveEntityBase entity, float partialTick) {
 		if (entity.getState() == State.EXIT) {
-			float pgs = Math.max(0, Math.min(1, (entity.ssGetTick() + SuperSteveEntityBase.DEATH_ACTIVE[0] + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[1]) / (SuperSteveEntityBase.DEATH_ACTIVE[2] - SuperSteveEntityBase.DEATH_ACTIVE[1]) * 2));
+			float pgs = Math.max(0, Math.min(1, (entity.stateTime() + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[1]) / (SuperSteveEntityBase.DEATH_ACTIVE[2] - SuperSteveEntityBase.DEATH_ACTIVE[1]) * 2));
 			pgs = 1 - pgs;
 			poseStack.scale(pgs, pgs, pgs);
 		}
@@ -90,7 +81,6 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 
 	@Override
 	public void render(SuperSteveEntityBase entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
-		Minecraft minecraft = Minecraft.getInstance();
 		State animation = entity.getState();
 		poseStack.pushPose();
 		poseStack.translate(0, entity.getBbHeight() / 3f, 0);

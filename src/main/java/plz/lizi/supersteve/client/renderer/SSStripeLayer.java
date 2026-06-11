@@ -10,7 +10,6 @@ import org.joml.Vector3f;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;

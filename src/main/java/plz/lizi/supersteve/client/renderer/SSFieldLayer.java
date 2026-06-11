@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;

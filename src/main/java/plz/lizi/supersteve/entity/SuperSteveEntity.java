@@ -205,8 +205,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				for (var t : cl.entitiesForRendering()) {
 					if (t == null || !(t instanceof LivingEntity) || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
 						continue;
-					for (int i = 0; i < 2; i++)
-						attacks.add(new Attack(SSUtil.randint(5, 10), null, t.position.add(SSUtil.randfloat(-0.5F, 0.5F), t.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1.5f), SSUtil.randfloat(0.5f, 1.5f))));
+					attacks.add(new Attack(SSUtil.randint(5, 10), null, t.position.add(SSUtil.randfloat(-0.5F, 0.5F), t.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1.5f), SSUtil.randfloat(0.5f, 1.5f))));
 				}
 			}
 		}
