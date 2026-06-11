@@ -1,0 +1,24 @@
+{
+    "fukuma_mizushi1": {
+        "sounds": [
+            {
+                "name": "supersteve:fukuma_mizushi1",
+                "stream": true
+            }
+        ]
+    },
+    "fukuma_mizushi2": {
+        "sounds": [
+            {
+                "name": "supersteve:fukuma_mizushi2"
+            }
+        ]
+    },
+    "fukuma_mizushi3": {
+        "sounds": [
+            {
+                "name": "supersteve:fukuma_mizushi3"
+            }
+        ]
+    }
+}

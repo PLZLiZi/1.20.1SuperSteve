@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "pattern": [
+        "a"
+    ],
+    "key": {
+        "a": {
+            "item": "supersteve:endofplz_lite"
+        }
+    },
+    "result": {
+        "item": "supersteve:cutter",
+        "count": 1
+    }
+}
