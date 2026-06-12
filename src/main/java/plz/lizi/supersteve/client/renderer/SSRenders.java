@@ -1,5 +1,7 @@
 package plz.lizi.supersteve.client.renderer;
 
+import java.util.OptionalDouble;
+import java.util.function.Function;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -10,6 +12,7 @@ import com.mojang.math.Axis;
 import net.minecraft.client.renderer.RenderStateShard.DepthTestStateShard;
 import net.minecraft.client.renderer.RenderStateShard.MultiTextureStateShard;
 import net.minecraft.client.renderer.RenderStateShard.ShaderStateShard;
+import net.minecraft.Util;
 import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
@@ -18,6 +21,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 
 public class SSRenders {
+    public static final Function<Double, RenderType> CUSTOM_LINE = Util.memoize(size -> RenderType.create("lines", DefaultVertexFormat.POSITION_COLOR_NORMAL, Mode.LINES, 256, RenderType.CompositeState.builder().setShaderState(ShaderStateShard.RENDERTYPE_LINES_SHADER).setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(size))).setLayeringState(ShaderStateShard.VIEW_OFFSET_Z_LAYERING).setTransparencyState(ShaderStateShard.TRANSLUCENT_TRANSPARENCY).setOutputState(ShaderStateShard.ITEM_ENTITY_TARGET).setWriteMaskState(ShaderStateShard.COLOR_DEPTH_WRITE).setCullState(ShaderStateShard.NO_CULL).createCompositeState(false)));
     public static final RenderType END_PORTAL_NC = RenderType.create("supersteve:end_portal_nc", DefaultVertexFormat.POSITION, Mode.QUADS, 256, false, false, RenderType.CompositeState.builder().setShaderState(RenderStateShard.RENDERTYPE_END_PORTAL_SHADER).setTextureState(MultiTextureStateShard.builder().add(TheEndPortalRenderer.END_SKY_LOCATION, false, false).add(TheEndPortalRenderer.END_PORTAL_LOCATION, false, false).build()).setCullState(ShaderStateShard.NO_CULL).createCompositeState(false));
     public static final RenderType END_PORTAL_H = RenderType.create("supersteve:end_portal_h", DefaultVertexFormat.POSITION, Mode.QUADS, 256, false, false, RenderType.CompositeState.builder().setShaderState(RenderStateShard.RENDERTYPE_END_PORTAL_SHADER).setTextureState(MultiTextureStateShard.builder().add(TheEndPortalRenderer.END_SKY_LOCATION, false, false).add(TheEndPortalRenderer.END_PORTAL_LOCATION, false, false).build()).setCullState(ShaderStateShard.CULL).setDepthTestState(DepthTestStateShard.NO_DEPTH_TEST).createCompositeState(false));
     public static final RenderType POSITION_COLOR_NC = RenderType.create("supersteve:position_color_nc", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 256, RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_SHADER).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setCullState(RenderStateShard.NO_CULL).createCompositeState(false));

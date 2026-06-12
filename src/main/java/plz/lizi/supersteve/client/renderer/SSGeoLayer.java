@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import org.joml.Vector3f;
 import plz.lizi.supersteve.api.SSUtil;
@@ -64,16 +63,30 @@ public class SSGeoLayer extends SSLayer {
 	@Override
 	public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 		poseStack.pushPose();
-		VertexConsumer vc = buffer.getBuffer(RenderType.lines());
+		VertexConsumer vc = buffer.getBuffer(SSRenders.CUSTOM_LINE.apply(5D));
 		float[] rgb = SSUtil.getRainbowColor(3);
-		poseStack.mulPose(Axis.XP.rotationDegrees((entity.ssGetTick() + partialTick) * ROAT.x));
-		poseStack.mulPose(Axis.YP.rotationDegrees((entity.ssGetTick() + partialTick) * ROAT.y));
-		poseStack.mulPose(Axis.ZP.rotationDegrees((entity.ssGetTick() + partialTick) * ROAT.z));
-		renderFootball(poseStack, vc, entity.ssGetAttR(true) / 4F, rgb[0], rgb[1], rgb[2], 1.0F);
+		float time = (float) entity.ssGetTick() + partialTick;
+		poseStack.mulPose(Axis.XP.rotationDegrees(time * ROAT.x));
+		poseStack.mulPose(Axis.YP.rotationDegrees(time * ROAT.y));
+		poseStack.mulPose(Axis.ZP.rotationDegrees(time * ROAT.z));
+		float radius = (float) entity.ssGetAttR(true);
+		PoseStack.Pose lastPose = poseStack.last();
+		line(vc, lastPose, -radius, -radius, -radius, radius, -radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, radius, -radius, -radius, radius, -radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, radius, -radius, radius, -radius, -radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, -radius, -radius, radius, -radius, -radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, -radius, radius, -radius, radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, radius, radius, -radius, radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, radius, radius, radius, -radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, -radius, radius, radius, -radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, -radius, -radius, -radius, -radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, radius, -radius, -radius, radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, radius, -radius, radius, radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		line(vc, lastPose, -radius, -radius, radius, -radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
 		poseStack.popPose();
 	}
 
-	private static void renderFootball(PoseStack poseStack, VertexConsumer vc, float scale, float r, float g, float b, float a) {
+	public static void renderFootball(PoseStack poseStack, VertexConsumer vc, float scale, float r, float g, float b, float a) {
 		PoseStack.Pose pose = poseStack.last();
 		for (int[] edge : EDGES) {
 			Vector3f v1 = VERTICES.get(edge[0]);

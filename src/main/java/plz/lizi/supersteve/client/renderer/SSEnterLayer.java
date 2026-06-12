@@ -47,7 +47,7 @@ public class SSEnterLayer extends SSLayer {
         float currentTick = (float) entity.stateTime() + partialTick;
         BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(45.0F + currentTick * 1.5F));
+        poseStack.mulPose(Axis.YP.rotationDegrees(45.0F));// + currentTick * 1.5F
         int num = BLOCKS.length;
         float eachTime = (float) (SuperSteveEntityBase.ENTER_ACTIVE[3] - SuperSteveEntityBase.ENTER_ACTIVE[2]) / (float) num;
         float[] color = SSUtil.getRainbowColor(3);
