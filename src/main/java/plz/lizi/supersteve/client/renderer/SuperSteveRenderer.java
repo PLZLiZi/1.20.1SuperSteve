@@ -5,8 +5,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.phys.Vec3;
 import plz.lizi.supersteve.SuperSteveMod;
+import plz.lizi.supersteve.client.renderer.model.SolidImgModel;
 import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
@@ -21,23 +21,23 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.model.geom.ModelLayers;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 
 public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase, SuperSteveModel> {
 	private static final ResourceLocation TEXTURE = ResourceLocation.tryBuild(SuperSteveMod.MODID, "textures/entities/steve.png");
+	private static final ResourceLocation WEAPON_CIRCLE = new ResourceLocation("supersteve:textures/entities/ss_weapon_circle.png");
 	private static final float SCALE = 0.95F;
 	private final HumanoidArmorLayer<SuperSteveEntityBase, SuperSteveModel, SuperSteveModel> armorLayer;
 	private final ItemInHandLayer<SuperSteveEntityBase, SuperSteveModel> itemInHandLayer;
 	private final List<SSLayer> moveLayers = new ArrayList<>();
 	private final List<SSLayer> staticLayers = new ArrayList<>();
-	public static final Map<Entity, Vec3> ATTACTS = new WeakHashMap<>();
+	public final SolidImgModel solidWeapons;
 
 	public SuperSteveRenderer(EntityRendererProvider.Context context) {
 		super(context, new SuperSteveModel(context.bakeLayer(ModelLayers.PLAYER)), 0.5f);
+		solidWeapons = new SolidImgModel(WEAPON_CIRCLE, 1F / 16F);
 		itemInHandLayer = new ItemInHandLayer<>(this, context.getItemInHandRenderer());
 		armorLayer = (new HumanoidArmorLayer<>(this, new SuperSteveModel(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)), new SuperSteveModel(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)), context.getModelManager()));
 		addSSLayer(new SSEnterLayer(this));

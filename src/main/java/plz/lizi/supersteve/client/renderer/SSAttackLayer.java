@@ -4,13 +4,11 @@ import java.util.Set;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
-import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
 public class SSAttackLayer extends SSLayer {
-    public SSAttackLayer(RenderLayerParent<SuperSteveEntityBase, SuperSteveModel> p_117346_) {
+    public SSAttackLayer(SuperSteveRenderer p_117346_) {
         super(p_117346_);
     }
 

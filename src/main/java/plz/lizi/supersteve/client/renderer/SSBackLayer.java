@@ -4,23 +4,18 @@ import java.util.Set;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
-import net.minecraft.resources.ResourceLocation;
-import plz.lizi.supersteve.client.renderer.model.SolidImgModel;
-import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
 public class SSBackLayer extends SSLayer {
-	private static final ResourceLocation WEAPON_CIRCLE = new ResourceLocation("supersteve:textures/entities/ss_weapon_circle.png");
-	private static final float ROAT_SPEED = 5;
-	private static final float FLOAT = 0.3F;
-	private static final float FLOAT_SPEED = 40;
-	private final SolidImgModel solidImgModel;
+	public static final float ROAT_SPEED = 5;
+	public static final float FLOAT = 0.3F;
+	public static final float FLOAT_SPEED = 40;
+	private final SuperSteveRenderer parent;
 
-	public SSBackLayer(RenderLayerParent<SuperSteveEntityBase, SuperSteveModel> parent) {
+	public SSBackLayer(SuperSteveRenderer parent) {
 		super(parent);
-		solidImgModel = new SolidImgModel(WEAPON_CIRCLE, 1F / 16F);
+		this.parent = parent;
 	}
 
 	@Override
@@ -32,9 +27,8 @@ public class SSBackLayer extends SSLayer {
 		poseStack.translate(0.0D, -0.5D + yOffset, 0.5D);
 		poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
 		poseStack.mulPose(Axis.ZP.rotationDegrees(tick * ROAT_SPEED));
-		float size = 3F;
-		poseStack.scale(size, size, size);
-		solidImgModel.render(poseStack);
+		poseStack.scale(3F, 3F, 3F);
+		parent.solidWeapons.render(poseStack);
 		//VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.entityCutoutNoCull(WEAPON_CIRCLE));
 		//PoseStack.Pose pose = poseStack.last();
 		//packedLight = 0xF000F0;

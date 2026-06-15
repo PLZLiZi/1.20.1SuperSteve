@@ -4,10 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import org.joml.Vector3f;
 import plz.lizi.supersteve.api.SSUtil;
-import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 import java.util.ArrayList;
@@ -19,7 +17,7 @@ public class SSGeoLayer extends SSLayer {
 	private static final List<Vector3f> VERTICES = new ArrayList<>();
 	private static final List<int[]> EDGES = new ArrayList<>();
 
-	public SSGeoLayer(RenderLayerParent<SuperSteveEntityBase, SuperSteveModel> parent) {
+	public SSGeoLayer(SuperSteveRenderer parent) {
 		super(parent);
 		if (VERTICES.isEmpty()) {
 			initFootballGeometry();

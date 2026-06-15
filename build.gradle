@@ -1,6 +1,7 @@
 plugins {
-    id 'java'
-    id 'eclipse'
+	id 'eclipse'
+	id 'idea'
+	id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
     id 'org.parchmentmc.librarian.forgegradle' version '1.+'
 }
@@ -60,6 +61,17 @@ repositories {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
     implementation 'dev:cfr:1.0'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+	var replaceProperties = [
+			mod_version: mod_version,
+	]
+	inputs.properties replaceProperties
+
+	filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+		expand replaceProperties + [project: project]
+	}
 }
 
 tasks.withType(JavaCompile).configureEach {

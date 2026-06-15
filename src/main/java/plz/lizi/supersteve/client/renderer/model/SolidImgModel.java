@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+import org.joml.Matrix4f;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -47,28 +48,29 @@ public class SolidImgModel {
 		RenderSystem.enablePolygonOffset();
 		RenderSystem.enableDepthTest();
 		RenderSystem.depthMask(true);
+		Matrix4f pose = poseStack.last().pose();
 		for (Edge edge : edges) {
 			int r = edge.color.getRed();
 			int g = edge.color.getGreen();
 			int b = edge.color.getBlue();
 			int a = edge.color.getAlpha();
-			builder.vertex(poseStack.last().pose(), edge.x1, edge.y1, hthickness).color(r, g, b, a).endVertex();
-			builder.vertex(poseStack.last().pose(), edge.x2, edge.y2, hthickness).color(r, g, b, a).endVertex();
-			builder.vertex(poseStack.last().pose(), edge.x2, edge.y2, -hthickness).color(r, g, b, a).endVertex();
-			builder.vertex(poseStack.last().pose(), edge.x1, edge.y1, -hthickness).color(r, g, b, a).endVertex();
+			builder.vertex(pose, edge.x1, edge.y1, hthickness).color(r, g, b, a).endVertex();
+			builder.vertex(pose, edge.x2, edge.y2, hthickness).color(r, g, b, a).endVertex();
+			builder.vertex(pose, edge.x2, edge.y2, -hthickness).color(r, g, b, a).endVertex();
+			builder.vertex(pose, edge.x1, edge.y1, -hthickness).color(r, g, b, a).endVertex();
 		}
 		BufferUploader.drawWithShader(builder.end());
 		builder.begin(Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
 		RenderSystem.setShader(GameRenderer::getPositionTexShader);
 		RenderSystem.setShaderTexture(0, res);
-		builder.vertex(poseStack.last().pose(), -0.5F, 0.5F, hthickness).uv(0, 1).endVertex();
-		builder.vertex(poseStack.last().pose(), -0.5F, -0.5F, hthickness).uv(0, 0).endVertex();
-		builder.vertex(poseStack.last().pose(), 0.5F, -0.5F, hthickness).uv(1, 0).endVertex();
-		builder.vertex(poseStack.last().pose(), 0.5F, 0.5F, hthickness).uv(1, 1).endVertex();
-		builder.vertex(poseStack.last().pose(), 0.5F, 0.5F, -hthickness).uv(1, 1).endVertex();
-		builder.vertex(poseStack.last().pose(), 0.5F, -0.5F, -hthickness).uv(1, 0).endVertex();
-		builder.vertex(poseStack.last().pose(), -0.5F, -0.5F, -hthickness).uv(0, 0).endVertex();
-		builder.vertex(poseStack.last().pose(), -0.5F, 0.5F, -hthickness).uv(0, 1).endVertex();
+		builder.vertex(pose, -0.5F, 0.5F, hthickness).uv(0, 1).endVertex();
+		builder.vertex(pose, -0.5F, -0.5F, hthickness).uv(0, 0).endVertex();
+		builder.vertex(pose, 0.5F, -0.5F, hthickness).uv(1, 0).endVertex();
+		builder.vertex(pose, 0.5F, 0.5F, hthickness).uv(1, 1).endVertex();
+		builder.vertex(pose, 0.5F, 0.5F, -hthickness).uv(1, 1).endVertex();
+		builder.vertex(pose, 0.5F, -0.5F, -hthickness).uv(1, 0).endVertex();
+		builder.vertex(pose, -0.5F, -0.5F, -hthickness).uv(0, 0).endVertex();
+		builder.vertex(pose, -0.5F, 0.5F, -hthickness).uv(0, 1).endVertex();
 		BufferUploader.drawWithShader(builder.end());
 	}
 }

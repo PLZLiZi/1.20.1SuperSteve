@@ -7,12 +7,10 @@ import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemDisplayContext;
-import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
@@ -20,7 +18,7 @@ public class SSWeaponLayer extends SSLayer {
 	private static final float TIME = 100;
 	private static final int COUNT = 30;
 
-	public SSWeaponLayer(RenderLayerParent<SuperSteveEntityBase, SuperSteveModel> parent) {
+	public SSWeaponLayer(SuperSteveRenderer parent) {
 		super(parent);
 	}
 

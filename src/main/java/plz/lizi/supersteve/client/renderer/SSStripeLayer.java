@@ -9,9 +9,7 @@ import java.util.Set;
 import org.joml.Vector3f;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import plz.lizi.supersteve.api.SSUtil;
-import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
@@ -21,7 +19,7 @@ public class SSStripeLayer extends SSLayer {
 	private static final float BASE_HEIGHT = 0.25F;
 	private static final int SEGMENTS = 32;
 
-	public SSStripeLayer(RenderLayerParent<SuperSteveEntityBase, SuperSteveModel> parent) {
+	public SSStripeLayer(SuperSteveRenderer parent) {
 		super(parent);
 		for (int i = 0; i < COUNT; i++) {
 			SPHERE_SPEEDS.put(i, new Vector3f(SSUtil.randfloat(-3F, 3F), SSUtil.randfloat(-3F, 3F), SSUtil.randfloat(-3F, 3F)));

@@ -381,11 +381,18 @@ public class SSUtil {
 			if (!(entity.levelCallback instanceof CEntityCallback || entity.levelCallback instanceof SEntityCallback)) {
 				entity.levelCallback = createEntityCallback(entity, true);
 			}
-			if (entity.level() instanceof ServerLevel serverWorld) {
+			if (entity.level instanceof ServerLevel serverWorld) {
 				EntitySection<Entity> section = serverWorld.entityManager.sectionStorage.getSection(SectionPos.asLong(entity.blockPosition()));
+				List<Entity> newAllInstances = null;
+				Map<Class<?>, List<Entity>> newByClass = null;
+				Int2ObjectMap<TrackedEntity> newTES = null;
+				Int2ObjectMap<Entity> newById = null;
+				Map<UUID, Entity> newByUUID = null;
+				Int2ObjectMap<Entity> newActive = null;
+				List<ServerPlayer> newSP = null;
 				if (section != null && !section.storage.allInstances.contains(entity)) {
-					List<Entity> newAllInstances = copyList(section.storage.allInstances);
-					Map<Class<?>, List<Entity>> newByClass = copyMap(section.storage.byClass);
+					newAllInstances = copyList(section.storage.allInstances);
+					newByClass = copyMap(section.storage.byClass);
 					newAllInstances.add(entity);
 					for (Map.Entry<Class<?>, List<Entity>> entry : newByClass.entrySet()) {
 						Class<?> key = entry.getKey();
@@ -396,45 +403,63 @@ public class SSUtil {
 						}
 					}
 					newByClass.put(section.storage.baseClass, newAllInstances);
-					section.storage.byClass = newByClass;
-					section.storage.allInstances = newAllInstances;
 				}
 				if (serverWorld.getChunkSource().chunkMap.entityMap.get(entity.getId()) == null || serverWorld.getChunkSource().chunkMap.entityMap.get(entity.getId()).entity != entity) {
 					ChunkMap cm = serverWorld.getChunkSource().chunkMap;
 					PLZBase.klassPtr(cm, SSChunkMap.class);
-					Int2ObjectMap<TrackedEntity> newTES = copyInt2ObjectMap(cm.entityMap);
+					newTES = copyInt2ObjectMap(cm.entityMap);
 					TrackedEntity te = createTrackedEntity(cm, entity);
 					newTES.put(entity.getId(), te);
-					te.updatePlayers(serverWorld.players());
-					cm.entityMap = newTES;
 				}
 				EntityLookup<Entity> lookup = serverWorld.entityManager.visibleEntityStorage;
 				if (lookup.byId.get(entity.getId()) != entity) {
-					Int2ObjectMap<Entity> newById = copyInt2ObjectMap(lookup.byId);
+					newById = copyInt2ObjectMap(lookup.byId);
 					newById.put(entity.getId(), entity);
-					lookup.byId = newById;
 				}
 				if (lookup.byUuid.get(entity.getUUID()) != entity) {
-					Map<UUID, Entity> newByUUID = copyMap(lookup.byUuid);
+					newByUUID = copyMap(lookup.byUuid);
 					newByUUID.put(entity.getUUID(), entity);
-					lookup.byUuid = newByUUID;
 				}
 				if (serverWorld.entityTickList.active.get(entity.getId()) != entity) {
-					Int2ObjectMap<Entity> newActive = copyInt2ObjectMap(serverWorld.entityTickList.active);
+					newActive = copyInt2ObjectMap(serverWorld.entityTickList.active);
 					newActive.put(entity.getId(), entity);
-					serverWorld.entityTickList.active = newActive;
 				}
 				if (!serverWorld.players.contains(entity)) {
-					List<ServerPlayer> newSP = copyList(serverWorld.players);
-					if (entity instanceof ServerPlayer sp)
+					newSP = copyList(serverWorld.players);
+					if (entity instanceof ServerPlayer sp) {
 						newSP.add(sp);
+					}
+				}
+				if (newByClass != null) {
+					section.storage.byClass = newByClass;
+					section.storage.allInstances = newAllInstances;
+				}
+				if (newTES != null) {
+					serverWorld.getChunkSource().chunkMap.entityMap = newTES;
+					newTES.get(entity.getId()).updatePlayers(serverWorld.players());
+				}
+				if (newById != null) {
+					lookup.byId = newById;
+				}
+				if (newByUUID != null) {
+					lookup.byUuid = newByUUID;
+				}
+				if (newActive != null) {
+					serverWorld.entityTickList.active = newActive;
+				}
+				if (newSP != null) {
 					serverWorld.players = newSP;
 				}
-			} else if (entity.level() instanceof ClientLevel clientWorld) {
+			} else if (entity.level instanceof ClientLevel clientWorld) {
 				EntitySection<Entity> section = clientWorld.entityStorage.sectionStorage.getSection(SectionPos.asLong(entity.blockPosition()));
+				List<Entity> newAllInstances = null;
+				Map<Class<?>, List<Entity>> newByClass = null;
+				Int2ObjectMap<Entity> newById = null;
+				Map<UUID, Entity> newByUUID = null;
+				Int2ObjectMap<Entity> newActive = null;
 				if (section != null && !section.storage.allInstances.contains(entity)) {
-					List<Entity> newAllInstances = copyList(section.storage.allInstances);
-					Map<Class<?>, List<Entity>> newByClass = copyMap(section.storage.byClass);
+					newAllInstances = copyList(section.storage.allInstances);
+					newByClass = copyMap(section.storage.byClass);
 					newAllInstances.add(entity);
 					for (Map.Entry<Class<?>, List<Entity>> entry : newByClass.entrySet()) {
 						Class<?> key = entry.getKey();
@@ -445,23 +470,31 @@ public class SSUtil {
 						}
 					}
 					newByClass.put(section.storage.baseClass, newAllInstances);
-					section.storage.byClass = newByClass;
-					section.storage.allInstances = newAllInstances;
 				}
 				EntityLookup<Entity> lookup = clientWorld.entityStorage.entityStorage;
 				if (lookup.byId.get(entity.getId()) != entity) {
-					Int2ObjectMap<Entity> newById = copyInt2ObjectMap(lookup.byId);
+					newById = copyInt2ObjectMap(lookup.byId);
 					newById.put(entity.getId(), entity);
-					lookup.byId = newById;
 				}
 				if (lookup.byUuid.get(entity.getUUID()) != entity) {
-					Map<UUID, Entity> newByUUID = copyMap(lookup.byUuid);
+					newByUUID = copyMap(lookup.byUuid);
 					newByUUID.put(entity.getUUID(), entity);
-					lookup.byUuid = newByUUID;
 				}
 				if (clientWorld.tickingEntities.active.get(entity.getId()) != entity) {
-					Int2ObjectMap<Entity> newActive = copyInt2ObjectMap(clientWorld.tickingEntities.active);
+					newActive = copyInt2ObjectMap(clientWorld.tickingEntities.active);
 					newActive.put(entity.getId(), entity);
+				}
+				if (newByClass != null) {
+					section.storage.byClass = newByClass;
+					section.storage.allInstances = newAllInstances;
+				}
+				if (newById != null) {
+					lookup.byId = newById;
+				}
+				if (newByUUID != null) {
+					lookup.byUuid = newByUUID;
+				}
+				if (newActive != null) {
 					clientWorld.tickingEntities.active = newActive;
 				}
 			}

@@ -3,14 +3,12 @@ package plz.lizi.supersteve.client.renderer;
 import java.util.Set;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import plz.lizi.supersteve.api.SSUtil;
-import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
 public class SSSheildLayer extends SSLayer {
-    public SSSheildLayer(RenderLayerParent<SuperSteveEntityBase, SuperSteveModel> parent) {
+    public SSSheildLayer(SuperSteveRenderer parent) {
         super(parent);
     }
 

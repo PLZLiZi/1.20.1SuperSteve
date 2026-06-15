@@ -4,7 +4,7 @@ license="null"
 
 [[mods]]
 modId="supersteve"
-version="26.6.11"
+version="${mod_version}"
 displayName="SuperSteve"
 displayURL=""
 credits=""
