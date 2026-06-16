@@ -70,7 +70,6 @@ import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.init.SSModEntities;
-import plz.lizi.supersteve.init.SSModEntityRenderers;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.init.SSModSounds;
 import plz.lizi.supersteve.level.SSBossEvent;
@@ -1197,10 +1196,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
 			drops.clear();
 			drops.add(new ItemEntity(level(), getX(), getY(), getZ(), eopl, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-		} else if (p_20053_.getString().toLowerCase().equals("v3")) {
-			drops.clear();
-			SSUtil.killEntity(this);
-			SSModEntityRenderers.startRenderV3Entity();
 		}
 	}
 
