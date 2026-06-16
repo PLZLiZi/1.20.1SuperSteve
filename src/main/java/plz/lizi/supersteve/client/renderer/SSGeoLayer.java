@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
 import org.joml.Vector3f;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
@@ -61,7 +62,7 @@ public class SSGeoLayer extends SSLayer {
 	@Override
 	public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 		poseStack.pushPose();
-		VertexConsumer vc = buffer.getBuffer(SSRenders.CUSTOM_LINE.apply(5D));
+		VertexConsumer vc = buffer.getBuffer(SSRenders.CUSTOM_LINE.apply(4D));
 		float[] rgb = SSUtil.getRainbowColor(3);
 		float time = (float) entity.ssGetTick() + partialTick;
 		poseStack.mulPose(Axis.XP.rotationDegrees(time * ROAT.x));
@@ -69,18 +70,25 @@ public class SSGeoLayer extends SSLayer {
 		poseStack.mulPose(Axis.ZP.rotationDegrees(time * ROAT.z));
 		float radius = (float) entity.ssGetAttR(true);
 		PoseStack.Pose lastPose = poseStack.last();
-		line(vc, lastPose, -radius, -radius, -radius, radius, -radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, radius, -radius, -radius, radius, -radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, radius, -radius, radius, -radius, -radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, -radius, -radius, radius, -radius, -radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, -radius, radius, -radius, radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, radius, radius, -radius, radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, radius, radius, radius, -radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, -radius, radius, radius, -radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, -radius, -radius, -radius, -radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, radius, -radius, -radius, radius, radius, -radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, radius, -radius, radius, radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
-		line(vc, lastPose, -radius, -radius, radius, -radius, radius, radius, rgb[0], rgb[1], rgb[2], 1.0F);
+		float a = 1.0F;
+		if (entity.getState() == State.ENTER && time >= SuperSteveEntityBase.ENTER_ACTIVE[2]) {
+			float startTick = SuperSteveEntityBase.ENTER_ACTIVE[2];
+			float endTick = SuperSteveEntityBase.ENTER_ACTIVE[3];
+			float duration = endTick - startTick;
+			radius *= (float) Math.pow(PLZBase.progress((time - startTick) / duration), 3);
+		}
+		line(vc, lastPose, -radius, -radius, -radius, radius, -radius, -radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, radius, -radius, -radius, radius, -radius, radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, radius, -radius, radius, -radius, -radius, radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, -radius, -radius, radius, -radius, -radius, -radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, -radius, radius, -radius, radius, radius, -radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, radius, radius, -radius, radius, radius, radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, radius, radius, radius, -radius, radius, radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, -radius, radius, radius, -radius, radius, -radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, -radius, -radius, -radius, -radius, radius, -radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, radius, -radius, -radius, radius, radius, -radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, radius, -radius, radius, radius, radius, radius, rgb[0], rgb[1], rgb[2], a);
+		line(vc, lastPose, -radius, -radius, radius, -radius, radius, radius, rgb[0], rgb[1], rgb[2], a);
 		poseStack.popPose();
 	}
 
@@ -94,8 +102,8 @@ public class SSGeoLayer extends SSLayer {
 	}
 
 	private static void line(VertexConsumer vc, PoseStack.Pose pose, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a) {
-		vc.vertex(pose.pose(), x1, y1, z1).color(r, g, b, a).normal(pose.normal(), 0, 1, 0).endVertex();
-		vc.vertex(pose.pose(), x2, y2, z2).color(r, g, b, a).normal(pose.normal(), 0, 1, 0).endVertex();
+		vc.vertex(pose.pose(), x1, y1, z1).color(r, g, b, a).normal(pose.normal(), 0, 0, 0).endVertex();
+		vc.vertex(pose.pose(), x2, y2, z2).color(r, g, b, a).normal(pose.normal(), 0, 0, 0).endVertex();
 	}
 
 	@Override
@@ -110,6 +118,6 @@ public class SSGeoLayer extends SSLayer {
 
 	@Override
 	public Set<State> activeAt() {
-		return Set.of(State.ALIVE, State.EXIT);
+		return Set.of(State.ENTER, State.ALIVE, State.EXIT);
 	}
 }

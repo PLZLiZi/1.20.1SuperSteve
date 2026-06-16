@@ -27,7 +27,7 @@ import plz.lizi.supersteve.level.SSBossEvent;
 public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 4F;
 	public static final int MAX_INVULNERABLE_TIME = 40;
-	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块下落开始 / 环出现 */, 80/* 方块下落结束 / 环最大 */, 90/* 方块合并开始 */, 100/* 方块合并结束 */ };
+	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块下落开始 / 环出现 / 多边形出现 */, 80/* 方块下落结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
 	public static final int[] DEATH_ACTIVE = { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */ };
 	public static final EntityDataAccessor<String> SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<String> SS_TYPE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);

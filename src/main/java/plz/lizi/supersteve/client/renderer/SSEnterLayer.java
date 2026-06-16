@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.client.renderer;
 
 import java.util.Set;
+import org.joml.Quaternionf;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
@@ -17,14 +18,16 @@ import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
 public class SSEnterLayer extends SSLayer {
-    private static final float BLOCKS_R = 2F;
+    private static final float BLOCKS_R = 3F;
     private static final Block[] BLOCKS = { Blocks.NETHERITE_BLOCK, Blocks.BEDROCK, Blocks.COMMAND_BLOCK, Blocks.STRUCTURE_BLOCK };
+    private final float[] circleRoat;
     private final SuperSteveRenderer parent;
     // private static final float HALF_SQRT_3 = (float) (Math.sqrt((double) 3.0F) / (double) 2.0F);
 
     public SSEnterLayer(SuperSteveRenderer pRenderer) {
         super(pRenderer);
         this.parent = pRenderer;
+        this.circleRoat = new float[] { SSUtil.randfloat(0, 10), SSUtil.randfloat(0, 10), SSUtil.randfloat(0, 10) };
     }
 
     @Override
@@ -46,17 +49,14 @@ public class SSEnterLayer extends SSLayer {
     public void render(PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         float currentTick = (float) entity.stateTime() + partialTick;
         BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
-        float[] color = SSUtil.getRainbowColor(3);
-        SSRenders.renderStrip(poseStack, bufferSource.getBuffer(SSRenders.POSITION_COLOR), 0.2F, 144, 32, color[0], color[1], color[2], 0.5F, packedLight);
         if (currentTick >= SuperSteveEntityBase.ENTER_ACTIVE[2]) {
             float startTick = SuperSteveEntityBase.ENTER_ACTIVE[2];
             float endTick = SuperSteveEntityBase.ENTER_ACTIVE[3];
             float duration = endTick - startTick;
-            float rawProgress = duration > 0 ? (currentTick - startTick) / duration : 0F;
-            float pgs = (float) Math.pow(PLZBase.progress(rawProgress), 0.4);
+            float pgs = (float) Math.pow(PLZBase.progress((currentTick - startTick) / duration), 2);
             poseStack.pushPose();
-            poseStack.translate(0.0F, pgs * 1.8F, 0.0F);
-            poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
+            poseStack.translate(0.0F, pgs * 1.6F, 0.0F);
+            poseStack.mulPose(new Quaternionf().rotateXYZ((circleRoat[0] * pgs * currentTick) % 360F * Mth.DEG_TO_RAD, (circleRoat[1] * pgs * currentTick) % 360F * Mth.DEG_TO_RAD, (circleRoat[2] * pgs * currentTick) % 360F * Mth.DEG_TO_RAD));
             poseStack.scale(pgs * 3.0F, pgs * 3.0F, pgs * 3.0F);
             parent.solidWeapons.render(poseStack);
             poseStack.popPose();
@@ -72,6 +72,8 @@ public class SSEnterLayer extends SSLayer {
             if (fallPgs > 0) {
                 poseStack.pushPose();
                 poseStack.mulPose(Axis.YP.rotationDegrees(i * (360.0F / num)));
+                if (currentTick >= SuperSteveEntityBase.ENTER_ACTIVE[5])
+                    poseStack.translate(SSUtil.randfloat(-0.1F, 0.1F), SSUtil.randfloat(-0.1F, 0.1F), SSUtil.randfloat(-0.1F, 0.1F));
                 poseStack.translate(0.0F, Mth.lerp(1.0F - (float) Math.pow(1.0F - fallPgs, 3.0), 255.0F, 0.0F), Mth.lerp(Mth.clamp((currentTick - (float) SuperSteveEntityBase.ENTER_ACTIVE[4]) / ((float) SuperSteveEntityBase.ENTER_ACTIVE[5] - (float) SuperSteveEntityBase.ENTER_ACTIVE[4]), 0.0F, 1.0F), BLOCKS_R, 0.0F));
                 poseStack.translate(-0.5F, -0.5F, -0.5F);
                 blockRenderer.renderSingleBlock(BLOCKS[i].defaultBlockState(), poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY, ModelData.EMPTY, null);

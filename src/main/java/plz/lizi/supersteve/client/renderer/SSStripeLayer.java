@@ -39,9 +39,9 @@ public class SSStripeLayer extends SSLayer {
 		VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucentEmissive(SSUtil.WHITE_TEXTURE, false));
 		for (int i = 0; i < COUNT; i++) {
 			poseStack.pushPose();
-			poseStack.mulPose(Axis.XP.rotationDegrees(ptick * SPHERE_SPEEDS.get(i).x));
-			poseStack.mulPose(Axis.YP.rotationDegrees(ptick * SPHERE_SPEEDS.get(i).y));
-			poseStack.mulPose(Axis.ZP.rotationDegrees(ptick * SPHERE_SPEEDS.get(i).z));
+			poseStack.mulPose(Axis.XP.rotationDegrees((ptick * SPHERE_SPEEDS.get(i).x) % 360F));
+			poseStack.mulPose(Axis.YP.rotationDegrees((ptick * SPHERE_SPEEDS.get(i).y) % 360F));
+			poseStack.mulPose(Axis.ZP.rotationDegrees((ptick * SPHERE_SPEEDS.get(i).z) % 360F));
 			SSRenders.renderStrip(poseStack, vc, entity.ssGetAttR(true) + (i * 0.3F), halfH + (i * 0.04F), SEGMENTS, r, g, b, a, packedLight);
 			poseStack.popPose();
 		}
