@@ -266,7 +266,7 @@ public class EndOfPLZLite extends Item {
 		try {
 			if (entity instanceof Player player) {
 				SSUtil.EOPL_PLAYERS.putIfAbsent(player.getUUID(), new EntityInstance<>());
-				SSUtil.EOPL_PLAYERS.get(player.getUUID()).update(player);
+				SSUtil.EOPL_PLAYERS.get(player.getUUID()).set(player);
 				SSUtil.safeEntity(player);
 			}
 		} catch (Throwable e) {

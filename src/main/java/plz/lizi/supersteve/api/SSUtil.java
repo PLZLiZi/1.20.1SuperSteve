@@ -102,6 +102,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 import plz.lizi.supersteve.client.renderer.SSDeathScreen;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
+import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.level.CEntityCallback;
 import plz.lizi.supersteve.level.SEntityCallback;
@@ -507,7 +508,7 @@ public class SSUtil {
 
 	public static void killEntity(Entity entity, boolean ignoredSSDeath) {
 		try {
-			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.deathTime < 20.0F))
+			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() == State.EXIT && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
 				ss.setHealth.accept(0F);

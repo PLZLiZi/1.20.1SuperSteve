@@ -1,0 +1,26 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "group": "supersteve",
+    "category": "misc",
+    "ingredients": [
+        {
+            "item": "minecraft:paper"
+        },
+        {
+            "item": "minecraft:redstone_block"
+        },
+        {
+            "item": "minecraft:redstone_lamp"
+        },
+        {
+            "item": "minecraft:bookshelf"
+        },
+        {
+            "item": "minecraft:dragon_egg"
+        }
+    ],
+    "result": {
+        "item": "supersteve:jedit",
+        "count": 1
+    }
+}

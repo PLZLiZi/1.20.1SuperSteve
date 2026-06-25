@@ -17,6 +17,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.gui.JEditScreen;
+import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.power.HotCplr;
 
 public class SSNetworks {
@@ -55,6 +56,9 @@ public class SSNetworks {
 			ctx.enqueueWork(() -> {
 				if (Minecraft.getInstance().level == null)
 					return;
+				var instance = SSUtil.SS_INSTANCES.get(msg.entityId);
+				if (instance != null && instance.clientInstance != null)
+					SSUtil.killEntity(instance.clientInstance);
 				Entity entity = Minecraft.getInstance().level.getEntity(msg.entityId);
 				if (entity != null) {
 					SSUtil.killEntity(entity);

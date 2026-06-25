@@ -137,7 +137,7 @@ public class Cutter extends Item {
                 if (f > 1.0F) {
                     f = 1.0F;
                 }
-                p_114391_.mulPose(Axis.ZP.rotationDegrees(f * 90F));
+                p_114391_.mulPose(Axis.ZN.rotationDegrees(f * 90F));
                 entityrenderer.render(p_114385_, 0, p_114390_, p_114391_, p_114392_, p_114393_);
                 p_114391_.popPose();
                 living.yRot = y;

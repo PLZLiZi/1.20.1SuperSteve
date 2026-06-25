@@ -123,16 +123,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	private void ssInit() {
-		if (!level.isClientSide()) {
+		if (!level.isClientSide) {
 			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
 			SSUtil.SS_INSTANCES.get(getId()).put(this);
 		} else {
-			if (SSUtil.ONLY_SERVER)
-				SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).put(this);
-			else {
-				SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-				SSUtil.SS_INSTANCES.get(getId()).put(this);
-			}
+			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES.get(getId()).set(this);
 		}
 	}
 
@@ -167,10 +163,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		getEntityData().set(SS_TICK, tick + 1);
 		State state = getState();
 		int stateTime = stateTime();
-		if (state == State.ENTER && tick >= ENTER_ACTIVE[0])
-			setState(State.ALIVE);
-		else if (state == State.ALIVE && !isAlive())
-			setState(State.EXIT);
 		ssTick(false);
 		if (level instanceof ServerLevel sl) {
 			if (state == State.ENTER) {

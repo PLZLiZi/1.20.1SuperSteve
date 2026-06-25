@@ -85,7 +85,16 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 
 	public State getState() {
 		try {
-			return State.valueOf(getEntityData().get(SS_STATE));
+			State state = State.valueOf(getEntityData().get(SS_STATE));
+			State newState = state;
+			int stateTime = stateTime();
+			if (state == State.ENTER && stateTime >= ENTER_ACTIVE[0])
+				newState = State.ALIVE;
+			else if (state == State.ALIVE && !isAlive())
+				newState = State.EXIT;
+			if (state != newState)
+				setState(newState);
+			return newState;
 		} catch (Throwable e) {
 			setState(State.ALIVE);
 			return State.ALIVE;
