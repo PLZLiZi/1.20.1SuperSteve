@@ -41,7 +41,7 @@ public class SSCore {
     }
 
     public static Iterable<Entity> entitiesForRendering(ClientLevel zhis) {
-        GETTERS.get(SCPort.of(zhis)).add(zhis.getEntities());
+        GETTERS.get(SCPort.of((Level) (Object) zhis)).add(zhis.getEntities());
         Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
         Set<Entity> sss = new HashSet<>();
         for (var istc : SSUtil.SS_INSTANCES.values()) {

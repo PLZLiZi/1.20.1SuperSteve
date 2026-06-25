@@ -211,7 +211,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		baseTick();
 		this.updatingUsingItem();
 		this.updateSwimAmount();
-		if (!this.level().isClientSide) {
+		if (!this.level.isClientSide) {
 			int i = this.getArrowCount();
 			if (i > 0) {
 				if (this.removeArrowTime <= 0) {
@@ -268,10 +268,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			f3 = 0.0F;
 		}
 		this.run += (f3 - this.run) * 0.3F;
-		this.level().getProfiler().push("headTurn");
+		this.level.getProfiler().push("headTurn");
 		f2 = this.tickHeadTurn(f1, f2);
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("rangeChecks");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("rangeChecks");
 		while (this.getYRot() - this.yRotO < -180.0F) {
 			this.yRotO -= 360.0F;
 		}
@@ -296,7 +296,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		while (this.yHeadRot - this.yHeadRotO >= 180.0F) {
 			this.yHeadRotO += 360.0F;
 		}
-		this.level().getProfiler().pop();
+		this.level.getProfiler().pop();
 		this.animStep += f2;
 		if (this.isFallFlying()) {
 			++this.fallFlyTicks;
@@ -306,7 +306,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (this.isSleeping()) {
 			this.setXRot(0.0F);
 		}
-		if (!this.level().isClientSide) {
+		if (!this.level.isClientSide) {
 			this.tickLeash();
 			if (this.tickCount % 5 == 0) {
 				this.updateControlFlags();
@@ -423,40 +423,40 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void serverAiStep() {
 		++this.noActionTime;
-		this.level().getProfiler().push("sensing");
+		this.level.getProfiler().push("sensing");
 		this.sensing.tick();
-		this.level().getProfiler().pop();
-		int i = this.level().getServer().getTickCount() + this.getId();
+		this.level.getProfiler().pop();
+		int i = this.level.getServer().getTickCount() + this.getId();
 		if (i % 2 != 0 && this.tickCount > 1) {
-			this.level().getProfiler().push("targetSelector");
+			this.level.getProfiler().push("targetSelector");
 			this.targetSelector.tickRunningGoals(false);
-			this.level().getProfiler().pop();
-			this.level().getProfiler().push("goalSelector");
+			this.level.getProfiler().pop();
+			this.level.getProfiler().push("goalSelector");
 			this.goalSelector.tickRunningGoals(false);
-			this.level().getProfiler().pop();
+			this.level.getProfiler().pop();
 		} else {
-			this.level().getProfiler().push("targetSelector");
+			this.level.getProfiler().push("targetSelector");
 			this.targetSelector.tick();
-			this.level().getProfiler().pop();
-			this.level().getProfiler().push("goalSelector");
+			this.level.getProfiler().pop();
+			this.level.getProfiler().push("goalSelector");
 			this.goalSelector.tick();
-			this.level().getProfiler().pop();
+			this.level.getProfiler().pop();
 		}
-		this.level().getProfiler().push("navigation");
+		this.level.getProfiler().push("navigation");
 		this.navigation.tick();
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("mob tick");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("mob tick");
 		this.customServerAiStep();
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("controls");
-		this.level().getProfiler().push("move");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("controls");
+		this.level.getProfiler().push("move");
 		this.moveControl.tick();
-		this.level().getProfiler().popPush("look");
+		this.level.getProfiler().popPush("look");
 		this.lookControl.tick();
-		this.level().getProfiler().popPush("jump");
+		this.level.getProfiler().popPush("jump");
 		this.jumpControl.tick();
-		this.level().getProfiler().pop();
-		this.level().getProfiler().pop();
+		this.level.getProfiler().pop();
+		this.level.getProfiler().pop();
 		this.sendDebugPackets();
 	}
 
@@ -506,18 +506,18 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			d5 = (double) 0.0F;
 		}
 		this.setDeltaMovement(d1, d3, d5);
-		this.level().getProfiler().push("ai");
+		this.level.getProfiler().push("ai");
 		if (this.isImmobile()) {
 			this.jumping = false;
 			this.xxa = 0.0F;
 			this.zza = 0.0F;
 		} else if (this.isEffectiveAi()) {
-			this.level().getProfiler().push("newAi");
+			this.level.getProfiler().push("newAi");
 			this.serverAiStep();
-			this.level().getProfiler().pop();
+			this.level.getProfiler().pop();
 		}
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("jump");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("jump");
 		if (this.jumping && this.isAffectedByFluids()) {
 			FluidType fluidType = this.getMaxHeightFluidType();
 			double d7;
@@ -549,8 +549,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		} else {
 			this.noJumpDelay = 0;
 		}
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("travel");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("travel");
 		this.xxa *= 0.98F;
 		this.zza *= 0.98F;
 		this.updateFallFlying();
@@ -569,9 +569,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			}
 			this.travel(vec3);
 		}
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("freezing");
-		if (!this.level().isClientSide && !this.isDeadOrDying()) {
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("freezing");
+		if (!this.level.isClientSide && !this.isDeadOrDying()) {
 			int i = this.getTicksFrozen();
 			if (this.isInPowderSnow && this.canFreeze()) {
 				this.setTicksFrozen(Math.min(this.getTicksRequiredToFreeze(), i + 1));
@@ -581,30 +581,30 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		this.removeFrost();
 		this.tryAddFrost();
-		if (!this.level().isClientSide && this.tickCount % 40 == 0 && this.isFullyFrozen() && this.canFreeze()) {
+		if (!this.level.isClientSide && this.tickCount % 40 == 0 && this.isFullyFrozen() && this.canFreeze()) {
 			this.hurt(this.damageSources().freeze(), 1.0F);
 		}
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("push");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("push");
 		if (this.autoSpinAttackTicks > 0) {
 			--this.autoSpinAttackTicks;
 			this.checkAutoSpinAttack(aabb, this.getBoundingBox());
 		}
 		this.pushEntities();
-		this.level().getProfiler().pop();
-		if (!this.level().isClientSide && this.isSensitiveToWater() && this.isInWaterRainOrBubble()) {
+		this.level.getProfiler().pop();
+		if (!this.level.isClientSide && this.isSensitiveToWater() && this.isInWaterRainOrBubble()) {
 			this.hurt(this.damageSources().drown(), 1.0F);
 		}
-		this.level().getProfiler().push("looting");
+		this.level.getProfiler().push("looting");
 		Vec3i vec3i = this.getPickupReach();
-		if (!this.level().isClientSide && this.canPickUpLoot() && this.isAlive() && !this.dead && ForgeEventFactory.getMobGriefingEvent(this.level(), this)) {
-			for (ItemEntity itementity : this.level().getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate((double) vec3i.getX(), (double) vec3i.getY(), (double) vec3i.getZ()))) {
+		if (!this.level.isClientSide && this.canPickUpLoot() && this.isAlive() && !this.dead && ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
+			for (ItemEntity itementity : this.level.getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate((double) vec3i.getX(), (double) vec3i.getY(), (double) vec3i.getZ()))) {
 				if (!itementity.isRemoved() && !itementity.getItem().isEmpty() && !itementity.hasPickUpDelay() && this.wantsToPickUp(itementity.getItem())) {
 					this.pickUpItem(itementity);
 				}
 			}
 		}
-		this.level().getProfiler().pop();
+		this.level.getProfiler().pop();
 		updateSwingTime();
 	}
 
@@ -625,24 +625,24 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean hurt(DamageSource damagesource, float amount) {
-		if (!isAlive()) {
+		if (!isAlive() || getState() != State.ALIVE)
 			return false;
-		}
 		if (damagesource.getEntity() != null && damagesource.is(DamageTypes.PLAYER_ATTACK) && damagesource.getEntity() instanceof Player player) {
 			if (player.getMainHandItem().equals(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), false)) {
 				SSUtil.killEntity(this);
 				return true;
 			} else {
-				if (ssGetTick() < 0 || distanceTo(player) > ATTACK_RANGE)
+				if (distanceTo(player) > ATTACK_RANGE)
 					return false;
 				if (iInvulnerableTime <= 0) {
+					iInvulnerableTime = MAX_INVULNERABLE_TIME;
 					{
-						// TODO:彩蛋
+						// TODO: 彩蛋
 						String playerName = player.getGameProfile().getName();
 						if (playerName.equals("shugangan") || playerName.equals("shiki214ein")) {
-							if (!level().isClientSide()) {
+							if (!level.isClientSide()) {
 								drops.clear();
-								((ServerLevel) level()).addFreshEntity(new ItemEntity(level(), getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+								((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 								player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 							}
 							setHealth.accept(0F);
@@ -650,15 +650,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 						}
 					}
 					float attackPst = Math.min(1F, Math.max(0.1F, (float) (amount / SSUtil.getMaxDamageInBag(player, (SuperSteveEntityBase) this))));
-					if (Float.isInfinite(attackPst) || Float.isNaN(attackPst)) {
+					if (Float.isInfinite(attackPst) || Float.isNaN(attackPst))
 						attackPst = 1F;
-					}
 					boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
-					setHealth.accept(ssGetHealth() - (level().isClientSide() ? 0 : (new Random().nextFloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.04f : 0.2f) * attackPst)));
-					// ssSetHealth(ssGetHealth() - SSUtil.randfloat(10, 20));
+					setHealth.accept(ssGetHealth() - (level.isClientSide() ? 0 : (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.04f : 0.2f) * attackPst)));
 					super.hurt(damagesource, 0F);
-					iInvulnerableTime = MAX_INVULNERABLE_TIME;
-					SSUtil.forceHurtEx((Player) damagesource.getEntity(), damageSources().generic(), amount);
+					SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 					return true;
 				}
 			}
@@ -712,7 +709,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
 				}
 				float size = ssGetAttR(false);
-				for (var entity : level().getEntities(EntityTypeTest.forClass(Entity.class), new AABB(position(), position()).inflate(size), SSUtil.ENTITY_EVERYTHING)) {
+				for (var entity : level.getEntities(EntityTypeTest.forClass(Entity.class), new AABB(position(), position()).inflate(size), SSUtil.ENTITY_EVERYTHING)) {
 					if (distanceTo(entity) > size)
 						continue;
 					doHurtTarget(entity, threadCall);
@@ -962,7 +959,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (this.canSpawnSoulSpeedParticle()) {
 			this.spawnSoulSpeedParticle();
 		}
-		this.level().getProfiler().push("entityBaseTick");
+		this.level.getProfiler().push("entityBaseTick");
 		this.feetBlockState = null;
 		if (this.isPassenger() && this.getVehicle().isRemoved()) {
 			this.stopRiding();
@@ -982,7 +979,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.updateInWaterStateAndDoFluidPushing();
 		this.updateFluidOnEyes();
 		this.updateSwimming();
-		if (this.level().isClientSide) {
+		if (this.level.isClientSide) {
 			this.clearFire();
 		} else if (this.remainingFireTicks > 0) {
 			if (this.fireImmune()) {
@@ -998,7 +995,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			}
 			if (this.getTicksFrozen() > 0) {
 				this.setTicksFrozen(0);
-				this.level().levelEvent((Player) null, 1009, this.blockPosition, 1);
+				this.level.levelEvent((Player) null, 1009, this.blockPosition, 1);
 			}
 		}
 		if (this.isInLava()) {
@@ -1006,24 +1003,24 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			this.fallDistance *= this.getFluidFallDistanceModifier((FluidType) ForgeMod.LAVA_TYPE.get());
 		}
 		this.checkBelowWorld();
-		if (!this.level().isClientSide) {
+		if (!this.level.isClientSide) {
 			this.setSharedFlagOnFire(this.remainingFireTicks > 0);
 		}
 		this.firstTick = false;
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("livingEntityBaseTick");
-		if (this.fireImmune() || this.level().isClientSide) {
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("livingEntityBaseTick");
+		if (this.fireImmune() || this.level.isClientSide) {
 			this.clearFire();
 		}
 		if (this.isAlive()) {
 			boolean flag = false;
-			if (!this.level().isClientSide) {
+			if (!this.level.isClientSide) {
 				if (this.isInWall()) {
 					this.hurt(this.damageSources().inWall(), 1.0F);
-				} else if (flag && !this.level().getWorldBorder().isWithinBounds(this.getBoundingBox())) {
-					double d0 = this.level().getWorldBorder().getDistanceToBorder(this) + this.level().getWorldBorder().getDamageSafeZone();
+				} else if (flag && !this.level.getWorldBorder().isWithinBounds(this.getBoundingBox())) {
+					double d0 = this.level.getWorldBorder().getDistanceToBorder(this) + this.level.getWorldBorder().getDamageSafeZone();
 					if (d0 < (double) 0.0F) {
-						double d1 = this.level().getWorldBorder().getDamagePerBlock();
+						double d1 = this.level.getWorldBorder().getDamagePerBlock();
 						if (d1 > (double) 0.0F) {
 							this.hurt(this.damageSources().outOfBorder(), (float) Math.max(1, Mth.floor(-d0 * d1)));
 						}
@@ -1032,7 +1029,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			}
 			int airSupply = this.getAirSupply();
 			ForgeHooks.onLivingBreathe(this, airSupply - this.decreaseAirSupply(airSupply), this.increaseAirSupply(airSupply) - airSupply);
-			if (!this.level().isClientSide) {
+			if (!this.level.isClientSide) {
 				BlockPos blockpos = this.blockPosition();
 				if (!Objects.equals(this.lastPos, blockpos)) {
 					this.lastPos = blockpos;
@@ -1069,13 +1066,13 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.yHeadRotO = this.yHeadRot;
 		this.yRotO = this.getYRot();
 		this.xRotO = this.getXRot();
-		this.level().getProfiler().pop();
-		this.level().getProfiler().push("mobBaseTick");
+		this.level.getProfiler().pop();
+		this.level.getProfiler().push("mobBaseTick");
 		if (this.isAlive() && this.random.nextInt(1000) < this.ambientSoundTime++) {
 			this.resetAmbientSoundTime();
 			this.playAmbientSound();
 		}
-		this.level().getProfiler().pop();
+		this.level.getProfiler().pop();
 	}
 
 	@Override
@@ -1195,7 +1192,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
 			setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
 			drops.clear();
-			drops.add(new ItemEntity(level(), getX(), getY(), getZ(), eopl, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			drops.add(new ItemEntity(level, getX(), getY(), getZ(), eopl, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 		}
 	}
 

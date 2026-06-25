@@ -6,14 +6,12 @@ import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat.Mode;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.RenderStateShard.DepthTestStateShard;
 import net.minecraft.client.renderer.RenderStateShard.MultiTextureStateShard;
 import net.minecraft.client.renderer.RenderStateShard.ShaderStateShard;
 import net.minecraft.Util;
-import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.TheEndPortalRenderer;
@@ -27,20 +25,6 @@ public class SSRenders {
     public static final RenderType POSITION_COLOR_NC = RenderType.create("supersteve:position_color_nc", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 256, RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_SHADER).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setCullState(RenderStateShard.NO_CULL).createCompositeState(false));
     public static final RenderType POSITION_COLOR_H = RenderType.create("supersteve:position_color_h", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 256, RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_SHADER).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setCullState(RenderStateShard.CULL).setDepthTestState(DepthTestStateShard.NO_DEPTH_TEST).createCompositeState(false));
     public static final RenderType POSITION_COLOR = RenderType.create("supersteve:position_color", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 256, RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_SHADER).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setCullState(RenderStateShard.CULL).createCompositeState(false));
-    public static final ParticleRenderType ATT_PAR_TYPE = new ParticleRenderType() {
-        public void begin(com.mojang.blaze3d.vertex.BufferBuilder arg0, net.minecraft.client.renderer.texture.TextureManager arg1) {
-            RenderStateShard.TRANSLUCENT_TRANSPARENCY.setupRenderState();
-            RenderStateShard.LEQUAL_DEPTH_TEST.setupRenderState();
-            RenderStateShard.CULL.setupRenderState();
-            DepthTestStateShard.NO_DEPTH_TEST.setupRenderState();
-            RenderStateShard.RENDERTYPE_GUI_SHADER.setupRenderState();
-            arg0.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        };
-
-        public void end(com.mojang.blaze3d.vertex.Tesselator arg0) {
-            arg0.end();
-        };
-    };
 
     public static void renderAttack(VertexConsumer vc, PoseStack poseStack, float progress, float r, float g, float b, float a) {
         poseStack.pushPose();

@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.item;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -18,8 +19,7 @@ public class JEdit extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (player.level.isClientSide) {
-            //Minecraft.getInstance().setScreen(new JExecScreen());
-            Minecraft.getInstance().setScreen(new JEditScreen());
+            Minecraft.getInstance().setScreen((Screen) (Object) new JEditScreen());
         }
         return InteractionResultHolder.pass(player.getItemInHand(hand));
     }

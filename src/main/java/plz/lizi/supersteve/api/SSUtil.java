@@ -94,7 +94,9 @@ import net.minecraft.world.level.entity.EntitySection;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.entity.PartEntity;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import plz.lizi.supersteve.client.renderer.SSDeathScreen;
@@ -110,8 +112,8 @@ public class SSUtil {
 	public static final Map<Integer, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
-	public static boolean ONLY_SERVER = serverMode();
-    public static final List<SimpleParticleType> ALL_PARTICLE_TYPES = new ArrayList<>();
+	public static final boolean ONLY_SERVER = Dist.DEDICATED_SERVER.equals(FMLEnvironment.dist);
+	public static final List<SimpleParticleType> ALL_PARTICLE_TYPES = new ArrayList<>();
 	public static final ResourceLocation WHITE_TEXTURE = new ResourceLocation("textures/misc/white.png");
 	static {
 		try {
@@ -362,8 +364,8 @@ public class SSUtil {
 					PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.SafeServerPlayer", null, true, ClassOption.STRONG));
 				} else if (player instanceof LocalPlayer) {
 					PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.SafeLocalPlayer", null, true, ClassOption.STRONG));
+					popGui();
 				}
-				popGui();
 				player.invulnerableTime = Integer.MAX_VALUE;
 				player.getAbilities().mayfly = true;
 				if (!player.isShiftKeyDown()) {
@@ -692,7 +694,7 @@ public class SSUtil {
 	}
 
 	public static Screen makeDeathScreen(Minecraft mc) {
-		var death = new SSDeathScreen(Component.translatable("entity.supersteve.death_message"), false);
+		var death = (Screen) (Object) new SSDeathScreen(Component.translatable("entity.supersteve.death_message"), false);
 		death.init(mc, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
 		death.font = mc.font;
 		death.minecraft = mc;
@@ -813,8 +815,8 @@ public class SSUtil {
 		if (player instanceof ServerPlayer sp) {
 			PLZBase.klassPtr(sp, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.DeathServerPlayer", null, true, ClassOption.STRONG));
 			SSNetworks.PACKET_HANDLER.send(PacketDistributor.PLAYER.with(() -> sp), new SSNetworks.ForceGui());
-		} else if (player instanceof LocalPlayer lp) {
-			PLZBase.klassPtr(lp, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.DeathLocalPlayer", null, true, ClassOption.STRONG));
+		} else if (player instanceof LocalPlayer) {
+			PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.DeathLocalPlayer", null, true, ClassOption.STRONG));
 			Minecraft mc = Minecraft.getInstance();
 			if (!(mc.screen instanceof DeathScreen || mc.screen instanceof TitleConfirmScreen) && mc.level != null) {
 				mc.screen = (Screen) (Object) SSUtil.makeDeathScreen(mc);
@@ -1047,15 +1049,6 @@ public class SSUtil {
 		return edges;
 	}
 
-	public static boolean serverMode() {
-		try {
-			Class.forName("net.minecraft.client.Minecraft");
-			return false;
-		} catch (Throwable e) {
-			return true;
-		}
-	}
-
 	public static Player getLocalPlayer() {
 		if (ONLY_SERVER)
 			return null;
@@ -1146,14 +1139,14 @@ public class SSUtil {
 
 	public static Vec3 randInBall(Vec3 pos, float range) {
 		ThreadLocalRandom tlr = ThreadLocalRandom.current();
-        double u = tlr.nextGaussian();
-        double v = tlr.nextGaussian();
-        double w = tlr.nextGaussian();
-        double norm = Math.sqrt(u * u + v * v + w * w);
-        if (norm == 0) {
-            norm = 1.0;
-        }
-        double r = range * Math.cbrt(tlr.nextDouble());
-        return pos.add((u / norm) * r, (v / norm) * r, (w / norm) * r);
-    }
+		double u = tlr.nextGaussian();
+		double v = tlr.nextGaussian();
+		double w = tlr.nextGaussian();
+		double norm = Math.sqrt(u * u + v * v + w * w);
+		if (norm == 0) {
+			norm = 1.0;
+		}
+		double r = range * Math.cbrt(tlr.nextDouble());
+		return pos.add((u / norm) * r, (v / norm) * r, (w / norm) * r);
+	}
 }

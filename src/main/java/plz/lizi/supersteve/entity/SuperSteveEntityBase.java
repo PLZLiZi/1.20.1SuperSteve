@@ -35,25 +35,28 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final EntityDataAccessor<String> SS_STATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<Integer> SS_LSTATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
 	public final List<Attack> attacks = new ArrayList<>();
-	public final Consumer<Object> setHealth = health -> {
-		if (health instanceof Float fhealth)
-			getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(fhealth) ^ 0xF917813F));
+	public Consumer<Object> setHealth = o -> {
 	};
-	public final Supplier<Object> getHealth = () -> {
-		try {
-			String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
-			if (ssh.startsWith("SSH="))
-				return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
-		} catch (Throwable e) {
-		}
-		setHealth.accept(20F);
-		return 20F;
-	};
+	public Supplier<Object> getHealth = () -> 20F;
 	public int iInvulnerableTime = 0;
 	public SSBossEvent bossEvent;
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
+		setHealth = health -> {
+			if (health instanceof Float fhealth)
+				getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(fhealth) ^ 0xF917813F));
+		};
+		getHealth = () -> {
+			try {
+				String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
+				if (ssh.startsWith("SSH="))
+					return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
+			} catch (Throwable e) {
+			}
+			setHealth.accept(20F);
+			return 20F;
+		};
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {

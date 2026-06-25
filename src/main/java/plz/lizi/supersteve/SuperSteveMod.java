@@ -28,26 +28,29 @@ public class SuperSteveMod {
 	public static final Logger LOGGER = LogManager.getLogger(SuperSteveMod.class);
 	public static final String MODID = "supersteve";
 	public static boolean TWDR = false;
+
 	public SuperSteveMod() {
 		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
 		TWDR = ModList.get().isLoaded("jzyy");
 		try {
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.Agt");
 			Agt.start();
-			Agt.watch((ClassFileTransformer) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSTransformer", "SSTransformer", true, ClassOption.STRONG).getConstructor().newInstance());
+			Agt.watch((ClassFileTransformer) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSTransformer", "plz.lizi.supersteve.power.SSTransformerImpl", true, ClassOption.STRONG).getConstructor().newInstance());
 			if (!TWDR)
 				Agt.retransform(Class.forName("sun.instrument.InstrumentationImpl"), null, false);
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.api.SSUtil");
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSThread");
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.ClassStruct");
-			SSUtil.testMe();
+			// SSUtil.testMe();
 			MCDeobfUtil.init("/META-INF/1.20.1.tsrg");
 		} catch (Throwable e) {
 			PLZBase.throwEx(e);
 		}
 		SSThread.start();
 		bus.register(SSModEvent.class);
-		MinecraftForge.EVENT_BUS.register(SSEvents.class);
+		if (!SSUtil.ONLY_SERVER)
+			MinecraftForge.EVENT_BUS.register(SSEvents.Client.class);
+		MinecraftForge.EVENT_BUS.register(SSEvents.Server.class);
 		SSModItems.REGISTRY.register(bus);
 		SSModEntities.REGISTRY.register(bus);
 		SSModTabs.REGISTRY.register(bus);
