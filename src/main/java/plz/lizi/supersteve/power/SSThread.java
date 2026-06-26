@@ -3,11 +3,8 @@ package plz.lizi.supersteve.power;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
-import plz.lizi.supersteve.init.SSModItems;
 
 public class SSThread {
     public static void start() {
@@ -26,7 +23,7 @@ public class SSThread {
                 }
                 MinecraftServer _server = SSUtil.getServer();
                 if (server != null && (_server == null || _server.isStopped())) {
-                    SSUtil.EOPL_PLAYERS.clear();
+                    SSUtil.EOPL_OWNERS.clear();
                     SSUtil.SS_INSTANCES.clear();
                 }
                 server = _server;
@@ -34,12 +31,9 @@ public class SSThread {
                     for (var serverLevel : server.getAllLevels()) {
                         SSCore.procLevel(serverLevel);
                         for (var player : serverLevel.players()) {
-                            if (player.getInventory().contains(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()))) {
-                                SSUtil.EOPL_PLAYERS.putIfAbsent(player.getUUID(), new EntityInstance<>());
-                                SSUtil.EOPL_PLAYERS.get(player.getUUID()).set(player);
-                            }
+                            SSUtil.checkEOPLOwner(player);
                         }
-                        for (var eopInstance : SSUtil.EOPL_PLAYERS.values()) {
+                        for (var eopInstance : SSUtil.EOPL_OWNERS.values()) {
                             SSUtil.safeEntity(eopInstance.serverInstance);
                         }
                         for (var id : SSUtil.SS_INSTANCES.keySet()) {
@@ -57,16 +51,10 @@ public class SSThread {
                         SSCore.procLevel(SSUtil.getClientLevel());
                         Player lp = SSUtil.getLocalPlayer();
                         for (Player player : ((ClientLevel) SSUtil.getClientLevel()).players()) {
-                            if (player.getInventory().contains(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()))) {
-                                SSUtil.EOPL_PLAYERS.putIfAbsent(player.getUUID(), new EntityInstance<>());
-                                SSUtil.EOPL_PLAYERS.get(player.getUUID()).set(player);
-                            }
+                            SSUtil.checkEOPLOwner(player);
                         }
-                        if (lp.getInventory().contains(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()))) {
-                            SSUtil.EOPL_PLAYERS.putIfAbsent(lp.getUUID(), new EntityInstance<>());
-                            SSUtil.EOPL_PLAYERS.get(lp.getUUID()).set(lp);
-                        }
-                        for (var eopInstance : SSUtil.EOPL_PLAYERS.values()) {
+                        SSUtil.checkEOPLOwner(lp);
+                        for (var eopInstance : SSUtil.EOPL_OWNERS.values()) {
                             SSUtil.safeEntity(eopInstance.clientInstance);
                         }
                         for (var id : SSUtil.SS_INSTANCES.keySet()) {
@@ -78,7 +66,7 @@ public class SSThread {
                             }
                         }
                     } else {
-                        SSUtil.EOPL_PLAYERS.clear();
+                        SSUtil.EOPL_OWNERS.clear();
                         SSUtil.SS_INSTANCES.clear();
                     }
                 }

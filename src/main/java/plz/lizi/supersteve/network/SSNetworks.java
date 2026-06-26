@@ -17,7 +17,6 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.gui.JEditScreen;
-import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.power.HotCplr;
 
 public class SSNetworks {
@@ -34,6 +33,7 @@ public class SSNetworks {
 		register(RemoveClientEntity.class, RemoveClientEntity::encode, RemoveClientEntity::decode, RemoveClientEntity::handle);
 		register(ForceGui.class, ForceGui::encode, ForceGui::decode, ForceGui::handle);
 		register(JCplrMsg.class, JCplrMsg::encode, JCplrMsg::decode, JCplrMsg::handle);
+		register(DropEOPL.class, DropEOPL::encode, DropEOPL::decode, DropEOPL::handle);
 	}
 
 	public static class RemoveClientEntity {
@@ -118,7 +118,7 @@ public class SSNetworks {
 					} catch (Throwable e) {
 						rst = e.getMessage();
 					}
-					PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg("Execute finish in " + ((float)((System.currentTimeMillis() - last)/1000F)) + "s\n" + rst));
+					PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg("Execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n" + rst));
 				} else if (ctx.getDirection().getReceptionSide().isClient()) {
 					Minecraft mc = Minecraft.getInstance();
 					if (mc.screen instanceof JEditScreen jes && jes.initialized) {
@@ -126,6 +126,22 @@ public class SSNetworks {
 					}
 				}
 			});
+			ctx.setPacketHandled(true);
+		}
+	}
+	public static class DropEOPL {
+
+		public DropEOPL() {}
+
+		public static void encode(DropEOPL msg, FriendlyByteBuf buf) {}
+
+		public static DropEOPL decode(FriendlyByteBuf buf) {
+			return new DropEOPL();
+		}
+
+		public static void handle(DropEOPL msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			SSUtil.removeEOPLOwner(SSUtil.getLocalPlayer());
 			ctx.setPacketHandled(true);
 		}
 	}

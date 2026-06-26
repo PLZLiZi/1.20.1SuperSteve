@@ -858,7 +858,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			SSUtil.killEntity(entity);
 		} else {
 			Player player = (Player) entity;
-			if (!SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
+			if (!SSUtil.EOPL_OWNERS.containsKey(player.getUUID())) {
 				if (level instanceof ServerLevel serverLevel) {
 					float hurtValue = (player.getMaxHealth() / 50.0F);
 					if (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) {

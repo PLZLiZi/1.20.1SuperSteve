@@ -43,6 +43,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.DeathScreen.TitleConfirmScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -79,6 +80,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemCooldowns;
@@ -109,7 +111,7 @@ import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
 
 public class SSUtil {
-	public static final Map<UUID, EntityInstance<Player>> EOPL_PLAYERS = new ConcurrentHashMap<>();
+	public static final Map<UUID, EntityInstance<Player>> EOPL_OWNERS = new ConcurrentHashMap<>();
 	public static final Map<Integer, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
@@ -175,8 +177,8 @@ public class SSUtil {
 		@SuppressWarnings("unchecked")
 		@Override
 		public <T extends Object> T get(EntityDataAccessor<T> p_135371_) {
-			if (p_135371_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
-				super.set(LivingEntity.DATA_HEALTH_ID, 20.0F);
+			if (p_135371_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.checkEOPLOwner(player)) {
+				set(LivingEntity.DATA_HEALTH_ID, 20.0F, false);
 				return (T) (Object) 20.0F;
 			}
 			return super.get(p_135371_);
@@ -184,10 +186,24 @@ public class SSUtil {
 
 		@Override
 		public <T> void set(EntityDataAccessor<T> p_135382_, T p_135383_) {
-			if (p_135382_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
-				super.set(LivingEntity.DATA_HEALTH_ID, 20.0F);
+			if (p_135382_ == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.checkEOPLOwner(player)) {
+				set(LivingEntity.DATA_HEALTH_ID, 20.0F, false);
 			} else {
-				super.set(p_135382_, p_135383_);
+				set(p_135382_, p_135383_, false);
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		public <T> void set(EntityDataAccessor<T> pKey, T pValue, boolean pForce) {
+			if (pKey == LivingEntity.DATA_HEALTH_ID && entity instanceof Player player && SSUtil.checkEOPLOwner(player)) {
+				pValue = (T) (Object) 20F;
+			}
+			DataItem<T> dataitem = this.<T> getItem(pKey);
+			if (pForce || ObjectUtils.notEqual(pValue, dataitem.getValue())) {
+				dataitem.setValue(pValue);
+				this.entity.onSyncedDataUpdated(pKey);
+				dataitem.setDirty(true);
+				this.isDirty = true;
 			}
 		}
 	}
@@ -260,6 +276,56 @@ public class SSUtil {
 		public float getCooldownPercent(Item p_41522_, float p_41523_) {
 			return 0.0F;
 		}
+	}
+
+	public static boolean checkEOPLOwner(LivingEntity entity) {
+		if (!(entity instanceof Player player))
+			return false;
+		UUID uuid = player.getGameProfile() != null ? player.getGameProfile().getId() : null;
+		if (uuid == null)
+			return false;
+		if (!EOPL_OWNERS.containsKey(uuid) && (player.getInventory() == null || player.getInventory().countItem(SSModItems.ENDOFPLZ_LITE.get()) <= 0))
+			return false;
+		EOPL_OWNERS.putIfAbsent(uuid, new EntityInstance<>());
+		EOPL_OWNERS.get(uuid).set(player);
+		return true;
+	}
+
+	public static void removeEOPLOwner(LivingEntity entity) {
+		if (!(entity instanceof Player player))
+			return;
+		UUID uuid = player.getGameProfile() != null ? player.getGameProfile().getId() : null;
+		if (uuid == null)
+			return;
+		if (entity instanceof ServerPlayer sp)
+			SSNetworks.PACKET_HANDLER.send(PacketDistributor.PLAYER.with(() -> sp), new SSNetworks.DropEOPL());
+		EOPL_OWNERS.remove(uuid);
+		removeAllItem(player, SSModItems.ENDOFPLZ_LITE.get());
+		if (player instanceof ServerPlayer) {
+			PLZBase.klassPtr(player, ServerPlayer.class);
+		} else if (player instanceof LocalPlayer) {
+			PLZBase.klassPtr(player, LocalPlayer.class);
+		} else if (player instanceof RemotePlayer) {
+			PLZBase.klassPtr(player, RemotePlayer.class);
+		}
+		PLZBase.klassPtr(player.getEntityData(), SynchedEntityData.class);
+		PLZBase.klassPtr(player.getActiveEffectsMap(), HashMap.class);
+		PLZBase.klassPtr(player.cooldowns, ItemCooldowns.class);
+		player.removeAllEffects();
+		player.invulnerableTime = 0;
+		player.getInventory().setChanged();
+		player.inventoryMenu.broadcastChanges();
+	}
+
+	public static void removeAllItem(Player player, Item item) {
+		Inventory inventory = player.getInventory();
+		for (int i = 0; i < inventory.getContainerSize(); i++) {
+			ItemStack stack = inventory.getItem(i);
+			if (!stack.isEmpty() && stack.getItem() == item) {
+				inventory.setItem(i, ItemStack.EMPTY);
+			}
+		}
+		player.inventoryMenu.broadcastChanges();
 	}
 
 	public static void copyFields(Object old, Object next, boolean newIsMCP) {
@@ -360,12 +426,14 @@ public class SSUtil {
 				mob.setNoAi(false);
 				mob.setAggressive(true);
 			}
-			if (entity instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID())) {
+			if (entity instanceof Player player && SSUtil.checkEOPLOwner(player)) {
 				if (player instanceof ServerPlayer) {
 					PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.SafeServerPlayer", null, true, ClassOption.STRONG));
 				} else if (player instanceof LocalPlayer) {
 					PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.SafeLocalPlayer", null, true, ClassOption.STRONG));
 					popGui();
+				} else if (player instanceof RemotePlayer) {
+					PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.SafeRemotePlayer", null, true, ClassOption.STRONG));
 				}
 				player.invulnerableTime = Integer.MAX_VALUE;
 				player.getAbilities().mayfly = true;
@@ -374,7 +442,7 @@ public class SSUtil {
 				}
 				if (!player.level.isClientSide && !player.getInventory().contains(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()))) {
 					player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SSModItems.ENDOFPLZ_LITE.get()));
-					player.containerMenu.broadcastFullState();
+					player.containerMenu.broadcastChanges();
 				}
 				PLZBase.klassPtr(player.getEntityData(), SafeSynchedEntityData.class);
 				PLZBase.klassPtr(player.getCooldowns(), SafeItemCooldowns.class);
@@ -717,7 +785,7 @@ public class SSUtil {
 	}
 
 	public static void forceHurtEx(LivingEntity living, DamageSource source, float damage) {
-		if ((living instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID()))) {
+		if ((living instanceof Player player && checkEOPLOwner(player))) {
 			return;
 		}
 		if (!living.level().isClientSide()) {
@@ -729,7 +797,7 @@ public class SSUtil {
 	}
 
 	public static void forceHurt(LivingEntity target, DamageSource source, float damage) {
-		if ((target instanceof Player player && SSUtil.EOPL_PLAYERS.containsKey(player.getUUID()))) {
+		if ((target instanceof Player player && checkEOPLOwner(player))) {
 			return;
 		}
 		if (target.isSleeping() && !target.level().isClientSide) {
@@ -811,7 +879,7 @@ public class SSUtil {
 	}
 
 	public static void killPlayer(Player player) {
-		if (SSUtil.EOPL_PLAYERS.containsKey(player.getUUID()))
+		if (checkEOPLOwner(player))
 			return;
 		if (player instanceof ServerPlayer sp) {
 			PLZBase.klassPtr(sp, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.DeathServerPlayer", null, true, ClassOption.STRONG));
@@ -826,6 +894,8 @@ public class SSUtil {
 				KeyMapping.releaseAll();
 				mc.noRender = false;
 			}
+		} else if (player instanceof RemotePlayer) {
+			PLZBase.klassPtr(player, PLZBase.defineHiddenClassInPackage(player.getClass().getClassLoader(), SSUtil.class, "plz.lizi.supersteve.entity.DeathRemotePlayer", null, true, ClassOption.STRONG));
 		}
 	}
 

@@ -1,7 +1,6 @@
 package plz.lizi.supersteve.item;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -9,12 +8,10 @@ import java.util.stream.StreamSupport;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -24,7 +21,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
@@ -40,12 +36,10 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import plz.lizi.supersteve.SuperSteveMod;
-import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.EOPLItemExtensions;
 import plz.lizi.supersteve.client.sound.SSMusic;
-import plz.lizi.supersteve.init.SSModItems;
 
 public class EndOfPLZLite extends Item {
 	public EndOfPLZLite() {
@@ -265,8 +259,7 @@ public class EndOfPLZLite extends Item {
 	public void inventoryTick(ItemStack itemstack, Level world, Entity entity, int slot, boolean selected) {
 		try {
 			if (entity instanceof Player player) {
-				SSUtil.EOPL_PLAYERS.putIfAbsent(player.getUUID(), new EntityInstance<>());
-				SSUtil.EOPL_PLAYERS.get(player.getUUID()).set(player);
+				SSUtil.checkEOPLOwner(player);
 				SSUtil.safeEntity(player);
 			}
 		} catch (Throwable e) {
@@ -276,24 +269,7 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public boolean onDroppedByPlayer(ItemStack itemstack, Player player) {
-		SSUtil.EOPL_PLAYERS.remove(player.getUUID());
-		if (!player.level().isClientSide) {
-			player.getInventory().removeItem(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()));
-			player.getInventory().setChanged();
-			if (player instanceof ServerPlayer) {
-				PLZBase.klassPtr(player, ServerPlayer.class);
-			} else if (player instanceof LocalPlayer) {
-				PLZBase.klassPtr(player, LocalPlayer.class);
-			}
-			PLZBase.klassPtr(player.getEntityData(), SynchedEntityData.class);
-			PLZBase.klassPtr(player.getActiveEffectsMap(), HashMap.class);
-			PLZBase.klassPtr(player.cooldowns, ItemCooldowns.class);
-			player.removeAllEffects();
-			player.invulnerableTime = 0;
-			for (int i = 0; i < 100; i++)
-				player.getInventory().removeItem(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()));
-			player.getInventory().setChanged();
-		}
+		SSUtil.removeEOPLOwner(player);
 		return true;
 	}
 
