@@ -10,6 +10,7 @@ import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.CfrBridge;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.network.SSNetworks;
+import plz.lizi.supersteve.power.HotCplr;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -113,9 +114,6 @@ public class JEditScreen extends Screen {
         renderTabBar(guiGraphics, mouseX, mouseY);
     }
 
-    /**
-     * 绘制并处理标签页的样式
-     */
     private void renderTabBar(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         int startX = SIDEBAR_WIDTH + 10;
         int tabY = 4;
@@ -123,7 +121,6 @@ public class JEditScreen extends Screen {
         for (int i = 0; i < tabs.size(); i++) {
             Tab tab = tabs.get(i);
             int tabWidth = this.font.width(tab.title) + 20;
-            // 如果有执行函数，标签页总宽度额外增加 10 像素，给 ">" 腾出空间
             if (tab.exec != null) {
                 tabWidth += 10;
             }
@@ -132,21 +129,17 @@ public class JEditScreen extends Screen {
             int textColor = (i == activeTabindex) ? 0xFFFFFFFF : 0xFF969696;
             guiGraphics.fill(startX, tabY, startX + tabWidth, tabY + tabHeight, tabColor);
             guiGraphics.drawString(this.font, tab.title, startX + 6, tabY + 4, textColor, false);
-            // ==================== 【修改点：有执行键时，计算其坐标并绘制】 ====================
             if (tab.exec != null) {
-                // 执行键位于：右边界 - 22 像素处
                 int execX = startX + tabWidth - 20;
                 boolean isExecHovered = isHovered && mouseX >= execX && mouseX <= execX + 8;
-                int execColor = isExecHovered ? 0xFF4CAF50 : 0xFF717171; // 悬停时显示绿色
+                int execColor = isExecHovered ? 0xFF4CAF50 : 0xFF717171;
                 guiGraphics.drawString(this.font, ">", execX, tabY + 4, execColor, false);
             }
-            // 关闭键的位置保持在右侧边缘
             boolean isXHovered = isHovered && mouseX >= (startX + tabWidth - 14) && mouseX <= (startX + tabWidth);
             int xColor = isXHovered ? 0xFFFF4D4F : 0xFF717171;
             guiGraphics.drawString(this.font, "x", startX + tabWidth - 12, tabY + 4, xColor, false);
             startX += tabWidth + 2;
         }
-        // 绘制末尾的 + 按钮
         int plusButtonWidth = 20;
         boolean isPlusHovered = mouseX >= startX && mouseX <= startX + plusButtonWidth && mouseY >= tabY && mouseY <= tabY + tabHeight;
         int plusColor = isPlusHovered ? 0xFF3E3E42 : 0xFF252526;
@@ -155,15 +148,30 @@ public class JEditScreen extends Screen {
         guiGraphics.drawString(this.font, "+", startX + 7, tabY + 4, plusTextColor, false);
     }
 
-    /**
-     * 鼠标点击事件
-     */
+    public void compileSendToExec(String code) {
+        consoleBox.setValue("");
+        long ms = System.currentTimeMillis();
+        String err = null;
+        byte[] buf = null;
+        try {
+            buf = HotCplr.compileToClassfile(code, SuperSteveMod.class.getClassLoader());
+        if (buf == null)
+            err = "Classfile is null";
+        } catch (Throwable e) {
+            err = e.getMessage();
+        }
+        consoleBox.setValue((err != null ? err + "\n" : "") + "Client compile " + (err == null ? "SUCCESSFUL" : "FAILED") + " in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s\n");
+        if (err != null)
+            return;
+        consoleBox.setValue(consoleBox.getValue() + "\n" + "Sending classfile to server & execute\n");
+        SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.JCplrMsg(buf));
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         int startX = SIDEBAR_WIDTH + 10;
         int tabY = 4;
         int tabHeight = TAB_BAR_HEIGHT - 2;
-        // 1. 检查是否点击了已有的标签页或它们的关闭按钮
         for (int i = 0; i < tabs.size(); i++) {
             Tab tab = tabs.get(i);
             int tabWidth = this.font.width(tab.title) + 20;
@@ -171,18 +179,14 @@ public class JEditScreen extends Screen {
                 tabWidth += 10;
             }
             if (mouseX >= startX && mouseX <= startX + tabWidth && mouseY >= tabY && mouseY <= tabY + tabHeight) {
-                // ==================== 【修改点：判定是否点击了执行键 >】 ====================
                 if (tab.exec != null) {
                     int execX = startX + tabWidth - 20;
                     if (mouseX >= execX && mouseX <= execX + 8) {
-                        // 执行回调，并将自身(tab)作为参数传进去
                         tab.exec.accept(tab);
-                        // 播放高音调的成功/点击音效提示执行
                         Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.4F));
                         return true;
                     }
                 }
-                // 点击了关闭 'x' 按钮
                 if (mouseX >= (startX + tabWidth - 14) && mouseX <= (startX + tabWidth)) {
                     tabs.remove(i);
                     if (tabs.isEmpty()) {
@@ -204,7 +208,6 @@ public class JEditScreen extends Screen {
                     Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
-                // 普通切换标签页
                 activeTabindex = i;
                 this.codeEditor.setValue(tab.content);
                 this.codeEditor.setEdit(tab.editable);
@@ -213,22 +216,17 @@ public class JEditScreen extends Screen {
             }
             startX += tabWidth + 2;
         }
-        // ==================== 【修改点：判定并处理 + 按钮的点击事件】 ====================
         if (mouseX >= startX && mouseX <= startX + PLUS_BUTTON_WIDTH && mouseY >= tabY && mouseY <= tabY + tabHeight) {
-            String defaultContent = "package plz.lizi.exec;\n\npublic class Executor {\n   // Main entry\n    public static void main() {\n    \n    }\n}";
-            // 创建并添加新标签页
+            String defaultContent = "package plz.lizi.supersteve.dynamic;\n\npublic class DynamicClass {\n   // Main entry\n    public static void main() {\n    \n    }\n}";
             tabs.add(new Tab("Executor.java", defaultContent, true, tab -> {
-                consoleBox.setValue("");
-                SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.JCplrMsg(tab.content));
+                compileSendToExec(tab.content);
             }));
-            // 自动切换到新创建的标签页上
             activeTabindex = tabs.size() - 1;
             this.codeEditor.setValue(defaultContent);
             this.codeEditor.setEdit(true);
             Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
             return true;
         }
-        // =========================================================================
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
@@ -237,9 +235,6 @@ public class JEditScreen extends Screen {
         return false;
     }
 
-    /**
-     * 标签页数据模型
-     */
     private static class Tab {
         String title;
         String content;
@@ -259,7 +254,6 @@ public class JEditScreen extends Screen {
             return null;
         return clazz.getName().substring(clazz.getName().lastIndexOf('.') + 1);
     }
-
 
     private class ClassEntry extends ObjectSelectionList.Entry<ClassEntry> {
         private final Class<?> clazz;

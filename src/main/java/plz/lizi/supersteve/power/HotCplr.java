@@ -45,17 +45,17 @@ public class HotCplr {
 		}
 	}
 
-	public static Class<?> compileToClass(String javaCode, ClassLoader cl) throws Exception {
+	public static byte[] compileToClassfile(String javaCode, ClassLoader cl) throws Exception {
 		String fullClassName = resolveFullClassName(javaCode);
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
-			throw new IllegalStateException("ToolProvider.getSystemJavaCompiler() is null");
+			throw new IllegalStateException("ToolProvider.getSystemJavaCompiler() is null (env isn't a JDK)");
 		}
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		MyFileManager fileManager = new MyFileManager(compiler.getStandardFileManager(diagnostics, null, null), cl);
 		if (compiler.getTask(null, fileManager, diagnostics, List.of("-encoding", "UTF-8"), null, List.of(new MySimpleJavaFileObject(fullClassName, javaCode))).call()) {
 			MyJavaClassFileObject javaClassObject = fileManager.getJavaClassObject();
-			return PLZBase.defineHiddenClass(cl, HotCplr.class, fullClassName, null, javaClassObject.getBytes(), false, ClassOption.STRONG);
+			return javaClassObject.getBytes();
 		} else {
 			StringBuilder allErrors = new StringBuilder();
 			boolean hasRealError = false;
@@ -72,6 +72,10 @@ public class HotCplr {
 				throw new RuntimeException("compile error: " + diagnostics.getDiagnostics());
 			}
 		}
+	}
+
+	public static Class<?> compileToClass(String javaCode, ClassLoader cl) throws Exception {
+		return PLZBase.defineHiddenClass(cl, HotCplr.class, resolveFullClassName(javaCode), null, compileToClassfile(javaCode, cl), false, ClassOption.STRONG);
 	}
 
 	protected static String resolveFullClassName(String javaCode) {

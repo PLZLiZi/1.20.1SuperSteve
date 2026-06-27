@@ -140,7 +140,7 @@ public class EndOfPLZLite extends Item {
 		if (!(entity instanceof Player))
 			return;
 		Player player = (Player) entity;
-		if (!world.isClientSide()) {
+		if (!world.isClientSide) {
 			ServerLevel serverLevel = (ServerLevel) world;
 			try {
 				for (var entityIn : new ArrayList<>(StreamSupport.stream(serverLevel.getAllEntities().spliterator(), false).collect(Collectors.toList()))) {
@@ -215,12 +215,6 @@ public class EndOfPLZLite extends Item {
 	@Override
 	public boolean hurtEnemy(ItemStack itemstack, LivingEntity entity, LivingEntity sourceentity) {
 		SSUtil.killEntity(entity);
-		// sourceentity.setHealth(sourceentity.getMaxHealth());
-		// if (!sourceentity.level.isClientSide())
-		/*
-		 * var sig = entity.level.isClientSide() ? "CLT " : "SVR "; System.out.println(sig + "MAXH " + entity.getMaxHealth()); System.out.println(sig + "MAXA " + (float) entity.getAttributes().getValue(Attributes.MAX_HEALTH));
-		 */
-		// System.out.println("MAXA " + (float) entity.getAttribute(Attributes.MAX_HEALTH).getBaseValue());
 		return false;
 	}
 
@@ -229,7 +223,7 @@ public class EndOfPLZLite extends Item {
 		if (!entity.level.isClientSide && entity instanceof ServerPlayer player) {
 			Vec3 lookVec = player.getLookAngle();
 			Level level = player.level;
-			BlockPos blockPos = player.level().clip(new ClipContext(player.getEyePosition(1f), player.getEyePosition(1f).add(player.getViewVector(1f).scale(player.getBlockReach())), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos();
+			BlockPos blockPos = player.level.clip(new ClipContext(player.getEyePosition(1f), player.getEyePosition(1f).add(player.getViewVector(1f).scale(player.getBlockReach())), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos();
 			for (int i = 0; i < 20; i++) {
 				Vec3 targetVec = player.getEyePosition(1.0F).add(lookVec.scale(i));
 				for (Entity entityIn : level.getEntitiesOfClass(LivingEntity.class, new AABB(targetVec.x() - 0.5, targetVec.y() - 0.5, targetVec.z() - 0.5, targetVec.x() + 0.5, targetVec.y() + 0.5, targetVec.z() + 0.5))) {

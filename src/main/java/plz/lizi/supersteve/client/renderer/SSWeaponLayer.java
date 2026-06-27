@@ -43,7 +43,7 @@ public class SSWeaponLayer extends SSLayer {
 			poseStack.mulPose(Axis.YP.rotation(-angle));
 			poseStack.mulPose(Axis.YP.rotationDegrees(45.0F));
 			poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-			Minecraft.getInstance().getItemRenderer().renderStatic(entity.getItemInHand(InteractionHand.MAIN_HAND), ItemDisplayContext.GROUND, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, poseStack, buffer, entity.level(), 0);
+			Minecraft.getInstance().getItemRenderer().renderStatic(entity.getItemInHand(InteractionHand.MAIN_HAND), ItemDisplayContext.GROUND, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, poseStack, buffer, entity.level, 0);
 			poseStack.popPose();
 		}
 		poseStack.popPose();

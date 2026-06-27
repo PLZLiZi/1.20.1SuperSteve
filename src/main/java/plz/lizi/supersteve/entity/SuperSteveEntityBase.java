@@ -45,7 +45,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		super(p_21683_, p_21684_);
 		setHealth = health -> {
 			if (health instanceof Float fhealth)
-				getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(fhealth) ^ 0xF917813F));
+				getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
 		};
 		getHealth = () -> {
 			try {

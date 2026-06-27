@@ -460,7 +460,6 @@ public class SSUtil {
 				Int2ObjectMap<Entity> newById = null;
 				Map<UUID, Entity> newByUUID = null;
 				Int2ObjectMap<Entity> newActive = null;
-				List<ServerPlayer> newSP = null;
 				if (section != null && !section.storage.allInstances.contains(entity)) {
 					newAllInstances = copyList(section.storage.allInstances);
 					newByClass = copyMap(section.storage.byClass);
@@ -480,7 +479,8 @@ public class SSUtil {
 					PLZBase.klassPtr(cm, SSChunkMap.class);
 					newTES = copyInt2ObjectMap(cm.entityMap);
 					TrackedEntity te = createTrackedEntity(cm, entity);
-					newTES.put(entity.getId(), te);
+					if (te != null)
+						newTES.put(entity.getId(), te);
 				}
 				EntityLookup<Entity> lookup = serverWorld.entityManager.visibleEntityStorage;
 				if (lookup.byId.get(entity.getId()) != entity) {
@@ -494,12 +494,6 @@ public class SSUtil {
 				if (serverWorld.entityTickList.active.get(entity.getId()) != entity) {
 					newActive = copyInt2ObjectMap(serverWorld.entityTickList.active);
 					newActive.put(entity.getId(), entity);
-				}
-				if (!serverWorld.players.contains(entity)) {
-					newSP = copyList(serverWorld.players);
-					if (entity instanceof ServerPlayer sp) {
-						newSP.add(sp);
-					}
 				}
 				if (newByClass != null) {
 					section.storage.byClass = newByClass;
@@ -517,9 +511,6 @@ public class SSUtil {
 				}
 				if (newActive != null) {
 					serverWorld.entityTickList.active = newActive;
-				}
-				if (newSP != null) {
-					serverWorld.players = newSP;
 				}
 			} else if (entity.level instanceof ClientLevel clientWorld) {
 				EntitySection<Entity> section = clientWorld.entityStorage.sectionStorage.getSection(SectionPos.asLong(entity.blockPosition()));
@@ -576,7 +567,7 @@ public class SSUtil {
 
 	public static void killEntity(Entity entity, boolean ignoredSSDeath) {
 		try {
-			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() == State.EXIT && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
+			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
 				ss.setHealth.accept(0F);
@@ -594,10 +585,10 @@ public class SSUtil {
 					killEntity(ssi.serverInstance);
 				}
 			}
-			if (!entity.level().isClientSide()) {
+			if (!entity.level.isClientSide) {
 				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RemoveClientEntity(entity.getId()));
 			}
-			if (entity instanceof LivingEntity livingEntity && !entity.level().isClientSide()) {
+			if (entity instanceof LivingEntity livingEntity && !entity.level.isClientSide) {
 				try {
 					livingEntity.dropAllDeathLoot(livingEntity.damageSources().generic());
 				} catch (Throwable e) {
@@ -771,10 +762,9 @@ public class SSUtil {
 	}
 
 	public static LivingEntity getClosestEntity(LivingEntity sourceEntity, double range) {
-		Level world = sourceEntity.level();
 		LivingEntity closestEntity = null;
 		double minDistanceSqr = -1.0;
-		for (LivingEntity entity : world.getEntitiesOfClass(LivingEntity.class, sourceEntity.getBoundingBox().inflate(range), (entity) -> !(entity instanceof SuperSteveEntityBase))) {
+		for (LivingEntity entity : sourceEntity.level.getEntitiesOfClass(LivingEntity.class, sourceEntity.getBoundingBox().inflate(range), (entity) -> !(entity instanceof SuperSteveEntityBase))) {
 			double distanceSqr = sourceEntity.distanceToSqr(entity);
 			if (minDistanceSqr == -1.0 || distanceSqr < minDistanceSqr) {
 				minDistanceSqr = distanceSqr;
@@ -788,7 +778,7 @@ public class SSUtil {
 		if ((living instanceof Player player && checkEOPLOwner(player))) {
 			return;
 		}
-		if (!living.level().isClientSide()) {
+		if (!living.level.isClientSide) {
 			PLZBase.klassPtr(living.getEntityData(), HurtSynchedEntityData.class);
 			if (living.getEntityData() instanceof HurtSynchedEntityData hsed)
 				hsed.hurtOffset += damage;
@@ -800,7 +790,7 @@ public class SSUtil {
 		if ((target instanceof Player player && checkEOPLOwner(player))) {
 			return;
 		}
-		if (target.isSleeping() && !target.level().isClientSide) {
+		if (target.isSleeping() && !target.level.isClientSide) {
 			target.stopSleeping();
 		}
 		target.noActionTime = 0;
@@ -854,9 +844,9 @@ public class SSUtil {
 			}
 		}
 		if (flag) {
-			target.level().broadcastEntityEvent(target, (byte) 29);
+			target.level.broadcastEntityEvent(target, (byte) 29);
 		} else {
-			target.level().broadcastDamageEvent(target, source);
+			target.level.broadcastDamageEvent(target, source);
 		}
 		target.hurtMarked = true;
 		if (target.level.isClientSide && Minecraft.getInstance().isSameThread()) {
@@ -865,7 +855,7 @@ public class SSUtil {
 		boolean flag2 = !flag || damage > 0.0F;
 		if (flag2) {
 			target.lastDamageSource = source;
-			target.lastDamageStamp = target.level().getGameTime();
+			target.lastDamageStamp = target.level.getGameTime();
 		}
 		if (target instanceof ServerPlayer) {
 			CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer) target, source, damage, damage, flag);

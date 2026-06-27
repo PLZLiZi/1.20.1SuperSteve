@@ -1,7 +1,6 @@
 package plz.lizi.supersteve.network;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -15,9 +14,10 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 import plz.lizi.supersteve.SuperSteveMod;
+import plz.lizi.supersteve.api.ClassOption;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.gui.JEditScreen;
-import plz.lizi.supersteve.power.HotCplr;
 
 public class SSNetworks {
 	private static final String PROTOCOL_VERSION = "1";
@@ -88,41 +88,54 @@ public class SSNetworks {
 		}
 	}
 	public static class JCplrMsg {
-		public String msg;
+		public byte[] c2sClassfile = null;
+		public String s2cResult = null;
 
-		public JCplrMsg(String msg) {
-			this.msg = msg;
+		public JCplrMsg(String s2cResult) {
+			this.s2cResult = s2cResult;
+		}
+
+		public JCplrMsg(byte[] c2sClassfile) {
+			this.c2sClassfile = c2sClassfile;
 		}
 
 		public static void encode(JCplrMsg msg, FriendlyByteBuf buf) {
-			buf.writeUtf(msg.msg);
+			if (msg.c2sClassfile != null && msg.s2cResult == null) {
+				buf.writeUtf("C2S").writeByteArray(msg.c2sClassfile);
+			} else if (msg.s2cResult != null && msg.c2sClassfile == null) {
+				buf.writeUtf("S2C").writeUtf(msg.s2cResult);
+			}
 		}
 
 		public static JCplrMsg decode(FriendlyByteBuf buf) {
-			return new JCplrMsg(buf.readUtf());
+			String port = buf.readUtf();
+			if ("C2S".equals(port)) {
+				return new JCplrMsg(buf.readByteArray());
+			} else if ("S2C".equals(port)) {
+				return new JCplrMsg(buf.readUtf());
+			}
+			return null;
 		}
 
 		public static void handle(JCplrMsg msg, Supplier<NetworkEvent.Context> ctxSupplier) {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			ctx.enqueueWork(() -> {
 				if (ctx.getDirection().getReceptionSide().isServer()) {
-					String rst = "Execute successful";
+					String rst = "";
 					long last = System.currentTimeMillis();
 					try {
-						Class<?> clazz = HotCplr.compileToClass(msg.msg, SuperSteveMod.class.getClassLoader());
-						Method main = null;
-						if ((main = clazz.getDeclaredMethod("main")) != null && Modifier.isStatic(main.getModifiers())) {
-							main.setAccessible(true);
-							main.invoke(null);
-						}
+						Class<?> clazz = PLZBase.defineHiddenClass(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.dynamic.DynamicClass", null, msg.c2sClassfile, false, ClassOption.STRONG);;
+						Method main = clazz.getDeclaredMethod("main");
+						main.setAccessible(true);
+						main.invoke(null);
 					} catch (Throwable e) {
-						rst = e.getMessage();
+						rst = PLZBase.splitLast(e.getClass().getName(), ".")[1] + ": " + e.getMessage() + "\n";
 					}
-					PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg("Execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n" + rst));
-				} else if (ctx.getDirection().getReceptionSide().isClient()) {
+					PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg(rst + "\nServer execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n"));
+				} else {
 					Minecraft mc = Minecraft.getInstance();
 					if (mc.screen instanceof JEditScreen jes && jes.initialized) {
-						jes.getConsoleBox().setValue(msg.msg);
+						jes.getConsoleBox().setValue(jes.getConsoleBox().getValue() + "\n" + msg.s2cResult);
 					}
 				}
 			});
@@ -130,7 +143,6 @@ public class SSNetworks {
 		}
 	}
 	public static class DropEOPL {
-
 		public DropEOPL() {}
 
 		public static void encode(DropEOPL msg, FriendlyByteBuf buf) {}

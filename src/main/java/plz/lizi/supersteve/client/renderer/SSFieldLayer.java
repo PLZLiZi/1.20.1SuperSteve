@@ -32,7 +32,7 @@ public class SSFieldLayer extends SSLayer {
 			poseStack.scale(25, 25, 25);
 			poseStack.mulPose(Axis.YP.rotationDegrees(45F));
 			poseStack.mulPose(Axis.ZN.rotationDegrees(135F));
-			Minecraft.getInstance().getItemRenderer().renderStatic(entity.getItemInHand(InteractionHand.MAIN_HAND), ItemDisplayContext.NONE, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, poseStack, buffer, entity.level(), 0);
+			Minecraft.getInstance().getItemRenderer().renderStatic(entity.getItemInHand(InteractionHand.MAIN_HAND), ItemDisplayContext.NONE, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, poseStack, buffer, entity.level, 0);
 			poseStack.popPose();
 		}
         float openFieldPgs = SuperSteveEntityBase.openFieldPgs(stateTime, partialTick);

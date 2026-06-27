@@ -84,7 +84,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack offhand32k = ItemStack.EMPTY;
 	private LivingEntity target;
 	private Vec3 safePos = Vec3.ZERO;
-	private List<ItemEntity> drops = new CopyOnWriteArrayList<>();
+	private List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 
 	private void init() {
 		eyeHeight = 1.62F;
@@ -104,19 +104,19 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		setItemSlot(EquipmentSlot.CHEST, chest32k);
 		setItemSlot(EquipmentSlot.LEGS, legs32k);
 		setItemSlot(EquipmentSlot.FEET, boot32k);
-		if (!level.isClientSide()) {
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), mainhand32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), offhand32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), head32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), chest32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), legs32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), boot32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_PICKAXE)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_HOE)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_AXE)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_SHOVEL)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+		if (!level.isClientSide) {
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), mainhand32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), offhand32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), head32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), chest32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), legs32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), boot32k, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_PICKAXE)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_HOE)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_AXE)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), SSUtil.make32K(new ItemStack(Items.NETHERITE_SHOVEL)), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 			if (new Random().nextInt(2) == 0) {
-				drops.add(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.SSP_SIGN_SPLINTER.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+				idrops.add(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.SSP_SIGN_SPLINTER.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 			}
 		}
 		setPersistenceRequired();
@@ -147,7 +147,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public SuperSteveEntity(EntityType<SuperSteveEntityBase> type, Level world) {
 		super(type, world);
 		init();
-		if (!level.isClientSide()) {
+		if (!level.isClientSide) {
 			bossEvent = new SSBossEvent(getUUID(), getCustomName(), ServerBossEvent.BossBarColor.WHITE, ServerBossEvent.BossBarOverlay.PROGRESS);
 		}
 	}
@@ -168,7 +168,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			if (state == State.ENTER) {
 				if (tick == ENTER_ACTIVE[1])
 					sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, this.getX(), this.getY(), this.getZ(), 1, 0, 0, 0, 0);
-				else if (tick == ENTER_ACTIVE[0])
+				else if (stateTime == ENTER_ACTIVE[0])
 					sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.joined", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
 			} else if (state == State.EXIT) {
 				float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
@@ -177,6 +177,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 						continue;
 					SSUtil.forceHurtEx(livingEntity, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(livingEntity.getMaxHealth() / 40F, livingEntity.getHealth() / 40F))));
 				}
+			} else if (state == State.EXIT) {
 			}
 		} else if (level instanceof ClientLevel cl) {
 			var attItr = attacks.iterator();
@@ -359,6 +360,11 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void onAddedToWorld() {
+		if (isAddedToWorld || level instanceof ServerLevel sl && (sl.getEntity(getUUID()) != this || sl.getEntity(getId()) != this)) {
+			idrops.clear();
+			SSUtil.killEntity(this);
+			return;
+		}
 		isAddedToWorld = true;
 		ssInit();
 	}
@@ -632,8 +638,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 						// TODO: 彩蛋
 						String playerName = player.getGameProfile().getName();
 						if (playerName.equals("shugangan") || playerName.equals("shiki214ein")) {
-							if (!level.isClientSide()) {
-								drops.clear();
+							if (!level.isClientSide) {
+								idrops.clear();
 								((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 								player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 							}
@@ -645,7 +651,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					if (Float.isInfinite(attackPst) || Float.isNaN(attackPst))
 						attackPst = 1F;
 					boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
-					setHealth.accept(ssGetHealth() - (level.isClientSide() ? 0 : (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.04f : 0.2f) * attackPst)));
+					setHealth.accept(ssGetHealth() - (level.isClientSide ? 0 : (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst)));
 					super.hurt(damagesource, 0F);
 					SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 					return true;
@@ -929,15 +935,15 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void dropAllDeathLoot(DamageSource p_21192_) {
-		if (level.isClientSide())
+		if (level.isClientSide)
 			return;
-		if (ssGetHealth() <= 0.0F) {
-			synchronized (drops) {
-				for (var drop : drops) {
+		if (ssGetHealth() <= 0F) {
+			synchronized (idrops) {
+				for (var drop : idrops) {
 					drop.setPos(position());
 					level.addFreshEntity(drop);
 				}
-				drops.clear();
+				idrops.clear();
 			}
 		}
 	}
@@ -1116,7 +1122,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isDeadOrDying() {
-		return ssGetHealth() <= 0.0F;
+		return !isAlive();
 	}
 
 	@Override
@@ -1183,8 +1189,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
 			setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
 			setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
-			drops.clear();
-			drops.add(new ItemEntity(level, getX(), getY(), getZ(), eopl, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+			idrops.clear();
+			idrops.add(new ItemEntity(level, getX(), getY(), getZ(), eopl, new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 		}
 	}
 
