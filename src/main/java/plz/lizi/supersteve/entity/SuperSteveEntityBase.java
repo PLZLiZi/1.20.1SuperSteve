@@ -21,6 +21,7 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.level.SSBossEvent;
 
@@ -43,11 +44,11 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
-		setHealth = health -> {
+		PLZBase.setField(this, false, "setHealth", (Consumer<Object>) health -> {
 			if (health instanceof Float fhealth)
 				getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
-		};
-		getHealth = () -> {
+		});
+		PLZBase.setField(this, false, "getHealth", (Supplier<Object>) () -> {
 			try {
 				String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
 				if (ssh.startsWith("SSH="))
@@ -56,7 +57,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			}
 			setHealth.accept(20F);
 			return 20F;
-		};
+		});
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {

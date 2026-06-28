@@ -1210,4 +1210,16 @@ public class SSUtil {
 		double r = range * Math.cbrt(tlr.nextDouble());
 		return pos.add((u / norm) * r, (v / norm) * r, (w / norm) * r);
 	}
+
+	public static void serverTickEntity(ServerLevel sl, Entity p_8648_) {
+		p_8648_.setOldPosAndRot();
+		++p_8648_.tickCount;
+		p_8648_.tick();
+	}
+
+	public static void clientTickEntity(ClientLevel cl, Entity p_104640_) {
+		p_104640_.setOldPosAndRot();
+		++p_104640_.tickCount;
+		p_104640_.tick();
+	}
 }

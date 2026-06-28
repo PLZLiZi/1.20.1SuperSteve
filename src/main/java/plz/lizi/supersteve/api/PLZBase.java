@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -1172,8 +1173,12 @@ public class PLZBase {
 		sb.append("}");
 		return sb.toString();
 	}
-	
+
 	public static float progress(float f) {
 		return Math.max(0F, Math.min(1F, f));
+	}
+
+	public static <T> Set<T> weakHashSet() {
+		return Collections.newSetFromMap(new WeakHashMap<>());
 	}
 }

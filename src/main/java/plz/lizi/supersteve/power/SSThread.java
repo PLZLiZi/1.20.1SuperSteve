@@ -47,6 +47,7 @@ public class SSThread {
                     }
                 }
                 if (!SSUtil.ONLY_SERVER) {
+                    SSCore.procClient();
                     if (SSUtil.getLocalPlayer() != null && SSUtil.getClientLevel() != null) {
                         SSCore.procLevel(SSUtil.getClientLevel());
                         Player lp = SSUtil.getLocalPlayer();

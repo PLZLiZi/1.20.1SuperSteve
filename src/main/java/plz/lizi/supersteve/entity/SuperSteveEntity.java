@@ -1,6 +1,5 @@
 package plz.lizi.supersteve.entity;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -73,6 +72,7 @@ import plz.lizi.supersteve.init.SSModEntities;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.init.SSModSounds;
 import plz.lizi.supersteve.level.SSBossEvent;
+import plz.lizi.supersteve.power.SSCore;
 
 public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack eopl = ItemStack.EMPTY;
@@ -84,6 +84,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack offhand32k = ItemStack.EMPTY;
 	private LivingEntity target;
 	private Vec3 safePos = Vec3.ZERO;
+	private Map<MobEffect, MobEffectInstance> noEffects = new HashMap<>();
 	private List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 
 	private void init() {
@@ -305,6 +306,11 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				this.updateControlFlags();
 			}
 		}
+		
+		if (SSCore.SERVER_TICK_MANAGER.containsKey(this))
+			SSCore.SERVER_TICK_MANAGER.put(this, true);
+		if (SSCore.CLIENT_TICK_MANAGER.containsKey(this))
+			SSCore.CLIENT_TICK_MANAGER.put(this, true);
 	}
 
 	@Override
@@ -337,12 +343,18 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public Collection<MobEffectInstance> getActiveEffects() {
-		return new ArrayList<>();
+		noEffects.clear();
+		if (!noEffects.isEmpty())
+			noEffects = new HashMap<>();
+		return noEffects.values();
 	}
 
 	@Override
 	public Map<MobEffect, MobEffectInstance> getActiveEffectsMap() {
-		return new HashMap<>();
+		noEffects.clear();
+		if (!noEffects.isEmpty())
+			noEffects = new HashMap<>();
+		return noEffects;
 	}
 
 	@Override
@@ -1074,6 +1086,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
+	public void discard() {}
+
+	@Override
 	public void kill() {}
 
 	@Override
@@ -1355,5 +1370,85 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void move(MoverType p_19973_, Vec3 p_19974_) {
 		super.move(p_19973_, p_19974_);
+	}
+
+	@Override
+	public void setOldPosAndRot() {
+		double d0 = this.getX();
+		double d1 = this.getY();
+		double d2 = this.getZ();
+		this.xo = d0;
+		this.yo = d1;
+		this.zo = d2;
+		this.xOld = d0;
+		this.yOld = d1;
+		this.zOld = d2;
+		this.yRotO = this.getYRot();
+		this.xRotO = this.getXRot();
+	}
+
+	@Override
+	public int getBlockX() {
+		return this.blockPosition.getX();
+	}
+
+	@Override
+	public double getX() {
+		return this.position.x;
+	}
+
+	@Override
+	public double getX(double pScale) {
+		return this.position.x + (double) this.getBbWidth() * pScale;
+	}
+
+	@Override
+	public double getRandomX(double pScale) {
+		return this.getX(((double) 2.0F * this.random.nextDouble() - (double) 1.0F) * pScale);
+	}
+
+	@Override
+	public int getBlockY() {
+		return this.blockPosition.getY();
+	}
+
+	@Override
+	public double getY() {
+		return this.position.y;
+	}
+
+	@Override
+	public double getY(double pScale) {
+		return this.position.y + (double) this.getBbHeight() * pScale;
+	}
+
+	@Override
+	public double getRandomY() {
+		return this.getY(this.random.nextDouble());
+	}
+
+	@Override
+	public double getEyeY() {
+		return this.position.y + (double) this.eyeHeight;
+	}
+
+	@Override
+	public int getBlockZ() {
+		return this.blockPosition.getZ();
+	}
+
+	@Override
+	public double getZ() {
+		return this.position.z;
+	}
+
+	@Override
+	public double getZ(double pScale) {
+		return this.position.z + (double) this.getBbWidth() * pScale;
+	}
+
+	@Override
+	public double getRandomZ(double pScale) {
+		return this.getZ(((double) 2.0F * this.random.nextDouble() - (double) 1.0F) * pScale);
 	}
 }
