@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.joml.Vector3f;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -35,6 +36,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final EntityDataAccessor<Integer> SS_TICK = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
 	public static final EntityDataAccessor<String> SS_STATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<Integer> SS_LSTATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
+	public static final EntityDataAccessor<Vector3f> SS_SAFE_POS = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.VECTOR3);
 	public final List<Attack> attacks = new ArrayList<>();
 	public Consumer<Object> setHealth = o -> {
 	};
@@ -89,7 +91,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			State state = State.valueOf(getEntityData().get(SS_STATE));
 			State newState = state;
 			int stateTime = stateTime();
-			if (state == State.ENTER && stateTime >= ENTER_ACTIVE[0])
+			if (state == State.ENTER && stateTime > ENTER_ACTIVE[0])
 				newState = State.ALIVE;
 			else if (state == State.ALIVE && !isAlive())
 				newState = State.EXIT;

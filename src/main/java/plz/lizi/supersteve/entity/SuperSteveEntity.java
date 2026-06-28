@@ -68,6 +68,7 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
 import net.minecraftforge.registries.ForgeRegistries;
 import plz.lizi.supersteve.api.EntityInstance;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.init.SSModEntities;
@@ -113,7 +114,6 @@ import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.Item;
@@ -146,6 +146,7 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.eventbus.api.Event;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack eopl = ItemStack.EMPTY;
@@ -156,7 +157,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack mainhand32k = ItemStack.EMPTY;
 	private ItemStack offhand32k = ItemStack.EMPTY;
 	private LivingEntity target;
-	private Vec3 safePos = Vec3.ZERO;
 	private Map<MobEffect, MobEffectInstance> noEffects = new HashMap<>();
 	private List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 
@@ -240,7 +240,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		ssTick(false);
 		if (level instanceof ServerLevel sl) {
 			if (state == State.ENTER) {
-				if (tick == ENTER_ACTIVE[1])
+				if (stateTime == ENTER_ACTIVE[1])
 					sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, this.getX(), this.getY(), this.getZ(), 1, 0, 0, 0, 0);
 				else if (stateTime == ENTER_ACTIVE[0])
 					sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.joined", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
@@ -705,6 +705,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		return 20.0F;
 	}
 
+	public Entity old = null;
+
 	@Override
 	public boolean hurt(DamageSource damagesource, float amount) {
 		if (!isAlive() || getState() != State.ALIVE)
@@ -801,15 +803,17 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					var movement = getDeltaMovement();
 					setDeltaMovement(movement.x, 1, movement.z);
 				}
-				if (Double.isNaN(getX()) || Double.isNaN(getY()) || Double.isNaN(getZ()) || Double.isInfinite(getX()) || Double.isInfinite(getY()) || Double.isInfinite(getZ()))
-					ssSetPos(threadCall, safePos.x, safePos.y, safePos.z);
+				boolean badPos = false;
+				for (double v2test : new double[] { getX(), getY(), getZ() })
+					if (!Double.isFinite(v2test))
+						badPos = true;
+				if (badPos)
+					setToSafePos(threadCall);
 				else
-					safePos = position();
-				if (!level.isClientSide) {
-					if (getTarget() != null && getTarget().level == level && getTarget().isAlive() && position().distanceTo(getTarget().position()) >= 64.0d) {
-						safePos = getTarget().position();
-						ssSetPos(threadCall, safePos.x, safePos.y, safePos.z);
-					}
+					ssSetSafePos(position());
+				if (getTarget() != null && getTarget().level == level && getTarget().isAlive() && position().distanceTo(getTarget().position()) >= 64.0d) {
+					getTarget().position();
+					setToSafePos(threadCall);
 				}
 			} else {
 				SSUtil.killEntity(this, false);
@@ -890,6 +894,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	public void ssSetPos(boolean otherThread, double p_20344_, double p_20345_, double p_20346_) {
+		for (double v2test : new double[] { p_20344_, p_20345_, p_20346_ })
+			if (!Double.isFinite(v2test))
+				return;
 		if (this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_) {
 			this.position = new Vec3(p_20344_, p_20345_, p_20346_);
 			int i = Mth.floor(p_20344_);
@@ -1377,6 +1384,19 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		return getEntityData().get(SS_TICK);
 	}
 
+	public void setToSafePos(boolean threadCall) {
+		var pos = ssGetSafePos();
+		ssSetPos(threadCall, pos.x, pos.y, pos.z);
+	}
+
+	public Vec3 ssGetSafePos() {
+		return new Vec3(getEntityData().get(SS_SAFE_POS));
+	}
+
+	public void ssSetSafePos(Vec3 pos) {
+		getEntityData().set(SS_SAFE_POS, new Vector3f((float) pos.x, (float) pos.y, (float) pos.z));
+	}
+
 	@Override
 	public void load(CompoundTag p_20259_) {
 		super.load(p_20259_);
@@ -1395,6 +1415,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		getEntityData().define(SS_TICK, 0);
 		getEntityData().define(SS_STATE, State.ENTER.name());
 		getEntityData().define(SS_LSTATE, 0);
+		getEntityData().define(SS_SAFE_POS, new Vector3f(0));
 	}
 
 	@Override
@@ -1534,15 +1555,161 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public Vec3 getDeltaMovement() {
 		return this.deltaMovement;
 	}
+
+	@Override
+	public float maxUpStep() {
+		return 10;
+	}
+
+	@Override
+	public boolean isEffectiveAi() {
+		return !this.level.isClientSide;
+	}
+
+	@Override
+	public void addDeltaMovement(Vec3 pAddend) {
+		this.setDeltaMovement(this.getDeltaMovement().add(pAddend));
+	}
+
+	@Override
+	public BlockPos blockPosition() {
+		return this.blockPosition;
+	}
+
+	@Override
+	public boolean canAddPassenger(Entity pPassenger) {
+		return false;
+	}
+
+	@Override
+	public boolean canAttackType(EntityType<?> pType) {
+		return true;
+	}
+
+	@Override
+	public boolean canBeHitByProjectile() {
+		return false;
+	}
+
+	@Override
+	public boolean canBeLeashed(Player pPlayer) {
+		return false;
+	}
+
+	@Override
+	public boolean canRide(Entity pVehicle) {
+		return false;
+	}
+
+	@Override
+	public AABB getBoundingBox() {
+		return this.bb;
+	}
+
+	@Override
+	@Nullable
+	public String getEncodeId() {
+		EntityType<?> entitytype = this.getType();
+		ResourceLocation resourcelocation = EntityType.getKey(entitytype);
+		return entitytype.canSerialize() && resourcelocation != null ? resourcelocation.toString() : null;
+	}
+
+	@Override
+	public Vec3 getLookAngle() {
+		return this.calculateViewVector(this.getXRot(), this.getYRot());
+	}
+
+	@Override
+	public LookControl getLookControl() {
+		return this.lookControl;
+	}
+
+	@Override
+	public int getMaxAirSupply() {
+		return 300;
+	}
+
+	@Override
+	public int getMaxFallDistance() {
+		return 30;
+	}
+
+	@Override
+	public int getMaxHeadXRot() {
+		return 40;
+	}
+
+	@Override
+	public int getMaxHeadYRot() {
+		return 75;
+	}
+
+	@Override
+	public int getMaxSpawnClusterSize() {
+		return 4;
+	}
+
+	@Override
+	public Vec3 getMeleeAttackReferencePosition() {
+		return this.position;
+	}
+
+	@Override
+	public MoveControl getMoveControl() {
+		return this.moveControl;
+	}
+
+	@Override
+	public MovementEmission getMovementEmission() {
+		return MovementEmission.ALL;
+	}
+
+	@Override
+	public int getHeadRotSpeed() {
+		return 10;
+	}
+
+	@Override
+	public float getJumpBoostPower() {
+		return this.hasEffect(MobEffects.JUMP) ? 0.1f * ((float) this.getEffect(MobEffects.JUMP).getAmplifier() + 1.0f) : 0.0f;
+	}
+
+	@Override
+	public JumpControl getJumpControl() {
+		return this.jumpControl;
+	}
+
+	@Override
+	public float getJumpPower() {
+		return 0.42f * this.getBlockJumpFactor() + this.getJumpBoostPower();
+	}
+
+	@Override
+	public boolean isCurrentlyGlowing() {
+		return false;
+	}
+
+	@Override
+	public boolean isCustomNameVisible() {
+		return true;
+	}
+
+	@Override
+	public boolean isFullyFrozen() {
+		return false;
+	}
+
+	@Override
+	public boolean isLeashed() {
+		return this.leashHolder != null;
+	}
+
+	@Override
+	public void setRemoved(RemovalReason pRemovalReason) {}
 	// ============================================================
 	// Movement/Position/Sync methods from inheritance chain
 	// Originals: PathfinderMob -> Mob -> LivingEntity -> Entity
 	// ============================================================
-
-	@Override
-	public boolean isEffectiveAi() {
-		return true;
-	}
 
 	@Override
 	public void absMoveTo(double pX, double pY, double pZ, float pYRot, float pXRot) {
@@ -1579,13 +1746,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public void addDeltaMovement(Vec3 pAddend) {
-		this.setDeltaMovement(this.getDeltaMovement().add(pAddend));
-	}
-
-	@Override
-	public void addPassenger(Entity pPassenger) {
-	}
+	public void addPassenger(Entity pPassenger) {}
 
 	@Override
 	public boolean addTag(String pTag) {
@@ -1604,11 +1765,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		pDistance = d0 - this.pistonDeltas[i];
 		this.pistonDeltas[i] = d0;
 		return pDistance;
-	}
-
-	@Override
-	public BlockPos blockPosition() {
-		return this.blockPosition;
 	}
 
 	@Override
@@ -1659,26 +1815,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public boolean canAddPassenger(Entity pPassenger) {
-		return false;
-	}
-
-	@Override
-	public boolean canAttackType(EntityType<?> pType) {
-		return true;
-	}
-
-	@Override
-	public boolean canBeHitByProjectile() {
-		return false;
-	}
-
-	@Override
-	public boolean canBeLeashed(Player pPlayer) {
-		return !this.isLeashed() && !(this instanceof Enemy);
-	}
-
-	@Override
 	public boolean canBeSeenAsEnemy() {
 		return !this.isInvulnerable() && this.canBeSeenByAnyone();
 	}
@@ -1700,11 +1836,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean canReplaceEqualItem(ItemStack pCandidate, ItemStack pExisting) {
-		return false;
-	}
-
-	@Override
-	public boolean canRide(Entity pVehicle) {
 		return false;
 	}
 
@@ -1828,20 +1959,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void dismountTo(double pX, double pY, double pZ) {
 		this.teleportTo(pX, pY, pZ);
-	}
-
-	@Override
-	public void dismountVehicle(Entity pVehicle) {
-		Vec3 vec3;
-		if (this.isRemoved()) {
-			vec3 = this.position();
-		} else if (!pVehicle.isRemoved() && !this.level().getBlockState(pVehicle.blockPosition()).is(BlockTags.PORTALS)) {
-			vec3 = pVehicle.getDismountLocationForPassenger(this);
-		} else {
-			double d0 = Math.max(this.getY(), pVehicle.getY());
-			vec3 = new Vec3(this.getX(), d0, this.getZ());
-		}
-		this.dismountTo(vec3.x, vec3.y, vec3.z);
 	}
 
 	@Override
@@ -1969,15 +2086,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	@Deprecated
-	public void fixupDimensions() {
-		EntityDimensions entitydimensions;
-		Pose pose = this.getPose();
-		this.dimensions = entitydimensions = this.getDimensions(pose);
-		this.eyeHeight = this.getEyeHeight(pose, entitydimensions);
-	}
-
-	@Override
 	protected double followLeashSpeed() {
 		return 1.0;
 	}
@@ -2051,11 +2159,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Deprecated
 	public BlockState getBlockStateOnLegacy() {
 		return this.level().getBlockState(this.getOnPosLegacy());
-	}
-
-	@Override
-	public AABB getBoundingBox() {
-		return this.bb;
 	}
 
 	@Override
@@ -2169,14 +2272,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	@Nullable
-	public String getEncodeId() {
-		EntityType<?> entitytype = this.getType();
-		ResourceLocation resourcelocation = EntityType.getKey(entitytype);
-		return entitytype.canSerialize() && resourcelocation != null ? resourcelocation.toString() : null;
-	}
-
-	@Override
 	public Optional<BlockUtil.FoundRectangle> getExitPortal(ServerLevel pDestination, BlockPos pFindFrom, boolean pIsToNether, WorldBorder pWorldBorder) {
 		return pDestination.getPortalForcer().findPortalAround(pFindFrom, pIsToNether, pWorldBorder);
 	}
@@ -2274,26 +2369,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public int getHeadRotSpeed() {
-		return 10;
-	}
-
-	@Override
-	public float getJumpBoostPower() {
-		return this.hasEffect(MobEffects.JUMP) ? 0.1f * ((float) this.getEffect(MobEffects.JUMP).getAmplifier() + 1.0f) : 0.0f;
-	}
-
-	@Override
-	public JumpControl getJumpControl() {
-		return this.jumpControl;
-	}
-
-	@Override
-	public float getJumpPower() {
-		return 0.42f * this.getBlockJumpFactor() + this.getJumpBoostPower();
-	}
-
-	@Override
 	public Optional<BlockPos> getLastClimbablePos() {
 		return this.lastClimbablePos;
 	}
@@ -2338,56 +2413,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public AABB getLocalBoundsForPose(Pose pPose) {
 		EntityDimensions entitydimensions = this.getDimensions(pPose);
 		return new AABB(-entitydimensions.width / 2.0f, 0.0, -entitydimensions.width / 2.0f, entitydimensions.width / 2.0f, entitydimensions.height, entitydimensions.width / 2.0f);
-	}
-
-	@Override
-	public Vec3 getLookAngle() {
-		return this.calculateViewVector(this.getXRot(), this.getYRot());
-	}
-
-	@Override
-	public LookControl getLookControl() {
-		return this.lookControl;
-	}
-
-	@Override
-	public int getMaxAirSupply() {
-		return 300;
-	}
-
-	@Override
-	public int getMaxFallDistance() {
-		return 30;
-	}
-
-	@Override
-	public int getMaxHeadXRot() {
-		return 40;
-	}
-
-	@Override
-	public int getMaxHeadYRot() {
-		return 75;
-	}
-
-	@Override
-	public int getMaxSpawnClusterSize() {
-		return 4;
-	}
-
-	@Override
-	public Vec3 getMeleeAttackReferencePosition() {
-		return this.position;
-	}
-
-	@Override
-	public MoveControl getMoveControl() {
-		return this.moveControl;
-	}
-
-	@Override
-	public MovementEmission getMovementEmission() {
-		return MovementEmission.ALL;
 	}
 
 	@Override
@@ -2520,11 +2545,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public Entity getRootVehicle() {
-		Entity entity = this;
-		while (entity.isPassenger()) {
-			entity = entity.getVehicle();
-		}
-		return entity;
+		return this;
 	}
 
 	@Override
@@ -2601,7 +2622,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	@Nullable
 	public Entity getVehicle() {
-		return this.vehicle;
+		return null;
 	}
 
 	@Override
@@ -2860,27 +2881,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public boolean isCurrentlyGlowing() {
-		return false;
-	}
-
-	@Override
-	public boolean isCustomNameVisible() {
-		return true;
-	}
-
-	@Override
 	public boolean isFallFlying() {
 		return this.getSharedFlag(7);
 	}
 
 	@Override
 	public boolean isFlapping() {
-		return false;
-	}
-
-	@Override
-	public boolean isFullyFrozen() {
 		return false;
 	}
 
@@ -2892,11 +2898,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public boolean isIgnoringBlockTriggers() {
 		return true;
-	}
-
-	@Override
-	public boolean isLeashed() {
-		return this.leashHolder != null;
 	}
 
 	@Override
@@ -3090,11 +3091,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void markHurt() {
 		this.hurtMarked = true;
-	}
-
-	@Override
-	public float maxUpStep() {
-		return 10;
 	}
 
 	@Override
@@ -3411,6 +3407,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setDeltaMovement(Vec3 pDeltaMovement) {
+		if (pDeltaMovement.horizontalDistanceSqr() >= 101)
+			// TODO: ?????
+			return;
 		this.deltaMovement = pDeltaMovement;
 	}
 
@@ -3486,23 +3485,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setPosRaw(double pX, double pY, double pZ) {
-		if (this.position.x != pX || this.position.y != pY || this.position.z != pZ) {
-			this.position = new Vec3(pX, pY, pZ);
-			int i = Mth.floor(pX);
-			int j = Mth.floor(pY);
-			int k = Mth.floor(pZ);
-			if (i != this.blockPosition.getX() || j != this.blockPosition.getY() || k != this.blockPosition.getZ()) {
-				this.blockPosition = new BlockPos(i, j, k);
-				this.feetBlockState = null;
-				if (SectionPos.blockToSectionCoord(i) != this.chunkPosition.x || SectionPos.blockToSectionCoord(k) != this.chunkPosition.z) {
-					this.chunkPosition = new ChunkPos(this.blockPosition);
-				}
-			}
-			this.levelCallback.onMove();
-		}
-		if (this.isAddedToWorld() && !this.level.isClientSide && !this.isRemoved()) {
-			this.level.getChunk((int) Math.floor(pX) >> 4, (int) Math.floor(pZ) >> 4);
-		}
+		ssSetPos(false, pX, pY, pZ);
 	}
 
 	@Override
@@ -3517,9 +3500,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setRecordPlayingNearby(BlockPos pJukebox, boolean pPartyParrot) {}
-
-	@Override
-	public void setRemoved(RemovalReason pRemovalReason) {}
 
 	@Override
 	public void setShiftKeyDown(boolean pKeyDown) {
@@ -3620,7 +3600,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean showVehicleHealth() {
-		return this instanceof LivingEntity;
+		return false;
 	}
 
 	@Override
@@ -3662,6 +3642,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void syncPacketPositionCodec(double pX, double pY, double pZ) {
+		for (double v2test : new double[] { pX, pY, pZ })
+			if (!Double.isFinite(v2test))
+				return;
 		this.packetPositionCodec.setBase(new Vec3(pX, pY, pZ));
 	}
 
