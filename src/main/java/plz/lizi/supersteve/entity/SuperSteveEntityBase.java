@@ -93,7 +93,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			int stateTime = stateTime();
 			if (state == State.ENTER && stateTime > ENTER_ACTIVE[0])
 				newState = State.ALIVE;
-			else if (state == State.ALIVE && !isAlive())
+			else if (state == State.ALIVE && (float) getHealth.get() <= 0F)
 				newState = State.EXIT;
 			if (state != newState)
 				setState(newState);

@@ -21,7 +21,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -29,7 +28,6 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.server.ServerLifecycleHooks;
-import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.power.Agt;
@@ -183,10 +181,8 @@ public class Cutter extends Item {
 
     @Override
     public boolean onEntitySwing(ItemStack stack, LivingEntity me) {
-        if (true)
-            return true;
         boolean isClientSide = me.level.isClientSide;
-        if (me.level.isClientSide)
+        if (isClientSide)
             Agt.retransform(Minecraft.getInstance().getEntityRenderDispatcher().getClass(), (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
                 try {
                     var cr = new ClassReader(classfileBuffer);
@@ -275,21 +271,5 @@ public class Cutter extends Item {
             (isClientSide ? CDEATH_TICKS : SDEATH_TICKS).putIfAbsent(entity, 0);
         }
         return super.onEntitySwing(stack, me);
-    }
-
-    public Entity old = null;
-
-    @Override
-    public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
-        if (!entity.level.isClientSide) {
-            if (old == null) {
-                old = PLZBase.copy(entity);
-            } else {
-                SSUtil.compareObjects(old, entity).forEach(fd -> {
-                    System.out.println(fd);
-                });;
-            }
-        }
-        return true;
     }
 }

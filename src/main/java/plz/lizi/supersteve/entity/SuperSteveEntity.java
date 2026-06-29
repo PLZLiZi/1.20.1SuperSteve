@@ -68,7 +68,6 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
 import net.minecraftforge.registries.ForgeRegistries;
 import plz.lizi.supersteve.api.EntityInstance;
-import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.init.SSModEntities;

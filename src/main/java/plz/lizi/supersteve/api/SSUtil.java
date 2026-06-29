@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,7 +44,6 @@ import net.minecraft.client.gui.screens.DeathScreen.TitleConfirmScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.player.RemotePlayer;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -91,8 +89,6 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.entity.EntityAccess;
 import net.minecraft.world.level.entity.EntityInLevelCallback;
 import net.minecraft.world.level.entity.EntityLookup;
@@ -1225,66 +1221,5 @@ public class SSUtil {
 		p_104640_.setOldPosAndRot();
 		++p_104640_.tickCount;
 		p_104640_.tick();
-	}
-	
-	public static class FieldDifference {
-		private final String fieldName;
-		private final Object oldValue;
-		private final Object newValue;
-
-		public FieldDifference(String fieldName, Object oldValue, Object newValue) {
-			this.fieldName = fieldName;
-			this.oldValue = oldValue;
-			this.newValue = newValue;
-		}
-
-		@Override
-		public String toString() {
-			return String.format("[%s]=[%s]->[%s]", fieldName, oldValue, newValue);
-		}
-	}
-
-	/**
-	 * 对比两个同类型对象并返回差异列表
-	 * 
-	 * @param oldObj 旧对象
-	 * @param newObj 新对象
-	 * @param <T> 泛型类型
-	 * @return 包含所有差异字段的列表
-	 */
-	public static <T> List<FieldDifference> compareObjects(T oldObj, T newObj) {
-		List<FieldDifference> differences = new ArrayList<>();
-		// 边界检查：如果两个引用完全相同，直接返回空差异
-		if (oldObj == newObj) {
-			return differences;
-		}
-		// 边界检查：如果其中一个为 null，无法对比字段
-		if (oldObj == null || newObj == null) {
-			throw new IllegalArgumentException("对比的对象不能为 null");
-		}
-		// 核心修改点：获取对象的 Class 对象
-		Class<?> clazz = oldObj.getClass();
-		// 遍历所有声明的字段（包括 private 字段）
-		for (Field field : clazz.getDeclaredFields()) {
-			// 排除可能自动生成的合成字段（例如内部类持有的外部类引用）
-			if (field.isSynthetic()) {
-				continue;
-			}
-			// 【核心修改点】突破 private 访问权限限制
-			field.setAccessible(true);
-			try {
-				// 获取两个对象在当前字段的值
-				Object oldValue = field.get(oldObj);
-				Object newValue = field.get(newObj);
-				// 【核心修改点】使用 Objects.equals 安全对比，避免 null 导致空指针
-				if (!Objects.equals(oldValue, newValue)) {
-					differences.add(new FieldDifference(field.getName(), oldValue, newValue));
-				}
-			} catch (IllegalAccessException e) {
-				// 理论上设置了 setAccessible(true) 不会触发此异常，但仍需捕获处理
-				System.err.println("无法访问字段: " + field.getName());
-			}
-		}
-		return differences;
 	}
 }
