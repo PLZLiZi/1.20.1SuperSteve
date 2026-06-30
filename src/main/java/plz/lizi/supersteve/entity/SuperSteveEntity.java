@@ -195,16 +195,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		setPersistenceRequired();
 	}
 
-	private void ssInit() {
-		if (!level.isClientSide) {
-			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES.get(getId()).put(this);
-		} else {
-			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES.get(getId()).set(this);
-		}
-	}
-
 	public SuperSteveEntity(PlayMessages.SpawnEntity packet, Level world) {
 		super(SSModEntities.SUPER_STEVE.get(), world);
 		setId(packet.getEntityId());
@@ -449,7 +439,13 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			return;
 		}
 		isAddedToWorld = true;
-		ssInit();
+		if (!level.isClientSide) {
+			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES.get(getId()).put(this);
+		} else {
+			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES.get(getId()).set(this);
+		}
 	}
 
 	@Override
@@ -810,8 +806,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					setToSafePos(threadCall);
 				else
 					ssSetSafePos(position());
-				if (getTarget() != null && getTarget().level == level && getTarget().isAlive() && position().distanceTo(getTarget().position()) >= 64.0d) {
-					getTarget().position();
+				if (!level.isClientSide && getTarget() != null && getTarget().level == level && getTarget().isAlive() && position().distanceTo(getTarget().position()) >= 64.0d) {
+					ssSetSafePos(getTarget().position());
 					setToSafePos(threadCall);
 				}
 			} else {
@@ -1420,6 +1416,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void addAdditionalSaveData(CompoundTag pCompound) {
 		super.addAdditionalSaveData(pCompound);
+		pCompound.putBoolean("PersistenceRequired", true);
 		pCompound.putString("SSH", getEntityData().get(SS_HEALTH));
 		pCompound.putString("SSM", ssGetMode().name());
 		pCompound.putString("SSS", getState().name());
@@ -1431,7 +1428,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (pCompound.contains("SSH"))
 			getEntityData().set(SS_HEALTH, pCompound.getString("SSH"));
 		if (pCompound.contains("SSM"))
-			ssSetMode(SSMode.valueOf(pCompound.getString("SSM")));
+			getEntityData().set(SS_TYPE, pCompound.getString("SSM"));
 		if (pCompound.contains("SSS"))
 			getEntityData().set(SS_STATE, pCompound.getString("SSS"));
 	}
@@ -1705,10 +1702,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setRemoved(RemovalReason pRemovalReason) {}
-	// ============================================================
-	// Movement/Position/Sync methods from inheritance chain
-	// Originals: PathfinderMob -> Mob -> LivingEntity -> Entity
-	// ============================================================
+
+	@Override
+	public boolean isPersistenceRequired() {
+		return true;
+	}
+	// TODO: override methods
 
 	@Override
 	public void absMoveTo(double pX, double pY, double pZ, float pYRot, float pXRot) {

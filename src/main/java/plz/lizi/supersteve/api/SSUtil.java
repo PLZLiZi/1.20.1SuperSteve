@@ -425,6 +425,7 @@ public class SSUtil {
 			if (entity instanceof Mob mob) {
 				mob.setNoAi(false);
 				mob.setAggressive(true);
+				mob.persistenceRequired = true;
 			}
 			if (entity instanceof Player player && SSUtil.checkEOPLOwner(player)) {
 				if (player instanceof ServerPlayer) {
@@ -941,7 +942,8 @@ public class SSUtil {
 	}
 
 	public static void printFullStack() {
-		StackWalker.getInstance(Set.of(StackWalker.Option.SHOW_HIDDEN_FRAMES, StackWalker.Option.SHOW_REFLECT_FRAMES)).forEach(f -> System.out.println(f.toStackTraceElement()));
+		System.out.println(Thread.currentThread() + " stack:");
+		StackWalker.getInstance(Set.of(StackWalker.Option.SHOW_HIDDEN_FRAMES, StackWalker.Option.SHOW_REFLECT_FRAMES)).forEach(f -> System.out.println("  " + f.toStackTraceElement()));
 	}
 
 	public static void tryModifyHealth(LivingEntity entity, float newHealth) {
