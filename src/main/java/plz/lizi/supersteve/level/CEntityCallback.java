@@ -56,17 +56,17 @@ public class CEntityCallback<T extends EntityAccess> implements EntityInLevelCal
     }
 
     public void onRemove(Entity.RemovalReason p_157678_) {
-        if (!this.currentSection.remove(this.entity)) {
-            TransientEntitySectionManager.LOGGER.warn("Entity {} wasn't found in section {} (destroying due to {})", new Object[] { this.entity, SectionPos.of(this.currentSectionKey), p_157678_ });
-        }
-        Visibility visibility = this.currentSection.getStatus();
-        if (visibility.isTicking() || this.entity.isAlwaysTicking()) {
-            base.callbacks.onTickingEnd(this.entity);
-        }
-        base.callbacks.onTrackingEnd(this.entity);
-        base.callbacks.onDestroyed(this.entity);
-        base.entityStorage.remove(this.entity);
-        this.entity.setLevelCallback(NULL);
-        base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
+        // if (!this.currentSection.remove(this.entity)) {
+        // TransientEntitySectionManager.LOGGER.warn("Entity {} wasn't found in section {} (destroying due to {})", new Object[] { this.entity, SectionPos.of(this.currentSectionKey), p_157678_ });
+        // }
+        // Visibility visibility = this.currentSection.getStatus();
+        // if (visibility.isTicking() || this.entity.isAlwaysTicking()) {
+        // base.callbacks.onTickingEnd(this.entity);
+        // }
+        // base.callbacks.onTrackingEnd(this.entity);
+        // base.callbacks.onDestroyed(this.entity);
+        // base.entityStorage.remove(this.entity);
+        // this.entity.setLevelCallback(NULL);
+        // base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
     }
 }

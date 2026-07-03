@@ -350,10 +350,6 @@ public class SSUtil {
 		}
 	}
 
-	public static void killEntity(Entity entity) {
-		killEntity(entity, true);
-	}
-
 	public static <T> List<T> copyList(List<T> old) {
 		try {
 			return new ArrayList<>(old);
@@ -566,6 +562,10 @@ public class SSUtil {
 		}
 	}
 
+	public static void killEntity(Entity entity) {
+		killEntity(entity, true);
+	}
+
 	public static void killEntity(Entity entity, boolean ignoredSSDeath) {
 		try {
 			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
@@ -589,11 +589,13 @@ public class SSUtil {
 			if (!entity.level.isClientSide) {
 				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RemoveClientEntity(entity.getId()));
 			}
-			if (entity instanceof LivingEntity livingEntity && !entity.level.isClientSide) {
-				try {
-					livingEntity.dropAllDeathLoot(livingEntity.damageSources().generic());
-				} catch (Throwable e) {
-				}
+			if (entity instanceof LivingEntity livingEntity && entity.level instanceof ServerLevel sl) {
+				sl.getServer().execute(() -> {
+					try {
+						livingEntity.dropAllDeathLoot(entity.level.damageSources.generic());
+					} catch (Throwable e) {
+					}
+				});
 			}
 			entity.isAddedToWorld = false;
 			entity.removalReason = Entity.RemovalReason.DISCARDED;

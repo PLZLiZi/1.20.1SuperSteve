@@ -2385,10 +2385,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	@Nullable
 	public Entity getLeashHolder() {
-		if (this.leashHolder == null && this.delayedLeashHolderId != 0 && this.level().isClientSide) {
-			this.leashHolder = this.level().getEntity(this.delayedLeashHolderId);
-		}
-		return this.leashHolder;
+		return null;
 	}
 
 	@Override
@@ -3405,7 +3402,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setDeltaMovement(Vec3 pDeltaMovement) {
-		if (pDeltaMovement.horizontalDistanceSqr() >= 101)
+		if (getState() != State.ALIVE || pDeltaMovement.horizontalDistanceSqr() >= 101)
 			// TODO: ?????
 			return;
 		this.deltaMovement = pDeltaMovement;

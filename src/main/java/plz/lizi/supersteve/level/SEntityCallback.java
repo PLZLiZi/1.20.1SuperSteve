@@ -75,21 +75,21 @@ public class SEntityCallback<T extends EntityAccess> implements EntityInLevelCal
     }
 
     public void onRemove(Entity.RemovalReason p_157619_) {
-        if (!this.currentSection.remove(this.entity)) {
-            PersistentEntitySectionManager.LOGGER.warn("Entity {} wasn't found in section {} (destroying due to {})", new Object[] { this.entity, SectionPos.of(this.currentSectionKey), p_157619_ });
-        }
-        Visibility visibility = PersistentEntitySectionManager.getEffectiveStatus(this.entity, this.currentSection.getStatus());
-        if (visibility.isTicking()) {
-            base.stopTicking(this.entity);
-        }
-        if (visibility.isAccessible()) {
-            base.stopTracking(this.entity);
-        }
-        if (p_157619_.shouldDestroy()) {
-            base.callbacks.onDestroyed(this.entity);
-        }
-        base.knownUuids.remove(this.entity.getUUID());
-        this.entity.setLevelCallback(NULL);
-        base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
+        // if (!this.currentSection.remove(this.entity)) {
+        // PersistentEntitySectionManager.LOGGER.warn("Entity {} wasn't found in section {} (destroying due to {})", new Object[] { this.entity, SectionPos.of(this.currentSectionKey), p_157619_ });
+        // }
+        // Visibility visibility = PersistentEntitySectionManager.getEffectiveStatus(this.entity, this.currentSection.getStatus());
+        // if (visibility.isTicking()) {
+        // base.stopTicking(this.entity);
+        // }
+        // if (visibility.isAccessible()) {
+        // base.stopTracking(this.entity);
+        // }
+        // if (p_157619_.shouldDestroy()) {
+        // base.callbacks.onDestroyed(this.entity);
+        // }
+        // base.knownUuids.remove(this.entity.getUUID());
+        // this.entity.setLevelCallback(NULL);
+        // base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
     }
 }
