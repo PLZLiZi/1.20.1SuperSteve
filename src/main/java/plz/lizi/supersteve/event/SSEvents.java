@@ -45,14 +45,13 @@ public class SSEvents {
 		@SubscribeEvent(receiveCanceled = true)
 		public static void bossEventProgress(CustomizeGuiOverlayEvent.BossEventProgress event) {
 			LerpingBossEvent bossEvent = event.getBossEvent();
-			SuperSteveEntityBase fss = null;
+			SuperSteveEntityBase ss = null;
 			for (var ssi : SSUtil.SS_INSTANCES.values())
 				if (ssi != null && ssi.clientInstance != null && ssi.clientInstance.getUUID().equals(bossEvent.getId())) {
-					fss = ssi.clientInstance;
+					ss = ssi.clientInstance;
 					break;
 				}
-			if (fss != null) {
-				SuperSteveEntityBase ss = fss;
+			if (ss != null) {
 				event.setCanceled(true);
 				Minecraft mc = Minecraft.getInstance();
 				RenderSystem.enableBlend();
@@ -101,7 +100,7 @@ public class SSEvents {
 				BufferUploader.drawWithShader(builder.end());
 				RenderStateShard.TRANSLUCENT_TRANSPARENCY.clearRenderState();
 				poseStack.popPose();
-				guiGraphics.drawCenteredString(mc.font, Component.literal(fss.getCustomName().getString() + " " + ss.ssGetHealth() + "/" + ss.getMaxHealth()).withStyle(Style.EMPTY.withBold(true).withItalic(true)), (int) x, (int) (y - barHeight / 2F), Color.HSBtoRGB(SSUtil.getRainbowHue(3000), 1, 1));
+				guiGraphics.drawCenteredString(mc.font, Component.literal(ss.getCustomName().getString() + " " + ss.ssGetHealth() + "/" + ss.getMaxHealth()).withStyle(Style.EMPTY.withBold(true).withItalic(true)), (int) x, (int) (y - barHeight / 2F), Color.HSBtoRGB(SSUtil.getRainbowHue(3000), 1, 1));
 				RenderSystem.disableBlend();
 			}
 		}

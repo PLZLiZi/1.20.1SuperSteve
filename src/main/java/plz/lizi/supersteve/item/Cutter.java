@@ -3,6 +3,8 @@ package plz.lizi.supersteve.item;
 import java.security.ProtectionDomain;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -17,7 +19,9 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -40,11 +44,27 @@ public class Cutter extends Item {
     public static final Map<Entity, Integer> CDEATH_TICKS = new ConcurrentHashMap<>();
     static {
         new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
+            var last = System.currentTimeMillis();
+            if (!SSUtil.ONLY_SERVER) {
+                AtomicBoolean tickSync = new AtomicBoolean(false);
+                Minecraft.getInstance().execute(() -> {
+                    tickSync.set(true);
+                });
+                while (!tickSync.get()) {
                 }
+            }
+            while (true) {
+                if ((CDEATH_TICKS.isEmpty() && SDEATH_TICKS.isEmpty())) {
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                    }
+                    continue;
+                }
+                var now = System.currentTimeMillis();
+                if (now - last <= 50)
+                    continue;
+                last = now;
                 MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
                 if (server != null) {
                     var itr = SDEATH_TICKS.entrySet().iterator();
@@ -53,8 +73,11 @@ public class Cutter extends Item {
                         int tick = entry.getValue();
                         entry.setValue(tick + 1);
                         if (tick + 1 > 20) {
-                            SSUtil.killEntity(entry.getKey());
-                            SHEALTH_PROCESS.remove(entry.getKey());
+                            var entity = entry.getKey();
+                            if (entity.level instanceof ServerLevel sl)
+                                makePoofParticles(sl, entity);
+                            SSUtil.killEntity(entity);
+                            SHEALTH_PROCESS.remove(entity);
                             itr.remove();
                         }
                     }
@@ -84,6 +107,16 @@ public class Cutter extends Item {
 
     public Cutter() {
         super(new Properties().stacksTo(1).fireResistant().rarity(Rarity.EPIC));
+    }
+
+    public static void makePoofParticles(ServerLevel level, Entity e) {
+        for (int i = 0; i < 20; ++i) {
+            ThreadLocalRandom tlr = ThreadLocalRandom.current();
+            double d0 = tlr.nextGaussian() * 0.02;
+            double d1 = tlr.nextGaussian() * 0.02;
+            double d2 = tlr.nextGaussian() * 0.02;
+            level.sendParticles(ParticleTypes.POOF, e.getRandomX((double) 1.0F), e.getRandomY(), e.getRandomZ((double) 1.0F), 1, d0, d1, d2, 0.05);
+        }
     }
 
     public static float getHealth(LivingEntity zhis, float ori) {
