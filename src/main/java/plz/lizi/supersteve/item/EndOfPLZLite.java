@@ -109,12 +109,12 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public Component getName(ItemStack p_41458_) {
-		return Component.literal(PLZBase.lowCaseFlowString(SuperSteveMod.TWDR ? "- E N D  O F  T W D R -" : "- E N D  O F  P L Z * L I T E -", 3, 0.04)).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
+		return Component.literal(PLZBase.lowCaseFlowString(SuperSteveMod.SAFEMODE ? "- E N D  O F  T W D R -" : "- E N D  O F  P L Z * L I T E -", 3, 0.04)).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
 	}
 
 	@Override
 	public Component getHighlightTip(ItemStack item, Component displayName) {
-		return Component.literal(PLZBase.lowCaseFlowString(SuperSteveMod.TWDR ? "- END OF TWDR -" : "- END OF PLZ * LITE -", 3, 0.04)).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
+		return Component.literal(PLZBase.lowCaseFlowString(SuperSteveMod.SAFEMODE ? "- END OF TWDR -" : "- END OF PLZ * LITE -", 3, 0.04)).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
 	}
 
 	@Override

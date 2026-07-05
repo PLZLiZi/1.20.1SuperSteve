@@ -6,6 +6,7 @@ import java.security.ProtectionDomain;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
@@ -20,7 +21,7 @@ import plz.lizi.supersteve.api.SSUtil;
 public class SSTransformer implements ClassFileTransformer {
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        if (!SuperSteveMod.TWDR && className.equals("sun/instrument/InstrumentationImpl")) {
+        if (!SuperSteveMod.SAFEMODE && className.equals("sun/instrument/InstrumentationImpl")) {
             ClassReader cr = new ClassReader(classfileBuffer);
             ClassNode cn = new ClassNode();
             cr.accept(cn, ClassReader.EXPAND_FRAMES);
@@ -42,6 +43,24 @@ public class SSTransformer implements ClassFileTransformer {
                     il.add(new InsnNode(Opcodes.ARETURN));
                     il.add(label);
                     mn.instructions.insert(il);
+                    int tmpResultSlot = mn.maxLocals++;
+                    for (AbstractInsnNode insn : mn.instructions.toArray()) {
+                        if (insn.getOpcode() == Opcodes.ARETURN) {
+                            InsnList il2 = new InsnList();
+                            il2.add(new VarInsnNode(Opcodes.ASTORE, tmpResultSlot));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 2));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 3));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 4));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 5));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, 6));
+                            il2.add(new VarInsnNode(Opcodes.ILOAD, 7));
+                            il2.add(new VarInsnNode(Opcodes.ALOAD, tmpResultSlot));
+                            il2.add(new MethodInsnNode(Opcodes.INVOKESTATIC,"plz/lizi/supersteve/power/AgtCallback","afterTransform","(Ljava/lang/instrument/Instrumentation;Ljava/lang/Module;Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/Class;Ljava/security/ProtectionDomain;[BZ[B)[B",false));
+                            mn.instructions.insertBefore(insn, il2);
+                        }
+                    }
                 }
             }
             ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);

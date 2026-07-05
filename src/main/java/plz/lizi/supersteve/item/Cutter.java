@@ -115,7 +115,7 @@ public class Cutter extends Item {
             double d0 = tlr.nextGaussian() * 0.02;
             double d1 = tlr.nextGaussian() * 0.02;
             double d2 = tlr.nextGaussian() * 0.02;
-            level.sendParticles(ParticleTypes.POOF, e.getRandomX((double) 1.0F), e.getRandomY(), e.getRandomZ((double) 1.0F), 1, d0, d1, d2, 0.05);
+            level.sendParticles(ParticleTypes.POOF, e.getRandomX((double) 1.0F), e.getRandomY(), e.getRandomZ((double) 1.0F), 1, d0, d1, d2, 0.01);
         }
     }
 
@@ -146,44 +146,49 @@ public class Cutter extends Item {
             double d0 = p_114388_ + vec3.z();
             p_114391_.pushPose();
             p_114391_.translate(d2, d3, d0);
-            if (p_114385_ instanceof LivingEntity living && CDEATH_TICKS.get(living) != null) {
-                var y = living.yRot;
-                var y0 = living.yRotO;
-                var hy = living.yHeadRot;
-                var hy0 = living.yHeadRotO;
-                var by = living.yBodyRot;
-                var by0 = living.yBodyRotO;
-                var dt = living.deathTime;
-                var htTime = living.hurtTime;
-                p_114391_.pushPose();
-                p_114391_.mulPose(Axis.YP.rotationDegrees(-living.getViewYRot(1)));
-                living.yRot = 0;
-                living.yRotO = 0;
-                living.yHeadRot = 0;
-                living.yHeadRotO = 0;
-                living.yBodyRot = 0;
-                living.yBodyRotO = 0;
-                living.deathTime = 0;
-                living.hurtTime = 20;
-                float f = ((float) CDEATH_TICKS.get(living) + p_114390_ - 1.0F) / 20.0F * 1.6F;
-                f = Mth.sqrt(f);
-                if (f > 1.0F) {
-                    f = 1.0F;
+            boolean baseRender = true;
+            if (p_114385_ instanceof LivingEntity living) {
+                var deathTime = CDEATH_TICKS.get(living);
+                if (deathTime != null && deathTime > 0) {
+                    var y = living.yRot;
+                    var y0 = living.yRotO;
+                    var hy = living.yHeadRot;
+                    var hy0 = living.yHeadRotO;
+                    var by = living.yBodyRot;
+                    var by0 = living.yBodyRotO;
+                    var dt = living.deathTime;
+                    var htTime = living.hurtTime;
+                    p_114391_.pushPose();
+                    p_114391_.mulPose(Axis.YP.rotationDegrees(-living.getViewYRot(1)));
+                    living.yRot = 0;
+                    living.yRotO = 0;
+                    living.yHeadRot = 0;
+                    living.yHeadRotO = 0;
+                    living.yBodyRot = 0;
+                    living.yBodyRotO = 0;
+                    living.deathTime = 0;
+                    living.hurtTime = 20;
+                    float f = ((float) deathTime + p_114390_ - 1.0F) / 20.0F * 1.6F;
+                    f = Mth.sqrt(f);
+                    if (f > 1.0F) {
+                        f = 1.0F;
+                    }
+                    p_114391_.mulPose(Axis.ZN.rotationDegrees(f * 90F));
+                    entityrenderer.render(p_114385_, 0, p_114390_, p_114391_, p_114392_, p_114393_);
+                    p_114391_.popPose();
+                    living.yRot = y;
+                    living.yRotO = y0;
+                    living.yHeadRot = hy;
+                    living.yHeadRotO = hy0;
+                    living.yBodyRot = by;
+                    living.yBodyRotO = by0;
+                    living.deathTime = dt;
+                    living.hurtTime = htTime;
+                    baseRender = false;
                 }
-                p_114391_.mulPose(Axis.ZN.rotationDegrees(f * 90F));
-                entityrenderer.render(p_114385_, 0, p_114390_, p_114391_, p_114392_, p_114393_);
-                p_114391_.popPose();
-                living.yRot = y;
-                living.yRotO = y0;
-                living.yHeadRot = hy;
-                living.yHeadRotO = hy0;
-                living.yBodyRot = by;
-                living.yBodyRotO = by0;
-                living.deathTime = dt;
-                living.hurtTime = htTime;
-            } else {
-                entityrenderer.render(p_114385_, p_114389_, p_114390_, p_114391_, p_114392_, p_114393_);
             }
+            if (baseRender)
+                entityrenderer.render(p_114385_, p_114389_, p_114390_, p_114391_, p_114392_, p_114393_);
             if (p_114385_.displayFireAnimation()) {
                 zhis.renderFlame(p_114391_, p_114392_, p_114385_);
             }

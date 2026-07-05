@@ -87,6 +87,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket;
 import net.minecraft.network.protocol.game.DebugPackets;
@@ -1290,7 +1292,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public Component getCustomName() {
-		return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? Component.literal("PLZLiZi") : Component.translatable("entity.supersteve.super_steve");
+		return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? Component.literal("PLZLiZi").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true)) : Component.translatable("entity.supersteve.super_steve").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
 	}
 
 	@Override

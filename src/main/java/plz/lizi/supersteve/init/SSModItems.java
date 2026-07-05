@@ -22,7 +22,7 @@ public class SSModItems {
 	// Start of user code block custom items
 	// End of user code block custom items
 
-	public static final RegistryObject<Item> ENDOFPLZ_LITE = REGISTRY.register("endof" + (SuperSteveMod.TWDR ? "twdr" : "plz_lite"), () -> {
+	public static final RegistryObject<Item> ENDOFPLZ_LITE = REGISTRY.register("endof" + (SuperSteveMod.SAFEMODE ? "twdr" : "plz_lite"), () -> {
 		try {
 			return (Item) PLZBase.defineHiddenClassInPackage(SSModItems.class.getClassLoader(), SSModItems.class, "plz.lizi.supersteve.item.EndOfPLZLite", null, true, ClassOption.STRONG).getConstructor().newInstance();
 		} catch (Throwable e) {

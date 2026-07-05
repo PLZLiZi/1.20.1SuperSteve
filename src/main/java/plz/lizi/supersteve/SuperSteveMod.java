@@ -27,16 +27,16 @@ import plz.lizi.supersteve.power.SSThread;
 public class SuperSteveMod {
 	public static final Logger LOGGER = LogManager.getLogger(SuperSteveMod.class);
 	public static final String MODID = "supersteve";
-	public static boolean TWDR = false;
+	public static boolean SAFEMODE = false;
 
 	public SuperSteveMod() {
 		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
-		TWDR = ModList.get().isLoaded("jzyy");
+		SAFEMODE = ModList.get().isLoaded("jzyy") || "true".equals(System.getProperty("supersteve.safemode"));
 		try {
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.Agt");
 			Agt.start();
 			Agt.watch((ClassFileTransformer) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSTransformer", "plz.lizi.supersteve.power.SSTransformerImpl", true, ClassOption.STRONG).getConstructor().newInstance());
-			if (!TWDR)
+			if (!SAFEMODE)
 				Agt.retransform(Class.forName("sun.instrument.InstrumentationImpl"), null, false);
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.api.SSUtil");
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSThread");

@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.entity;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -47,14 +48,25 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
 		PLZBase.setField(this, false, "setHealth", (Consumer<Object>) health -> {
-			if (health instanceof Float fhealth)
-				getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
+			if (health instanceof Float fhealth) {
+				try {
+					int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
+					getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
+					// getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
+				} catch (Throwable e) {
+					e.printStackTrace();
+					System.exit(-1);
+				}
+			}
 		});
 		PLZBase.setField(this, false, "getHealth", (Supplier<Object>) () -> {
 			try {
 				String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
-				if (ssh.startsWith("SSH="))
-					return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
+				if (ssh.startsWith("SSH=")) {
+					byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
+					return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
+					// return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
+				}
 			} catch (Throwable e) {
 			}
 			setHealth.accept(20F);

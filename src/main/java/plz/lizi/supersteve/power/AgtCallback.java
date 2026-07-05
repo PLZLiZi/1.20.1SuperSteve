@@ -25,6 +25,10 @@ public class AgtCallback {
     }
 
     public static boolean shouldTransform(Instrumentation zhis, Module module, ClassLoader loader, String classname, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, boolean isRetransformer) {
-        return zhis == INST;
+        return true;
+    }
+
+    public static byte[] afterTransform(Instrumentation zhis, Module module, ClassLoader loader, String classname, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, boolean isRetransformer, byte[] result) {
+        return zhis == INST ? result : null;
     }
 }
