@@ -2,11 +2,12 @@ package plz.lizi.supersteve.power;
 
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -21,20 +22,21 @@ import org.objectweb.asm.tree.VarInsnNode;
 import com.google.common.collect.Iterables;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.level.entity.LevelEntityGetterAdapter;
-import net.minecraftforge.common.world.ForgeChunkManager;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SCPort;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 
 public class SSCore {
-    public static final Map<SuperSteveEntityBase, Boolean> SERVER_TICK_MANAGER = new HashMap<>();
-    public static final Map<SuperSteveEntityBase, Boolean> CLIENT_TICK_MANAGER = new HashMap<>();
+    public static final Set<Class<?>> TSF_SERVERS = new CopyOnWriteArraySet<>();
+    public static final Map<SuperSteveEntityBase, Long> SERVER_TICK_MANAGER = new WeakHashMap<>();
+    public static final Map<SuperSteveEntityBase, Long> CLIENT_TICK_MANAGER = new WeakHashMap<>();
     public static final Map<SCPort, Set<LevelEntityGetter<Entity>>> GETTERS = Map.of(SCPort.SERVER, PLZBase.weakHashSet(), SCPort.CLIENT, PLZBase.weakHashSet(), SCPort.UNKNOW, PLZBase.weakHashSet());
 
     public static Iterable<Entity> getAllEntities(ServerLevel zhis) {
@@ -81,40 +83,76 @@ public class SSCore {
         return Iterables.unmodifiableIterable(val);
     }
 
-    public static void mcTickStart(Minecraft zhis) {
-        for (var instance : SSUtil.SS_INSTANCES.values()) {
-            if (instance != null && instance.clientInstance != null)
-                CLIENT_TICK_MANAGER.put(instance.clientInstance, false);
+    public static void mcTickStart(Minecraft zhis, boolean pRenderLevel) {
+        if (pRenderLevel) {
+            long now = System.currentTimeMillis();
+            for (var instance : SSUtil.SS_INSTANCES.values()) {
+                if (instance.clientInstance != null && (now - CLIENT_TICK_MANAGER.getOrDefault(instance.clientInstance, now)) > 55 && instance.clientInstance.level instanceof ClientLevel cl) {
+                    SSUtil.clientTickEntity(cl, instance.clientInstance);
+                }
+            }
         }
     }
 
-    public static void mcTickEnd(Minecraft zhis) {
-        for (var instance : CLIENT_TICK_MANAGER.entrySet()) {
-            if (!instance.getValue())
-                SSUtil.clientTickEntity(zhis.level, instance.getKey());
-        }
-        CLIENT_TICK_MANAGER.clear();
-    }
+    public static void mcTickEnd(Minecraft zhis, boolean pRenderLevel) {}
 
-    public static void serverTickStart(ServerLevel zhis, BooleanSupplier pHasTimeLeft) {
-        boolean flag = !zhis.players.isEmpty() || ForgeChunkManager.hasForcedChunks(zhis);
-        if (flag) {
+    public static void serverTickStart(MinecraftServer zhis, BooleanSupplier pHasTimeLeft) {
+        if (zhis.getPlayerCount() > 0) {
             for (var instance : SSUtil.SS_INSTANCES.values()) {
                 if (instance != null && instance.serverInstance != null)
-                    SERVER_TICK_MANAGER.put(instance.serverInstance, false);
+                    SERVER_TICK_MANAGER.put(instance.serverInstance, 0L);
             }
         }
     }
 
-    public static void serverTickEnd(ServerLevel zhis, BooleanSupplier pHasTimeLeft) {
-        boolean flag = !zhis.players.isEmpty() || ForgeChunkManager.hasForcedChunks(zhis);
-        if (flag) {
+    public static void serverTickEnd(MinecraftServer zhis, BooleanSupplier pHasTimeLeft) {
+        if (SERVER_TICK_MANAGER.size() > 0) {
             for (var instance : SERVER_TICK_MANAGER.entrySet()) {
-                if (!instance.getValue())
-                    SSUtil.serverTickEntity(zhis, instance.getKey());
+                if (instance.getValue() == 0 && instance.getKey().level instanceof ServerLevel sl)
+                    SSUtil.serverTickEntity(sl, instance.getKey());
+            }
+            SERVER_TICK_MANAGER.clear();
+        }
+    }
+
+    public static void procServer(MinecraftServer server) {
+        if (TSF_SERVERS.contains(server.getClass()))
+            return;
+        for (var sc : SSUtil.classChain(server.getClass(), MinecraftServer.class)) {
+            try {
+                sc.getDeclaredMethod("m_5705_", BooleanSupplier.class);
+                Agt.retransform(sc, (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
+                    var cr = new ClassReader(classfileBuffer);
+                    var cn = new ClassNode();
+                    cr.accept(cn, ClassReader.EXPAND_FRAMES);
+                    for (var mn : cn.methods) {
+                        String spcSign = mn.desc + " " + mn.name;
+                        if (spcSign.equals("(Ljava/util/function/BooleanSupplier;)V m_5705_")) {
+                            for (AbstractInsnNode insn : mn.instructions.toArray()) {
+                                if (insn.getOpcode() == Opcodes.RETURN) {
+                                    InsnList il = new InsnList();
+                                    il.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                                    il.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                                    il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "serverTickEnd", "(Lnet/minecraft/server/MinecraftServer;Ljava/util/function/BooleanSupplier;)V", false));
+                                    mn.instructions.insertBefore(insn, il);
+                                }
+                            }
+                            InsnList il = new InsnList();
+                            il.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                            il.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                            il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "serverTickStart", "(Lnet/minecraft/server/MinecraftServer;Ljava/util/function/BooleanSupplier;)V", false));
+                            mn.instructions.insert(il);
+                        }
+                    }
+                    var cw = new MyClassWriter(cr);
+                    cn.accept(cw);
+                    return cw.toByteArray();
+                }, true);
+                break;
+            } catch (Throwable e) {
             }
         }
-        SERVER_TICK_MANAGER.clear();
+        TSF_SERVERS.add(server.getClass());
     }
 
     public static void procClient() {
@@ -124,18 +162,20 @@ public class SSCore {
             cr.accept(cn, ClassReader.EXPAND_FRAMES);
             for (var mn : cn.methods) {
                 String spcSign = mn.desc + " " + mn.name;
-                if (spcSign.equals("()V m_91398_")) {
+                if (spcSign.equals("(Z)V m_91383_")) {
                     for (AbstractInsnNode insn : mn.instructions.toArray()) {
                         if (insn.getOpcode() == Opcodes.RETURN) {
                             InsnList il = new InsnList();
                             il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                            il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "mcTickEnd", "(Lnet/minecraft/client/Minecraft;)V", false));
+                            il.add(new VarInsnNode(Opcodes.ILOAD, 1));
+                            il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "mcTickEnd", "(Lnet/minecraft/client/Minecraft;Z)V", false));
                             mn.instructions.insertBefore(insn, il);
                         }
                     }
                     InsnList il = new InsnList();
                     il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                    il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "mcTickStart", "(Lnet/minecraft/client/Minecraft;)V", false));
+                    il.add(new VarInsnNode(Opcodes.ILOAD, 1));
+                    il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "mcTickStart", "(Lnet/minecraft/client/Minecraft;Z)V", false));
                     mn.instructions.insert(il);
                 }
             }
@@ -164,21 +204,6 @@ public class SSCore {
                         mn.instructions.insert(il);
                         mn.localVariables = new ArrayList<>();
                         mn.tryCatchBlocks = new ArrayList<>();
-                    } else if (spcSign.equals("(Ljava/util/function/BooleanSupplier;)V m_8793_")) {
-                        for (AbstractInsnNode insn : mn.instructions.toArray()) {
-                            if (insn.getOpcode() == Opcodes.RETURN) {
-                                InsnList il = new InsnList();
-                                il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                                il.add(new VarInsnNode(Opcodes.ALOAD, 1));
-                                il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "serverTickEnd", "(Lnet/minecraft/server/level/ServerLevel;Ljava/util/function/BooleanSupplier;)V", false));
-                                mn.instructions.insertBefore(insn, il);
-                            }
-                        }
-                        InsnList il = new InsnList();
-                        il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                        il.add(new VarInsnNode(Opcodes.ALOAD, 1));
-                        il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "serverTickStart", "(Lnet/minecraft/server/level/ServerLevel;Ljava/util/function/BooleanSupplier;)V", false));
-                        mn.instructions.insert(il);
                     }
                 }
                 var cw = new MyClassWriter(cr);

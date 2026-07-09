@@ -28,6 +28,7 @@ public class SSThread {
                 }
                 server = _server;
                 if (server != null && !server.isStopped()) {
+                    SSCore.procServer(server);
                     for (var serverLevel : server.getAllLevels()) {
                         SSCore.procLevel(serverLevel);
                         for (var player : serverLevel.players()) {

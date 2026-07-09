@@ -3,6 +3,7 @@ package plz.lizi.supersteve.power;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
+import java.util.Map;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -16,9 +17,11 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import plz.lizi.supersteve.SuperSteveMod;
-import plz.lizi.supersteve.api.SSUtil;
+import plz.lizi.supersteve.api.PLZBase;
 
 public class SSTransformer implements ClassFileTransformer {
+	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
+
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (!SuperSteveMod.SAFEMODE && className.equals("sun/instrument/InstrumentationImpl")) {
@@ -67,6 +70,6 @@ public class SSTransformer implements ClassFileTransformer {
             cn.accept(cw);
             return cw.toByteArray();
         }
-        return SSUtil.CLASSES.get(className);
+        return CLASSES.get(className);
     }
 }

@@ -70,6 +70,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
+import plz.lizi.supersteve.entity.ai.GroundNavigationEx;
 import plz.lizi.supersteve.init.SSModEntities;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.init.SSModSounds;
@@ -113,8 +114,8 @@ import net.minecraft.world.entity.ai.control.BodyRotationControl;
 import net.minecraft.world.entity.ai.control.JumpControl;
 import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.control.MoveControl;
-import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.animal.FlyingAnimal;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.Item;
@@ -242,7 +243,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 						continue;
 					SSUtil.forceHurtEx(livingEntity, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(livingEntity.getMaxHealth() / 40F, livingEntity.getHealth() / 40F))));
 				}
-			} else if (state == State.EXIT) {
+			} else if (state == State.ALIVE) {
 			}
 		} else if (level instanceof ClientLevel cl) {
 			var attItr = attacks.iterator();
@@ -370,10 +371,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				this.updateControlFlags();
 			}
 		}
-		if (SSCore.SERVER_TICK_MANAGER.containsKey(this))
-			SSCore.SERVER_TICK_MANAGER.put(this, true);
-		if (SSCore.CLIENT_TICK_MANAGER.containsKey(this))
-			SSCore.CLIENT_TICK_MANAGER.put(this, true);
+		if (this == SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).serverInstance)
+			SSCore.SERVER_TICK_MANAGER.put(this, System.currentTimeMillis());
+		if (this == SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).clientInstance)
+			SSCore.CLIENT_TICK_MANAGER.put(this, System.currentTimeMillis());
 	}
 
 	@Override
@@ -505,7 +506,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.level.getProfiler().push("sensing");
 		this.sensing.tick();
 		this.level.getProfiler().pop();
-		int i = this.level.getServer().getTickCount() + this.getId();
+		int i = getServer().getTickCount() + this.getId();
 		if (i % 2 != 0 && this.tickCount > 1) {
 			this.level.getProfiler().push("targetSelector");
 			this.targetSelector.tickRunningGoals(false);
@@ -537,6 +538,13 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.level.getProfiler().pop();
 		this.level.getProfiler().pop();
 		this.sendDebugPackets();
+	}
+
+	@Override
+	public PathNavigation createNavigation(Level pLevel) {
+		return new GroundNavigationEx(this, pLevel);
+		// TODO Auto-generated method stub
+		//return super.createNavigation(pLevel);
 	}
 
 	@Override
@@ -634,20 +642,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.zza *= 0.98F;
 		this.updateFallFlying();
 		AABB aabb = this.getBoundingBox();
-		Vec3 vec3 = new Vec3((double) this.xxa, (double) this.yya, (double) this.zza);
-		if (this.hasEffect(MobEffects.SLOW_FALLING) || this.hasEffect(MobEffects.LEVITATION)) {
-			this.resetFallDistance();
-		}
-		label111: {
-			LivingEntity livingentity = this.getControllingPassenger();
-			if (livingentity instanceof Player player) {
-				if (this.isAlive()) {
-					this.travelRidden(player, vec3);
-					break label111;
-				}
-			}
-			this.travel(vec3);
-		}
+		this.resetFallDistance();
+		Vec3 vec3 = new Vec3(this.xxa, this.yya, this.zza);
+		// TODO: move
+		this.travel(vec3);
 		this.level.getProfiler().pop();
 		this.level.getProfiler().push("freezing");
 		if (!this.level.isClientSide && !this.isDeadOrDying()) {
@@ -685,6 +683,137 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		this.level.getProfiler().pop();
 		updateSwingTime();
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void travel(Vec3 pTravelVector) {
+		if (this.isControlledByLocalInstance()) {
+			double d0 = 0.08;
+			AttributeInstance gravity = this.getAttribute((Attribute) ForgeMod.ENTITY_GRAVITY.get());
+			boolean flag = this.getDeltaMovement().y <= (double) 0.0F;
+			if (flag && this.hasEffect(MobEffects.SLOW_FALLING)) {
+				if (!gravity.hasModifier(SLOW_FALLING)) {
+					gravity.addTransientModifier(SLOW_FALLING);
+				}
+			} else if (gravity.hasModifier(SLOW_FALLING)) {
+				gravity.removeModifier(SLOW_FALLING);
+			}
+			d0 = gravity.getValue();
+			FluidState fluidstate = this.level().getFluidState(this.blockPosition());
+			if ((this.isInWater() || this.isInFluidType(fluidstate) && fluidstate.getFluidType() != ForgeMod.LAVA_TYPE.get()) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
+				if (this.isInWater() || this.isInFluidType(fluidstate) && !this.moveInFluid(fluidstate, pTravelVector, d0)) {
+					double d9 = this.getY();
+					float f4 = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
+					float f5 = 0.02F;
+					float f6 = (float) EnchantmentHelper.getDepthStrider(this);
+					if (f6 > 3.0F) {
+						f6 = 3.0F;
+					}
+					if (!this.onGround()) {
+						f6 *= 0.5F;
+					}
+					if (f6 > 0.0F) {
+						f4 += (0.54600006F - f4) * f6 / 3.0F;
+						f5 += (this.getSpeed() - f5) * f6 / 3.0F;
+					}
+					if (this.hasEffect(MobEffects.DOLPHINS_GRACE)) {
+						f4 = 0.96F;
+					}
+					f5 *= (float) this.getAttribute((Attribute) ForgeMod.SWIM_SPEED.get()).getValue();
+					this.moveRelative(f5, pTravelVector);
+					this.move(MoverType.SELF, this.getDeltaMovement());
+					Vec3 vec36 = this.getDeltaMovement();
+					if (this.horizontalCollision && this.onClimbable()) {
+						vec36 = new Vec3(vec36.x, 0.2, vec36.z);
+					}
+					this.setDeltaMovement(vec36.multiply((double) f4, (double) 0.8F, (double) f4));
+					Vec3 vec32 = this.getFluidFallingAdjustedMovement(d0, flag, this.getDeltaMovement());
+					this.setDeltaMovement(vec32);
+					if (this.horizontalCollision && this.isFree(vec32.x, vec32.y + (double) 0.6F - this.getY() + d9, vec32.z)) {
+						this.setDeltaMovement(vec32.x, (double) 0.3F, vec32.z);
+					}
+				}
+			} else if (this.isInLava() && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
+				double d8 = this.getY();
+				this.moveRelative(0.02F, pTravelVector);
+				this.move(MoverType.SELF, this.getDeltaMovement());
+				if (this.getFluidHeight(FluidTags.LAVA) <= this.getFluidJumpThreshold()) {
+					this.setDeltaMovement(this.getDeltaMovement().multiply((double) 0.5F, (double) 0.8F, (double) 0.5F));
+					Vec3 vec33 = this.getFluidFallingAdjustedMovement(d0, flag, this.getDeltaMovement());
+					this.setDeltaMovement(vec33);
+				} else {
+					this.setDeltaMovement(this.getDeltaMovement().scale((double) 0.5F));
+				}
+				if (!this.isNoGravity()) {
+					this.setDeltaMovement(this.getDeltaMovement().add((double) 0.0F, -d0 / (double) 4.0F, (double) 0.0F));
+				}
+				Vec3 vec34 = this.getDeltaMovement();
+				if (this.horizontalCollision && this.isFree(vec34.x, vec34.y + (double) 0.6F - this.getY() + d8, vec34.z)) {
+					this.setDeltaMovement(vec34.x, (double) 0.3F, vec34.z);
+				}
+			} else if (this.isFallFlying()) {
+				this.checkSlowFallDistance();
+				Vec3 vec3 = this.getDeltaMovement();
+				Vec3 vec31 = this.getLookAngle();
+				float f = this.getXRot() * ((float) Math.PI / 180F);
+				double d1 = Math.sqrt(vec31.x * vec31.x + vec31.z * vec31.z);
+				double d3 = vec3.horizontalDistance();
+				double d4 = vec31.length();
+				double d5 = Math.cos((double) f);
+				d5 = d5 * d5 * Math.min((double) 1.0F, d4 / 0.4);
+				vec3 = this.getDeltaMovement().add((double) 0.0F, d0 * ((double) -1.0F + d5 * (double) 0.75F), (double) 0.0F);
+				if (vec3.y < (double) 0.0F && d1 > (double) 0.0F) {
+					double d6 = vec3.y * -0.1 * d5;
+					vec3 = vec3.add(vec31.x * d6 / d1, d6, vec31.z * d6 / d1);
+				}
+				if (f < 0.0F && d1 > (double) 0.0F) {
+					double d10 = d3 * (double) (-Mth.sin(f)) * 0.04;
+					vec3 = vec3.add(-vec31.x * d10 / d1, d10 * 3.2, -vec31.z * d10 / d1);
+				}
+				if (d1 > (double) 0.0F) {
+					vec3 = vec3.add((vec31.x / d1 * d3 - vec3.x) * 0.1, (double) 0.0F, (vec31.z / d1 * d3 - vec3.z) * 0.1);
+				}
+				this.setDeltaMovement(vec3.multiply((double) 0.99F, (double) 0.98F, (double) 0.99F));
+				this.move(MoverType.SELF, this.getDeltaMovement());
+				if (this.horizontalCollision && !this.level().isClientSide) {
+					double d11 = this.getDeltaMovement().horizontalDistance();
+					double d7 = d3 - d11;
+					float f1 = (float) (d7 * (double) 10.0F - (double) 3.0F);
+					if (f1 > 0.0F) {
+						this.playSound(this.getFallDamageSound((int) f1), 1.0F, 1.0F);
+						this.hurt(this.damageSources().flyIntoWall(), f1);
+					}
+				}
+				if (this.onGround() && !this.level().isClientSide) {
+					this.setSharedFlag(7, false);
+				}
+			} else {
+				BlockPos blockpos = this.getBlockPosBelowThatAffectsMyMovement();
+				float f2 = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getFriction(this.level(), this.getBlockPosBelowThatAffectsMyMovement(), this);
+				float f3 = this.onGround() ? f2 * 0.91F : 0.91F;
+				// TODO: move
+				Vec3 vec35 = this.handleRelativeFrictionAndCalculateMovement(pTravelVector, f2);
+				double d2 = vec35.y;
+				if (this.hasEffect(MobEffects.LEVITATION)) {
+					d2 += (0.05 * (double) (this.getEffect(MobEffects.LEVITATION).getAmplifier() + 1) - vec35.y) * 0.2;
+				} else if (this.level().isClientSide && !this.level().hasChunkAt(blockpos)) {
+					if (this.getY() > (double) this.level().getMinBuildHeight()) {
+						d2 = -0.1;
+					} else {
+						d2 = (double) 0.0F;
+					}
+				} else if (!this.isNoGravity()) {
+					d2 -= d0;
+				}
+				if (this.shouldDiscardFriction()) {
+					this.setDeltaMovement(vec35.x, d2, vec35.z);
+				} else {
+					this.setDeltaMovement(vec35.x * (double) f3, d2 * (double) 0.98F, vec35.z * (double) f3);
+				}
+			}
+		}
+		this.calculateEntityAnimation(this instanceof FlyingAnimal);
 	}
 
 	@Override
@@ -1039,9 +1168,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void baseTick() {
 		this.oAttackAnim = this.attackAnim;
-		if (this.firstTick) {
-			// this.getSleepingPos().ifPresent(this::setPosToBed);
-		}
 		if (this.canSpawnSoulSpeedParticle()) {
 			this.spawnSoulSpeedParticle();
 		}
@@ -1946,11 +2072,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public PathNavigation createNavigation(Level pLevel) {
-		return new GroundPathNavigation(this, pLevel);
-	}
-
-	@Override
 	public int decreaseAirSupply(int pCurrentAir) {
 		int i = EnchantmentHelper.getRespiration(this);
 		return i > 0 && this.random.nextInt(i + 1) > 0 ? pCurrentAir : pCurrentAir - 1;
@@ -2795,6 +2916,13 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.moveRelative(this.getFrictionInfluencedSpeed(pFriction), pDeltaMovement);
 		this.setDeltaMovement(this.handleOnClimbable(this.getDeltaMovement()));
 		this.move(MoverType.SELF, this.getDeltaMovement());
+		//Vec3 v = level.isClientSide ? null : new Vec3(position.x, position.y, position.z);
+		//if (v != null) {
+		//	if (!v.equals(position))
+		//		System.out.println("move " + v + " -> " + position);
+		//	else
+		//		System.out.println("no move " + getDeltaMovement());
+		//}
 		Vec3 vec3 = this.getDeltaMovement();
 		if ((this.horizontalCollision || this.jumping) && (this.onClimbable() || this.getFeetBlockState().is(Blocks.POWDER_SNOW) && PowderSnowBlock.canEntityWalkOnPowderSnow(this))) {
 			vec3 = new Vec3(vec3.x, 0.2, vec3.z);
@@ -3652,7 +3780,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public Vec3 trackingPosition() {
-		return this.position();
+		return this.position;
 	}
 
 	@Override

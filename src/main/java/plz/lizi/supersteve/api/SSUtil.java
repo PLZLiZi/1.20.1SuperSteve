@@ -38,6 +38,7 @@ import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
+import net.minecraft.client.Timer;
 import net.minecraft.client.gui.screens.DeathScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.DeathScreen.TitleConfirmScreen;
@@ -1178,6 +1179,12 @@ public class SSUtil {
 		return sw.toString();
 	}
 
+	public static List<Class<?>> classChainReverse(Class<?> zhisClass, Class<?> superClass) {
+		List<Class<?>> chain = classChain(zhisClass, superClass);
+		Collections.reverse(chain);
+		return chain;
+	}
+
 	public static List<Class<?>> classChain(Class<?> zhisClass, Class<?> superClass) {
 		List<Class<?>> chain = new ArrayList<>();
 		if (zhisClass == null || superClass == null) {
@@ -1198,7 +1205,6 @@ public class SSUtil {
 			}
 			current = current.getSuperclass();
 		}
-		Collections.reverse(chain);
 		return chain;
 	}
 
@@ -1216,14 +1222,41 @@ public class SSUtil {
 	}
 
 	public static void serverTickEntity(ServerLevel sl, Entity p_8648_) {
+		System.out.println("server helper tick " + p_8648_);
 		p_8648_.setOldPosAndRot();
 		++p_8648_.tickCount;
 		p_8648_.tick();
+		var em = sl.chunkSource.chunkMap.entityMap.get(p_8648_.getId());
+		if (em != null) {
+			em.updatePlayers(sl.players);
+			em.serverEntity.sendChanges();
+		}
 	}
 
 	public static void clientTickEntity(ClientLevel cl, Entity p_104640_) {
+		System.out.println("client helper tick " + p_104640_);
 		p_104640_.setOldPosAndRot();
 		++p_104640_.tickCount;
 		p_104640_.tick();
 	}
+
+	public static int advanceTime(Timer timer, long pGameTime) {
+		float tickDelta = (float) (pGameTime - timer.lastMs) / timer.msPerTick;
+		float partialTick = timer.partialTick + tickDelta;
+		return (int) partialTick;
+	}
+
+	public static double serverMsPerTick(MinecraftServer server) {
+		if (server == null)
+			return 50.0;
+        int lastTickIndex = (server.getTickCount() - 1) % 100;
+        long tickNanos = server.tickTimes[Math.abs(lastTickIndex)];
+        return tickNanos / 1_000_000.0;
+	}
+
+    public static boolean isGamePaused() {
+        if (ONLY_SERVER)
+            return false;
+        return net.minecraft.client.Minecraft.getInstance().isPaused();
+    }
 }

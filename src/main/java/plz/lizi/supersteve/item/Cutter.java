@@ -262,7 +262,7 @@ public class Cutter extends Item {
                 ss.setHealth.accept(0F);
                 continue;
             }
-            for (var clazz : SSUtil.classChain(entity.getClass(), LivingEntity.class)) {
+            for (var clazz : SSUtil.classChainReverse(entity.getClass(), LivingEntity.class)) {
                 Agt.retransform(clazz, (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
                     var cr = new ClassReader(classfileBuffer);
                     var cn = new ClassNode();

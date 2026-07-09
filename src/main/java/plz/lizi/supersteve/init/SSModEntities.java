@@ -1,6 +1,3 @@
-/*
- *    MCreator note: This file will be REGENERATED on each build.
- */
 package plz.lizi.supersteve.init;
 
 import net.minecraftforge.registries.RegistryObject;
@@ -25,7 +22,7 @@ public class SSModEntities {
 	public static final DeferredRegister<EntityType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, SuperSteveMod.MODID);
 	public static final RegistryObject<EntityType<SuperSteveEntityBase>> SUPER_STEVE = register("super_steve", EntityType.Builder.<SuperSteveEntityBase> of((type, level) -> {
 		try {
-			// return new SuperSteveEntity(type, level);
+			//return new SuperSteveEntity(type, level);
 			return (SuperSteveEntityBase) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG).getConstructor(EntityType.class, Level.class).newInstance(type, level);
 		} catch (Throwable e) {
 			PLZBase.throwEx(e);
