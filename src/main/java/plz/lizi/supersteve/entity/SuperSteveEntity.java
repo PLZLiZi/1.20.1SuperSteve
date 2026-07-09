@@ -299,9 +299,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				this.stopSleeping();
 			}
 		}
-		// if (!this.isRemoved()) {
-		this.aiStep();
-		// }
+		if (isAlive()) {
+			this.aiStep();
+		}
 		double d1 = this.getX() - this.xo;
 		double d0 = this.getZ() - this.zo;
 		float f = (float) (d1 * d1 + d0 * d0);
@@ -544,7 +544,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public PathNavigation createNavigation(Level pLevel) {
 		return new GroundNavigationEx(this, pLevel);
 		// TODO Auto-generated method stub
-		//return super.createNavigation(pLevel);
+		// return super.createNavigation(pLevel);
 	}
 
 	@Override
@@ -1359,7 +1359,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isNoAi() {
-		// return true;
 		return getState() != State.ALIVE;
 	}
 
@@ -2916,13 +2915,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.moveRelative(this.getFrictionInfluencedSpeed(pFriction), pDeltaMovement);
 		this.setDeltaMovement(this.handleOnClimbable(this.getDeltaMovement()));
 		this.move(MoverType.SELF, this.getDeltaMovement());
-		//Vec3 v = level.isClientSide ? null : new Vec3(position.x, position.y, position.z);
-		//if (v != null) {
-		//	if (!v.equals(position))
-		//		System.out.println("move " + v + " -> " + position);
-		//	else
-		//		System.out.println("no move " + getDeltaMovement());
-		//}
 		Vec3 vec3 = this.getDeltaMovement();
 		if ((this.horizontalCollision || this.jumping) && (this.onClimbable() || this.getFeetBlockState().is(Blocks.POWDER_SNOW) && PowderSnowBlock.canEntityWalkOnPowderSnow(this))) {
 			vec3 = new Vec3(vec3.x, 0.2, vec3.z);

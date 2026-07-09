@@ -11,8 +11,7 @@ public class MultiLineBoxEx extends MultiLineEditBox {
     public MultiLineBoxEx(Font p_239008_, int p_239009_, int p_239010_, int p_239011_, int p_239012_, Component p_239013_, Component p_239014_) {
         super(p_239008_, p_239009_, p_239010_, p_239011_, p_239012_, p_239013_, p_239014_);
     }
-    
-    
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (canEdit)
@@ -42,8 +41,13 @@ public class MultiLineBoxEx extends MultiLineEditBox {
     public void setEdit(boolean edit) {
         canEdit = edit;
     }
-    
+
     public boolean canEdit() {
         return canEdit;
+    }
+
+    @Override
+    public boolean mouseDragged(double pMouseX, double pMouseY, int pButton, double pDragX, double pDragY) {
+        return super.mouseDragged(pMouseX, pMouseY, pButton, pDragX, pDragY);
     }
 }

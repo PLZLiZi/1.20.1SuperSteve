@@ -1222,7 +1222,7 @@ public class SSUtil {
 	}
 
 	public static void serverTickEntity(ServerLevel sl, Entity p_8648_) {
-		System.out.println("server helper tick " + p_8648_);
+		// System.out.println("server helper tick " + p_8648_);
 		p_8648_.setOldPosAndRot();
 		++p_8648_.tickCount;
 		p_8648_.tick();
@@ -1234,7 +1234,7 @@ public class SSUtil {
 	}
 
 	public static void clientTickEntity(ClientLevel cl, Entity p_104640_) {
-		System.out.println("client helper tick " + p_104640_);
+		// System.out.println("client helper tick " + p_104640_);
 		p_104640_.setOldPosAndRot();
 		++p_104640_.tickCount;
 		p_104640_.tick();
@@ -1254,9 +1254,9 @@ public class SSUtil {
         return tickNanos / 1_000_000.0;
 	}
 
-    public static boolean isGamePaused() {
-        if (ONLY_SERVER)
-            return false;
-        return net.minecraft.client.Minecraft.getInstance().isPaused();
-    }
+	public static boolean isGamePaused() {
+		if (ONLY_SERVER)
+			return false;
+		return net.minecraft.client.Minecraft.getInstance().isPaused();
+	}
 }
