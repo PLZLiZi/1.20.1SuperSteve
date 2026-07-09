@@ -4,7 +4,6 @@ import java.security.ProtectionDomain;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -42,26 +41,21 @@ public class Cutter extends Item {
     public static final Map<Entity, Integer> SDEATH_TICKS = new ConcurrentHashMap<>();
     public static final Map<Entity, Float> CHEALTH_PROCESS = new ConcurrentHashMap<>();
     public static final Map<Entity, Integer> CDEATH_TICKS = new ConcurrentHashMap<>();
+    private static float PARTIAL_TICK = 0;
     static {
         new Thread(() -> {
             var last = System.currentTimeMillis();
-            if (!SSUtil.ONLY_SERVER) {
-                AtomicBoolean tickSync = new AtomicBoolean(false);
-                Minecraft.getInstance().execute(() -> {
-                    tickSync.set(true);
-                });
-                while (!tickSync.get()) {
-                }
-            }
             while (true) {
                 if ((CDEATH_TICKS.isEmpty() && SDEATH_TICKS.isEmpty())) {
                     try {
                         Thread.sleep(50);
                     } catch (InterruptedException e) {
                     }
+                    Thread.yield();
                     continue;
                 }
                 var now = System.currentTimeMillis();
+                PARTIAL_TICK = (now - last) / 50F;
                 if (now - last <= 50)
                     continue;
                 last = now;
@@ -91,7 +85,7 @@ public class Cutter extends Item {
                         var entry = itr.next();
                         int tick = entry.getValue();
                         entry.setValue(tick + 1);
-                        if (tick + 1 > 20) {
+                        if (tick + 1 > 30) {
                             // SSUtil.killEntity(entry.getKey());
                             CHEALTH_PROCESS.remove(entry.getKey());
                             itr.remove();
@@ -150,6 +144,7 @@ public class Cutter extends Item {
             if (p_114385_ instanceof LivingEntity living) {
                 var deathTime = CDEATH_TICKS.get(living);
                 if (deathTime != null && deathTime > 0) {
+                    deathTime = deathTime > 20 ? 20 : deathTime;
                     var y = living.yRot;
                     var y0 = living.yRotO;
                     var hy = living.yHeadRot;
@@ -168,7 +163,7 @@ public class Cutter extends Item {
                     living.yBodyRotO = 0;
                     living.deathTime = 0;
                     living.hurtTime = 20;
-                    float f = ((float) deathTime + p_114390_ - 1.0F) / 20.0F * 1.6F;
+                    float f = ((float) deathTime + PARTIAL_TICK - 1.0F) / 20.0F * 1.6F;
                     f = Mth.sqrt(f);
                     if (f > 1.0F) {
                         f = 1.0F;
