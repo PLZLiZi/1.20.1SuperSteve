@@ -367,6 +367,14 @@ public class SSUtil {
 		}
 	}
 
+	public static <K> Set<K> copySet(Set<K> old) {
+		try {
+			return new HashSet<>(old);
+		} catch (Throwable e) {
+			return PLZBase.copy(old);
+		}
+	}
+
 	public static <T> Int2ObjectMap<T> copyInt2ObjectMap(Int2ObjectMap<T> old) {
 		try {
 			return new Int2ObjectLinkedOpenHashMap<>(old);
@@ -598,7 +606,16 @@ public class SSUtil {
 					}
 				});
 			}
-			entity.isAddedToWorld = false;
+			simpleKillEntity(entity);
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	// TODO: QWQ 
+	public static void simpleKillEntity(Entity entity) {
+		try {
+			entity.isAddedToWorld = true;
 			entity.removalReason = Entity.RemovalReason.DISCARDED;
 			entity.noPhysics = true;
 			entity.invulnerable = false;
@@ -613,7 +630,7 @@ public class SSUtil {
 			if (entity.level instanceof ServerLevel serverWorld) {
 				Int2ObjectMap<ChunkMap.TrackedEntity> newEntityMap = copyInt2ObjectMap(serverWorld.getChunkSource().chunkMap.entityMap);
 				newEntityMap.remove(entity.getId());
-				Set<UUID> newKnownUuids = new HashSet<>(serverWorld.entityManager.knownUuids);
+				Set<UUID> newKnownUuids = copySet(serverWorld.entityManager.knownUuids);
 				newKnownUuids.remove(entity.getUUID());
 				Int2ObjectMap<Entity> newById = copyInt2ObjectMap(serverWorld.entityManager.visibleEntityStorage.byId);
 				newById.remove(entity.getId());

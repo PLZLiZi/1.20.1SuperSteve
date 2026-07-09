@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.ChatFormatting;
@@ -160,7 +159,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack offhand32k = ItemStack.EMPTY;
 	private LivingEntity target;
 	private Map<MobEffect, MobEffectInstance> noEffects = new HashMap<>();
-	private List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 
 	private void init() {
 		eyeHeight = 1.62F;
@@ -299,7 +297,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				this.stopSleeping();
 			}
 		}
-		if (isAlive()) {
+		if (getState() == State.ALIVE) {
 			this.aiStep();
 		}
 		double d1 = this.getX() - this.xo;
@@ -436,9 +434,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void onAddedToWorld() {
-		if (isAddedToWorld || level instanceof ServerLevel sl && (sl.getEntity(getUUID()) != this || sl.getEntity(getId()) != this)) {
-			idrops.clear();
-			SSUtil.killEntity(this);
+		isAddedToWorld = false;
+		var old = SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).clientInstance;
+		if (level.isClientSide && old != null) {
+			SSUtil.simpleKillEntity(this);
 			return;
 		}
 		isAddedToWorld = true;
@@ -1298,12 +1297,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void tickDeath() {
-		if (!isAlive()) {
+		if (!isAlive() && getState() == State.EXIT) {
 			if (!level.isClientSide) {
-				if (stateTime() >= DEATH_ACTIVE[0]) {
-					SSUtil.killEntity(this);
+				if (stateTime() == DEATH_ACTIVE[0])
 					((ServerLevel) level).getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.left", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
-				}
+				else if (stateTime() >= DEATH_ACTIVE[0])
+					SSUtil.killEntity(this);
 			} else {
 				if (stateTime() == DEATH_ACTIVE[5]) {
 					SSMusic.endWithEntity(this);

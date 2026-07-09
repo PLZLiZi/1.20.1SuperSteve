@@ -3,6 +3,7 @@ package plz.lizi.supersteve.entity;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.joml.Vector3f;
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -44,6 +46,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public Supplier<Object> getHealth = () -> 20F;
 	public int iInvulnerableTime = 0;
 	public SSBossEvent bossEvent;
+	protected final List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
