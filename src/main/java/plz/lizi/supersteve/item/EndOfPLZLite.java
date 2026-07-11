@@ -38,7 +38,7 @@ import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
-import plz.lizi.supersteve.client.renderer.EOPLItemExtensions;
+import plz.lizi.supersteve.client.renderer.EOPLItemEx;
 import plz.lizi.supersteve.client.sound.SSMusic;
 
 public class EndOfPLZLite extends Item {
@@ -127,11 +127,8 @@ public class EndOfPLZLite extends Item {
 	}
 
 	public static void killAndDrop(Entity entityIn, Player player) {
-		if (entityIn instanceof LivingEntity livingEntity) {
-			livingEntity.skipDropExperience = false;
-			livingEntity.lastHurtByPlayer = player;
-			livingEntity.lastHurtByPlayerTime = 100;
-		}
+		if (entityIn instanceof LivingEntity le)
+			SSUtil.forceHurt(le, player.level.damageSources.playerAttack(player), 0);
 		SSUtil.killEntity(entityIn);
 	}
 
@@ -227,12 +224,7 @@ public class EndOfPLZLite extends Item {
 			for (int i = 0; i < 20; i++) {
 				Vec3 targetVec = player.getEyePosition(1.0F).add(lookVec.scale(i));
 				for (Entity entityIn : level.getEntitiesOfClass(LivingEntity.class, new AABB(targetVec.x() - 0.5, targetVec.y() - 0.5, targetVec.z() - 0.5, targetVec.x() + 0.5, targetVec.y() + 0.5, targetVec.z() + 0.5))) {
-					if (entityIn instanceof LivingEntity livingEntity) {
-						livingEntity.skipDropExperience = false;
-						livingEntity.lastHurtByPlayer = player;
-						livingEntity.lastHurtByPlayerTime = 1;
-					}
-					SSUtil.killEntity(entityIn);
+					killAndDrop(entityIn, player);
 				}
 			}
 			var drops = Block.getDrops(level.getBlockState(blockPos), player.serverLevel(), blockPos, null);
@@ -279,6 +271,6 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-		consumer.accept(EOPLItemExtensions.INSTACNE);
+		consumer.accept(EOPLItemEx.INSTACNE);
 	}
 }

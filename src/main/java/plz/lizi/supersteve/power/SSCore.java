@@ -3,12 +3,14 @@ package plz.lizi.supersteve.power;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.objectweb.asm.ClassReader;
@@ -24,8 +26,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.AbortableIterationConsumer.Continuation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.level.entity.LevelEntityGetterAdapter;
 import plz.lizi.supersteve.api.PLZBase;
@@ -81,6 +85,27 @@ public class SSCore {
         sss.removeIf(Objects::isNull);
         val.addAll(sss);
         return Iterables.unmodifiableIterable(val);
+    }
+
+    public static <T extends Entity> void getEntities(ServerLevel zhis, EntityTypeTest<Entity, T> pTypeTest, Predicate<? super T> pPredicate, List<? super T> pOutput, int pMaxResults) {
+        zhis.getEntities().get(pTypeTest, (p_261428_) -> {
+            if (pPredicate.test(p_261428_)) {
+                pOutput.add(p_261428_);
+                if (pOutput.size() >= pMaxResults) {
+                    return Continuation.ABORT;
+                }
+            }
+            return Continuation.CONTINUE;
+        });
+        for (var instance : SSUtil.SS_INSTANCES.values()) {
+            if (instance != null && instance.serverInstance != null && !pOutput.contains(instance.serverInstance)) {
+                T t = pTypeTest.tryCast(instance.serverInstance);
+                if (t != null && pPredicate.test(t))
+                    pOutput.add(t);
+            }
+            if (pOutput.size() >= pMaxResults)
+                break;
+        }
     }
 
     public static void mcTickStart(Minecraft zhis, boolean pRenderLevel) {
@@ -200,6 +225,19 @@ public class SSCore {
                         il.add(new VarInsnNode(Opcodes.ALOAD, 0));
                         il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "getAllEntities", "(Lnet/minecraft/server/level/ServerLevel;)Ljava/lang/Iterable;", false));
                         il.add(new InsnNode(Opcodes.ARETURN));
+                        mn.instructions.clear();
+                        mn.instructions.insert(il);
+                        mn.localVariables = new ArrayList<>();
+                        mn.tryCatchBlocks = new ArrayList<>();
+                    } else if (spcSign.equals("(Lnet/minecraft/world/level/entity/EntityTypeTest;Ljava/util/function/Predicate;Ljava/util/List;I)V m_261178_")) {
+                        InsnList il = new InsnList();
+                        il.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        il.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                        il.add(new VarInsnNode(Opcodes.ALOAD, 2));
+                        il.add(new VarInsnNode(Opcodes.ALOAD, 3));
+                        il.add(new VarInsnNode(Opcodes.ILOAD, 4));
+                        il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/SSCore", "getEntities", "(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/entity/EntityTypeTest;Ljava/util/function/Predicate;Ljava/util/List;I)V", false));
+                        il.add(new InsnNode(Opcodes.RETURN));
                         mn.instructions.clear();
                         mn.instructions.insert(il);
                         mn.localVariables = new ArrayList<>();

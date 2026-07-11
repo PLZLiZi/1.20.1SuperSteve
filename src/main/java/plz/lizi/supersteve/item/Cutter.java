@@ -4,6 +4,7 @@ import java.security.ProtectionDomain;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -22,16 +23,23 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import plz.lizi.supersteve.api.SSUtil;
+import plz.lizi.supersteve.client.renderer.CutterItemEx;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.power.Agt;
 import plz.lizi.supersteve.power.MyClassWriter;
@@ -300,9 +308,31 @@ public class Cutter extends Item {
                     return cw.toByteArray();
                 }, true);
             }
+            SSUtil.forceHurt(entity, me.level.damageSources.mobAttack(me), 0);
             (isClientSide ? CHEALTH_PROCESS : SHEALTH_PROCESS).putIfAbsent(entity, 0F);
             (isClientSide ? CDEATH_TICKS : SDEATH_TICKS).putIfAbsent(entity, 0);
         }
         return super.onEntitySwing(stack, me);
+    }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
+        pPlayer.startUsingItem(pUsedHand);
+        return super.use(pLevel, pPlayer, pUsedHand);
+    }
+
+    @Override
+    public UseAnim getUseAnimation(ItemStack pStack) {
+        return UseAnim.NONE;
+    }
+
+    @Override
+    public int getUseDuration(ItemStack pStack) {
+        return 10;
+    }
+
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(CutterItemEx.INSTANCE);
     }
 }

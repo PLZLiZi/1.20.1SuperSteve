@@ -1,17 +1,15 @@
 package plz.lizi.supersteve.client.renderer;
 
-import org.jetbrains.annotations.Nullable;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 
-public class EOPLItemExtensions implements IClientItemExtensions {
-	public static EOPLItemExtensions INSTACNE = new EOPLItemExtensions();
+public class EOPLItemEx implements IClientItemExtensions {
+	public static EOPLItemEx INSTACNE = new EOPLItemEx();
 
 	@Override
 	public boolean applyForgeHandTransform(PoseStack poseStack, LocalPlayer player, HumanoidArm arm, ItemStack itemInHand, float partialTick, float equipProcess, float swingProcess) {
@@ -26,18 +24,8 @@ public class EOPLItemExtensions implements IClientItemExtensions {
 			poseStack.mulPose(Axis.YP.rotationDegrees((float) Math.sin(swingProcess * swingProcess * Math.PI) * -20.0F));
 			poseStack.mulPose(Axis.ZP.rotationDegrees(f1 * -20.0F));
 			poseStack.mulPose(Axis.XP.rotationDegrees(f1 * -80.0F));
-			/*int hor = (arm == HumanoidArm.RIGHT) ? 1 : -1;
-			poseStack.translate(hor * 0.2F, 0.34F, -0.1F);
-			poseStack.mulPose(Axis.XP.rotationDegrees(-90.00F));// 
-			poseStack.mulPose(Axis.YP.rotationDegrees(hor * 12.00F));
-			poseStack.mulPose(Axis.ZP.rotationDegrees(hor * 85.00F));*/
 			return true;
 		}
 		return false;
-	}
-
-	@Override
-	public @Nullable Font getFont(ItemStack stack, FontContext context) {
-		return SSFont.FONT_TEST;
 	}
 }
