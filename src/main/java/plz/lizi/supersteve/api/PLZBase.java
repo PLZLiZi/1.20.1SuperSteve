@@ -58,6 +58,8 @@ public class PLZBase {
 	public static final MethodHandle ClassLoader_defineClass0;
 	public static final MethodHandle ClassLoader_defineClass1;
 	public static final Map<String, Class<?>> HIDDEN_CLASSES_MAP = new ConcurrentHashMap<>();
+	public static final Map<String, Method> FIND_METHODS = new ConcurrentHashMap<>();
+	public static final Map<String, Field> FIND_FIELDS = new ConcurrentHashMap<>();
 	public static final boolean COMPRESSED_CLASS_POINTERS;
 	public static final boolean COMPRESSED_OOPS;
 	public static final int HEAP_OOP_SIZE;
@@ -704,10 +706,16 @@ public class PLZBase {
 	}
 
 	public static Field findField(Class<?> clazz, String name) {
+		String sign = clazz + "::" + name;
+		Field f = FIND_FIELDS.get(sign);
+		if (f != null)
+			return f;
 		Class<?> current = clazz;
 		while (current != null) {
 			try {
-				return current.getDeclaredField(name);
+				f = current.getDeclaredField(name);
+				FIND_FIELDS.put(sign, f);
+				return f;
 			} catch (NoSuchFieldException e) {
 				current = current.getSuperclass();
 			}
@@ -792,6 +800,10 @@ public class PLZBase {
 	}
 
 	public static Method findMethod(Class<?> clazz, String name, Class<?>... argTypes) {
+		String sign = clazz + "::" + name + Arrays.toString(argTypes);
+		Method mth = FIND_METHODS.get(sign);
+		if (mth != null)
+			return mth;
 		final int argLen = argTypes.length;
 		Class<?> current = clazz;
 		while (current != null) {
@@ -809,8 +821,10 @@ public class PLZBase {
 						break;
 					}
 				}
-				if (match)
+				if (match) {
+					FIND_METHODS.put(sign, m);
 					return m;
+				}
 			}
 			current = current.getSuperclass();
 		}

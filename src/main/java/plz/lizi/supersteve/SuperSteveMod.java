@@ -36,7 +36,7 @@ public class SuperSteveMod {
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.Agt");
 			Agt.start();
 			Agt.watch((ClassFileTransformer) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSTransformer", "plz.lizi.supersteve.power.SSTransformerImpl", true, ClassOption.STRONG).getConstructor().newInstance());
-			if (!SAFEMODE)
+			if (!SAFEMODE) 
 				Agt.retransform(Class.forName("sun.instrument.InstrumentationImpl"), null, false);
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.api.SSUtil");
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSThread");

@@ -1024,6 +1024,11 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				return;
 		if (this.position.x != p_20344_ || this.position.y != p_20345_ || this.position.z != p_20346_) {
 			this.position = new Vec3(p_20344_, p_20345_, p_20346_);
+			if (otherThread) {
+				xOld = p_20344_;
+				xOld = p_20345_;
+				xOld = p_20346_;
+			}
 			int i = Mth.floor(p_20344_);
 			int j = Mth.floor(p_20345_);
 			int k = Mth.floor(p_20346_);

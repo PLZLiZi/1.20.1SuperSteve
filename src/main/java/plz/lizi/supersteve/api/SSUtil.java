@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.ObjectUtils;
@@ -112,6 +113,7 @@ import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
 
 public class SSUtil {
+	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
 	public static final Map<UUID, EntityInstance<Player>> EOPL_OWNERS = new ConcurrentHashMap<>();
 	public static final Map<Integer, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
