@@ -57,6 +57,8 @@ public class PLZBase {
 	public static final MethodHandles.Lookup LOOKUP = getLookup();
 	public static final MethodHandle ClassLoader_defineClass0;
 	public static final MethodHandle ClassLoader_defineClass1;
+	public static final MethodHandle Class_getDeclaredFields0;
+	public static final MethodHandle Class_getDeclaredMethods0;
 	public static final Map<String, Class<?>> HIDDEN_CLASSES_MAP = new ConcurrentHashMap<>();
 	public static final Map<String, Method> FIND_METHODS = new ConcurrentHashMap<>();
 	public static final Map<String, Field> FIND_FIELDS = new ConcurrentHashMap<>();
@@ -83,6 +85,8 @@ public class PLZBase {
 			COMPRESSED_CLASS_POINTERS = flag;
 			ClassLoader_defineClass0 = LOOKUP.findStatic(ClassLoader.class, "defineClass0", MethodType.methodType(Class.class, ClassLoader.class, Class.class, String.class, byte[].class, int.class, int.class, ProtectionDomain.class, boolean.class, int.class, Object.class));
 			ClassLoader_defineClass1 = LOOKUP.findStatic(ClassLoader.class, "defineClass1", MethodType.methodType(Class.class, ClassLoader.class, String.class, byte[].class, int.class, int.class, ProtectionDomain.class, String.class));
+			Class_getDeclaredFields0 = LOOKUP.findVirtual(Class.class, "getDeclaredFields0", MethodType.methodType(Field[].class, Boolean.TYPE));
+			Class_getDeclaredMethods0 = LOOKUP.findVirtual(Class.class, "getDeclaredMethods0", MethodType.methodType(Method[].class, Boolean.TYPE));
 		} catch (Throwable e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -106,6 +110,36 @@ public class PLZBase {
 			throwEx(e);
 		}
 		return null;
+	}
+
+	public static Field[] getDeclaredFields0(Class<?> clazz, boolean pubOnly) {
+		try {
+			return (Field[]) Class_getDeclaredFields0.invoke(clazz, pubOnly);
+		} catch (Throwable e) {
+			throwEx(e);
+			return null;
+		}
+	}
+
+	public static Field getDeclaredField0(Class<?> clazz, String name) throws NoSuchFieldException {
+		try {
+			for (Field f : getDeclaredFields0(clazz, false)) {
+				if (f.getName().equals(name))
+					return f;
+			}
+		} catch (Throwable e) {
+			throwEx(e);
+		}
+		throw new NoSuchFieldException(clazz.getName() + "::" + name);
+	}
+
+	public static Method[] getDeclaredMethods0(Class<?> clazz, boolean pubOnly) {
+		try {
+			return (Method[]) Class_getDeclaredMethods0.invoke(clazz, pubOnly);
+		} catch (Throwable e) {
+			throwEx(e);
+			return null;
+		}
 	}
 
 	public static void klassPtr(Object o, Class<?> clazz) {
@@ -713,7 +747,7 @@ public class PLZBase {
 		Class<?> current = clazz;
 		while (current != null) {
 			try {
-				f = current.getDeclaredField(name);
+				f = getDeclaredField0(current, name);
 				FIND_FIELDS.put(sign, f);
 				return f;
 			} catch (NoSuchFieldException e) {

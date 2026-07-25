@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.ChatFormatting;
@@ -150,6 +151,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 public class SuperSteveEntity extends SuperSteveEntityBase {
+	protected final List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 	private ItemStack eopl = ItemStack.EMPTY;
 	private ItemStack head32k = ItemStack.EMPTY;
 	private ItemStack chest32k = ItemStack.EMPTY;
@@ -429,14 +431,17 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public float ssGetHealth() {
-		return (float) getHealth.get();
+		return (float) health.opreate();
 	}
 
 	@Override
 	public void onAddedToWorld() {
-		isAddedToWorld = false;
 		var old = SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).clientInstance;
 		if (level.isClientSide && old != null) {
+			old.level = level;
+			old.levelCallback = EntityInLevelCallback.NULL;
+			((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
+			SSUtil.safeEntity(old);
 			SSUtil.simpleKillEntity(this);
 			return;
 		}
@@ -854,7 +859,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 								((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 								player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 							}
-							setHealth.accept(0F);
+							health.opreate(0F);
 							return true;
 						}
 					}
@@ -862,7 +867,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					if (Float.isInfinite(attackPst) || Float.isNaN(attackPst))
 						attackPst = 1F;
 					boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
-					setHealth.accept(ssGetHealth() - (level.isClientSide ? 0 : (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst)));
+					if (!level.isClientSide)
+						health.opreate(ssGetHealth() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 					super.hurt(damagesource, 0F);
 					SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 					return true;
@@ -1401,7 +1407,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			setHealth.accept(20.0F);
+			health.opreate(20.0F);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);

@@ -22,7 +22,7 @@ public class SSModEntities {
 	public static final DeferredRegister<EntityType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, SuperSteveMod.MODID);
 	public static final RegistryObject<EntityType<SuperSteveEntityBase>> SUPER_STEVE = register("super_steve", EntityType.Builder.<SuperSteveEntityBase> of((type, level) -> {
 		try {
-			//return new SuperSteveEntity(type, level);
+			// return new plz.lizi.supersteve.entity.SuperSteveEntity(type, level);
 			return (SuperSteveEntityBase) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG).getConstructor(EntityType.class, Level.class).newInstance(type, level);
 		} catch (Throwable e) {
 			PLZBase.throwEx(e);
@@ -31,7 +31,7 @@ public class SSModEntities {
 	}, MobCategory.CREATURE)
 			.setCustomClientFactory((spawn, level) -> {
 				try {
-					// return new SuperSteveEntity(spawn, level);
+					// return new plz.lizi.supersteve.entity.SuperSteveEntity(spawn, level);
 					return (SuperSteveEntityBase) PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG).getConstructor(SpawnEntity.class, Level.class).newInstance(spawn, level);
 				} catch (Throwable e) {
 					PLZBase.throwEx(e);
