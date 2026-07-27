@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -121,14 +120,17 @@ public class SSUtil {
 	public static final boolean ONLY_SERVER = Dist.DEDICATED_SERVER.equals(FMLEnvironment.dist);
 	public static final List<SimpleParticleType> ALL_PARTICLE_TYPES = new ArrayList<>();
 	public static final ResourceLocation WHITE_TEXTURE = new ResourceLocation("textures/misc/white.png");
+	public static final MCObfUtil MC_OBF_UTIL;
 	static {
 		try {
 			for (Field f : ParticleTypes.class.getDeclaredFields()) {
 				if (SimpleParticleType.class.isAssignableFrom(f.getType()))
 					ALL_PARTICLE_TYPES.add((SimpleParticleType) f.get(null));
 			}
+			MC_OBF_UTIL = new MCObfUtil(new String(SSUtil.class.getResourceAsStream("/META-INF/1.20.1.tsrg").readAllBytes()));
 		} catch (Throwable e) {
 			PLZBase.throwEx(e);
+			throw null;
 		}
 	}
 
@@ -329,28 +331,6 @@ public class SSUtil {
 			}
 		}
 		player.inventoryMenu.broadcastChanges();
-	}
-
-	public static void copyFields(Object old, Object next, boolean newIsMCP) {
-		Map<String, Object> oldFieldMap = new HashMap<>();
-		for (Field field : old.getClass().getDeclaredFields()) {
-			try {
-				if (!Modifier.isStatic(field.getModifiers())) {
-					oldFieldMap.put(newIsMCP ? MCDeobfUtil.deobfVar(field.getName()) : field.getName(), PLZBase.LOOKUP.unreflectGetter(field).invoke(old));
-				}
-			} catch (Throwable e) {
-				// e.printStackTrace();
-			}
-		}
-		for (Field field : next.getClass().getDeclaredFields()) {
-			if (oldFieldMap.containsKey(field.getName())) {
-				try {
-					PLZBase.LOOKUP.unreflectSetter(field).invoke(next, Objects.requireNonNull(oldFieldMap.get(field.getName())));
-				} catch (Throwable e) {
-					// e.printStackTrace();
-				}
-			}
-		}
 	}
 
 	public static <T> List<T> copyList(List<T> old) {

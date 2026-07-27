@@ -131,11 +131,11 @@ public class SSNetworks {
 					} catch (Throwable e) {
 						rst = PLZBase.splitLast(e.getClass().getName(), ".")[1] + ": " + e.getMessage() + "\n";
 					}
-					PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg(rst + "\nServer execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n"));
+						PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg(rst + "Server execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n"));
 				} else {
 					Minecraft mc = Minecraft.getInstance();
 					if (mc.screen instanceof JEditScreen jes && jes.initialized) {
-						jes.getConsoleBox().setValue(jes.getConsoleBox().getValue() + "\n" + msg.s2cResult);
+						jes.getConsoleBox().setValue(jes.getConsoleBox().getValue() + msg.s2cResult);
 					}
 				}
 			});

@@ -50,4 +50,19 @@ public class MultiLineBoxEx extends MultiLineEditBox {
     public boolean mouseDragged(double pMouseX, double pMouseY, int pButton, double pDragX, double pDragY) {
         return super.mouseDragged(pMouseX, pMouseY, pButton, pDragX, pDragY);
     }
+
+    @Override
+    public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+        if (!this.visible)
+            return false;
+        if (pButton == 0 && this.withinContentAreaPoint(pMouseX, pMouseY)) {
+            textField.setSelecting(Screen.hasShiftDown());
+            double x = pMouseX - this.getX() - this.innerPadding();
+            double y = pMouseY - this.getY() - this.innerPadding() + this.scrollAmount();
+            textField.seekCursorToPoint(x, y);
+            this.setFocused(true);
+            return true;
+        }
+        return super.mouseClicked(pMouseX, pMouseY, pButton);
+    }
 }

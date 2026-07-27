@@ -11,6 +11,8 @@ public class CfrBridge {
     }
 
     public static String decompile(byte[] classBytes) {
+        if (classBytes == null)
+            return "NO SOURCE";
         try {
             if (DECOMPILE == null)
                 DECOMPILE = CFR_LOADER.loadClass("org.benf.cfr.reader.CfrUtil").getMethod("decompile", byte[].class);

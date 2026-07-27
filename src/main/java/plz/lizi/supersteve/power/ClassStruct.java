@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.*;
@@ -15,7 +16,7 @@ import plz.lizi.supersteve.api.PLZBase;
 public class ClassStruct {
 	@SuppressWarnings("unused")
 	private static final String INFO = "POWER BY ENDOFPLZ";
-	private static final Map<String, ClassStruct> CACHED_STRUCTS = new HashMap<>();
+	private static final Map<String, ClassStruct> CACHED_STRUCTS = new ConcurrentHashMap<>();
 	private static final Map<String, Set<SimpleEntry<String, Relation>>> RELS_CHAINS = new HashMap<>();
 	public static Function<String, byte[]> CODE_GETTER = null;
 	private final ClassNode node;

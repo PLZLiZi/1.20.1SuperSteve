@@ -169,7 +169,7 @@ public class SSCore {
                             mn.instructions.insert(il);
                         }
                     }
-                    var cw = new MyClassWriter(cr);
+                    var cw = new VerifyCW(cr);
                     cn.accept(cw);
                     return cw.toByteArray();
                 }, true);
@@ -204,7 +204,7 @@ public class SSCore {
                     mn.instructions.insert(il);
                 }
             }
-            var cw = new MyClassWriter(cr);
+            var cw = new VerifyCW(cr);
             cn.accept(cw);
             return cw.toByteArray();
         }, true);
@@ -244,7 +244,7 @@ public class SSCore {
                         mn.tryCatchBlocks = new ArrayList<>();
                     }
                 }
-                var cw = new MyClassWriter(cr);
+                var cw = new VerifyCW(cr);
                 cn.accept(cw);
                 return cw.toByteArray();
             }, true);
@@ -266,7 +266,7 @@ public class SSCore {
                         mn.tryCatchBlocks = new ArrayList<>();
                     }
                 }
-                var cw = new MyClassWriter(cr);
+                var cw = new VerifyCW(cr);
                 cn.accept(cw);
                 return cw.toByteArray();
             }, true);
@@ -289,7 +289,7 @@ public class SSCore {
                     mn.tryCatchBlocks = new ArrayList<>();
                 }
             }
-            var cw = new MyClassWriter(cr);
+            var cw = new VerifyCW(cr);
             cn.accept(cw);
             return cw.toByteArray();
         }, true);

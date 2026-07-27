@@ -3,8 +3,8 @@ package plz.lizi.supersteve.power;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
-public class MyClassWriter extends ClassWriter {
-    public MyClassWriter(ClassReader cr) {
+public class VerifyCW extends ClassWriter {
+    public VerifyCW(ClassReader cr) {
         super(cr, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
     }
 

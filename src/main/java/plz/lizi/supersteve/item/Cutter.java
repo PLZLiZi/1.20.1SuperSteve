@@ -42,7 +42,7 @@ import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.CutterItemEx;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.power.Agt;
-import plz.lizi.supersteve.power.MyClassWriter;
+import plz.lizi.supersteve.power.VerifyCW;
 
 public class Cutter extends Item {
     public static final Map<Entity, Float> SHEALTH_PROCESS = new ConcurrentHashMap<>();
@@ -249,7 +249,7 @@ public class Cutter extends Item {
                             mn.instructions.insert(insn);
                         }
                     }
-                    var cw = new MyClassWriter(cr);
+                    var cw = new VerifyCW(cr);
                     cn.accept(cw);
                     return cw.toByteArray();
                 } catch (Throwable e) {
@@ -303,7 +303,7 @@ public class Cutter extends Item {
                             mn.instructions.insert(il);
                         }
                     }
-                    var cw = new MyClassWriter(cr);
+                    var cw = new VerifyCW(cr);
                     cn.accept(cw);
                     return cw.toByteArray();
                 }, true);

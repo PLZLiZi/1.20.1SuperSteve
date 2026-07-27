@@ -5,13 +5,20 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.JarURLConnection;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.tools.Diagnostic;
@@ -27,7 +34,9 @@ import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 import javax.tools.JavaFileObject.Kind;
 import plz.lizi.supersteve.api.ClassOption;
+import plz.lizi.supersteve.api.MCObfUtil;
 import plz.lizi.supersteve.api.PLZBase;
+import plz.lizi.supersteve.api.SSUtil;
 
 public class HotCplr {
 	public static final Map<String, byte[]> MEMORY_CLASS_CACHE = new ConcurrentHashMap<>();
@@ -52,10 +61,9 @@ public class HotCplr {
 			throw new IllegalStateException("ToolProvider.getSystemJavaCompiler() is null (env isn't a JDK)");
 		}
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-		MyFileManager fileManager = new MyFileManager(compiler.getStandardFileManager(diagnostics, null, null), cl);
-		if (compiler.getTask(null, fileManager, diagnostics, List.of("-encoding", "UTF-8"), null, List.of(new MySimpleJavaFileObject(fullClassName, javaCode))).call()) {
-			MyJavaClassFileObject javaClassObject = fileManager.getJavaClassObject();
-			return javaClassObject.getBytes();
+		FileManager fileManager = new FileManager(compiler.getStandardFileManager(diagnostics, null, null), cl);
+		if (compiler.getTask(null, fileManager, diagnostics, List.of("-encoding", "UTF-8"), null, List.of(new DirectJavaFile(fullClassName, javaCode))).call()) {
+			return fileManager.getJavaClassObject().getBytes();
 		} else {
 			StringBuilder allErrors = new StringBuilder();
 			boolean hasRealError = false;
@@ -69,7 +77,7 @@ public class HotCplr {
 			if (hasRealError) {
 				throw new RuntimeException(allErrors.toString());
 			} else {
-				throw new RuntimeException("compile error: " + diagnostics.getDiagnostics());
+				throw new RuntimeException("Compile error: " + diagnostics.getDiagnostics() + "\n");
 			}
 		}
 	}
@@ -128,11 +136,11 @@ public class HotCplr {
 		return res.toString();
 	}
 
-	protected static class MySimpleJavaFileObject extends SimpleJavaFileObject {
+	protected static class DirectJavaFile extends SimpleJavaFileObject {
 		private String contents = null;
 		private final String className;
 
-		public MySimpleJavaFileObject(String className, String contents) {
+		public DirectJavaFile(String className, String contents) {
 			super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
 			this.className = className;
 			this.contents = contents;
@@ -146,10 +154,10 @@ public class HotCplr {
 			return className;
 		}
 	}
-	protected static class MyJavaClassFileObject extends SimpleJavaFileObject {
+	protected static class Result extends SimpleJavaFileObject {
 		private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-		public MyJavaClassFileObject(String name, Kind kind) {
+		public Result(String name, Kind kind) {
 			super(URI.create("string:///" + name.replace('.', '/') + kind.extension), kind);
 		}
 
@@ -162,14 +170,17 @@ public class HotCplr {
 			return outputStream;
 		}
 	}
-	protected static class MemoryByteCodeFileObject extends SimpleJavaFileObject {
+	protected static class DirectClassFile extends SimpleJavaFileObject {
 		private final String binaryName;
-		private final byte[] byteCode;
+		private final byte[] rawBytes;
+		private final MCObfUtil deobfuscator;
+		private volatile byte[] deobfBytes;
 
-		public MemoryByteCodeFileObject(String binaryName, byte[] byteCode) {
+		public DirectClassFile(String binaryName, byte[] rawBytes, MCObfUtil deobfuscator) {
 			super(URI.create("mem:///" + binaryName.replace('.', '/') + Kind.CLASS.extension), Kind.CLASS);
 			this.binaryName = binaryName;
-			this.byteCode = byteCode;
+			this.rawBytes = rawBytes;
+			this.deobfuscator = deobfuscator;
 		}
 
 		public String getBinaryName() {
@@ -178,67 +189,123 @@ public class HotCplr {
 
 		@Override
 		public InputStream openInputStream() {
-			return new ByteArrayInputStream(byteCode);
+			byte[] bytes = deobfBytes;
+			if (bytes == null) {
+				bytes = deobfuscator.deobfB(rawBytes);
+				deobfBytes = bytes;
+			}
+			return new ByteArrayInputStream(bytes);
 		}
 	}
-	protected static class MyFileManager extends ForwardingJavaFileManager<JavaFileManager> {
+	protected static class FileManager extends ForwardingJavaFileManager<JavaFileManager> {
+		private static final Map<String, List<DirectClassFile>> PACKAGE_CACHE = new ConcurrentHashMap<>();
+		private static final Map<String, Map<String, byte[]>> ZIP_CACHE = new ConcurrentHashMap<>();
 		private final ClassLoader targetClassLoader;
-		private MyJavaClassFileObject javaClassObject;
-		private static final Map<String, List<MemoryByteCodeFileObject>> PACKAGE_OBJS = new ConcurrentHashMap<>();
+		private Result javaClassObject;
 
-		protected MyFileManager(StandardJavaFileManager standardManager, ClassLoader targetClassLoader) {
+		protected FileManager(StandardJavaFileManager standardManager, ClassLoader targetClassLoader) {
 			super(standardManager);
 			this.targetClassLoader = targetClassLoader;
 		}
 
 		@Override
 		public JavaFileObject getJavaFileForOutput(Location location, String className, Kind kind, FileObject sibling) {
-			this.javaClassObject = new MyJavaClassFileObject(className, kind);
-			return javaClassObject;
+			return this.javaClassObject = new Result(className, kind);
 		}
 
 		@Override
 		public Iterable<JavaFileObject> list(Location location, String packageName, Set<Kind> kinds, boolean recurse) throws IOException {
 			Iterable<JavaFileObject> standard = super.list(location, packageName, kinds, recurse);
 			if (location == StandardLocation.CLASS_PATH && kinds.contains(Kind.CLASS)) {
-				List<JavaFileObject> result = new ArrayList<>();
-				standard.forEach(result::add);
-				List<MemoryByteCodeFileObject> cached = PACKAGE_OBJS.computeIfAbsent(packageName, pn -> buildPackageClasses(pn));
-				result.addAll(cached);
-				return result;
+				Map<String, JavaFileObject> result = new HashMap<>();
+				standard.forEach(s -> result.put(s.getName(), s));
+				for (var o : PACKAGE_CACHE.computeIfAbsent(packageName, pn -> buildPackageClasses(pn))) {
+					result.put(o.getName(), o);
+				}
+				return result.values();
 			}
 			return standard;
 		}
 
-		private List<MemoryByteCodeFileObject> buildPackageClasses(String packageName) {
-			List<MemoryByteCodeFileObject> list = new ArrayList<>();
-			for (Class<?> clazz : PLZBase.loadedClasses(targetClassLoader)) {
-				if (packageName.equals(clazz.getPackageName())) {
-					byte[] bytes = PLZBase.getClassBytes(clazz.getName(), targetClassLoader);
-					if (bytes != null) {
-						list.add(new MemoryByteCodeFileObject(clazz.getName(), bytes));
+		private List<DirectClassFile> buildPackageClasses(String packageName) {
+			List<DirectClassFile> list = new ArrayList<>();
+			if (packageName == null || targetClassLoader == null)
+				return list;
+			String packagePath = packageName.replace('.', '/');
+			try {
+				Enumeration<URL> resources = targetClassLoader.getResources(packagePath);
+				while (resources.hasMoreElements()) {
+					URL url = resources.nextElement();
+					String protocol = url.getProtocol();
+					if ("file".equals(protocol)) {
+					} else if ("jar".equals(protocol) || "union".equals(protocol)) {
+						try {
+							URLConnection connection = url.openConnection();
+							if (connection instanceof JarURLConnection jarConnection) {
+								try (JarFile jarFile = jarConnection.getJarFile()) {
+									for (var file : cachedFilesInZip(jarFile).entrySet()) {
+										if (!file.getKey().startsWith(packagePath))
+											continue;
+										list.add(new DirectClassFile(file.getKey().replace('/', '.'), file.getValue(), SSUtil.MC_OBF_UTIL));
+									}
+								}
+							} else if (connection != null) {
+								String urlStr = url.toString();
+								int exclIdx = urlStr.indexOf("!/");
+								if (exclIdx >= 0) {
+									int colonIdx = urlStr.indexOf(':');
+									if (colonIdx >= 0 && colonIdx < exclIdx) {
+										String pathPart = urlStr.substring(colonIdx + 1, exclIdx);
+										if (pathPart.startsWith("file://")) {
+											pathPart = pathPart.substring(7);
+										} else if (pathPart.startsWith("file:")) {
+											pathPart = pathPart.substring(5);
+										}
+										pathPart = URLDecoder.decode(pathPart, "UTF-8");
+										int hashIdx = pathPart.indexOf('#');
+										if (hashIdx >= 0) {
+											pathPart = pathPart.substring(0, hashIdx);
+										}
+										for (var file : cachedFilesInZip(pathPart).entrySet()) {
+											if (file.getKey().contains("com/mojang/brigadier")) {
+												System.out.println(file.getKey());
+											}
+											if (!file.getKey().startsWith(packagePath))
+												continue;
+											list.add(new DirectClassFile(file.getKey().replace('/', '.'), file.getValue(), SSUtil.MC_OBF_UTIL));
+										}
+									}
+								}
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 			return list;
 		}
 
+		private Map<String, byte[]> cachedFilesInZip(Object jarOrPath) {
+			if (jarOrPath instanceof JarFile jar) {
+				return ZIP_CACHE.computeIfAbsent(jar.getName(), p -> PLZBase.filesInZip(p, ".class", true, false));
+			}else if (jarOrPath instanceof String jarPath)
+				return ZIP_CACHE.computeIfAbsent(jarPath, p -> PLZBase.filesInZip(p, ".class", true, false));
+			return null;
+		}
+
 		@Override
 		public String inferBinaryName(Location location, JavaFileObject file) {
-			if (file instanceof MemoryByteCodeFileObject m) {
+			if (file instanceof DirectClassFile m) {
 				return m.getBinaryName();
 			}
 			return super.inferBinaryName(location, file);
 		}
 
-		public MyJavaClassFileObject getJavaClassObject() {
+		public Result getJavaClassObject() {
 			return javaClassObject;
-		}
-	}
-	protected static class MyClassLoader extends ClassLoader {
-		public Class<?> loadClass(String fullName, MyJavaClassFileObject javaClassObject) {
-			byte[] classData = javaClassObject.getBytes();
-			return this.defineClass(fullName, classData, 0, classData.length);
 		}
 	}
 }

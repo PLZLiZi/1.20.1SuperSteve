@@ -258,29 +258,33 @@ public class PLZBase {
 		return "";
 	}
 
+	public static Map<String, byte[]> filesInZip(ZipFile file, String suffix, boolean noSuffix, boolean noRead) {
+		Map<String, byte[]> result = new HashMap<>();
+		Enumeration<? extends ZipEntry> entries = file.entries();
+		while (entries.hasMoreElements()) {
+			ZipEntry entry = entries.nextElement();
+			String entryName = entry.getName();
+			if (entryName.endsWith(suffix) && !entry.isDirectory()) {
+				byte[] value = null;
+				if (!noRead) {
+					try (InputStream is = file.getInputStream(entry)) {
+						value = readAllBytes(is);
+					} catch (IOException e1) {
+						throwEx(e1);
+					}
+				}
+				result.put(noSuffix ? entryName.replace(suffix, "") : entryName, value);
+			}
+		}
+		return result;
+	}
+
 	public static Map<String, byte[]> filesInZip(String zipPath, String suffix, boolean noSuffix, boolean noRead) {
 		Map<String, byte[]> result = new HashMap<>();
-		File file = new File(zipPath);
-		try (ZipFile jarFile = new ZipFile(file)) {
-			Enumeration<? extends ZipEntry> entries = jarFile.entries();
-			while (entries.hasMoreElements()) {
-				ZipEntry entry = entries.nextElement();
-				String entryName = entry.getName();
-				if (entryName.endsWith(suffix) && !entry.isDirectory()) {
-					byte[] value = null;
-					if (!noRead) {
-						try (InputStream is = jarFile.getInputStream(entry)) {
-							value = readAllBytes(is);
-						} catch (IOException e1) {
-							throwEx(e1);
-						}
-					}
-					result.put(noSuffix ? entryName.replace(suffix, "") : entryName, value);
-				}
-			}
+		try (ZipFile zip = new ZipFile(zipPath)) {
+			result.putAll(filesInZip(zip, suffix, noSuffix, noRead));
 		} catch (Exception e) {
 			throwEx(e);
-			return null;
 		}
 		return result;
 	}
@@ -304,13 +308,17 @@ public class PLZBase {
 		return new String(encoded, StandardCharsets.UTF_8);
 	}
 
-	public static void writeFile(String filePath, String content) throws Throwable {
-		File file = new File(filePath);
-		if (!file.exists()) {
-			file.createNewFile();
-		}
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-			writer.write(content);
+	public static void writeFile(String filePath, String content) {
+		try {
+			File file = new File(filePath);
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+				writer.write(content);
+			}
+		} catch (Throwable e) {
+			throwEx(e);
 		}
 	}
 

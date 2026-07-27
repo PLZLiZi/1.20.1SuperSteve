@@ -9,7 +9,6 @@ import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import plz.lizi.supersteve.api.ClassOption;
-import plz.lizi.supersteve.api.MCDeobfUtil;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.event.SSEvents;
@@ -42,7 +41,6 @@ public class SuperSteveMod {
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.SSThread");
 			PLZBase.defineClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.power.ClassStruct");
 			// SSUtil.testMe();
-			MCDeobfUtil.init("/META-INF/1.20.1.tsrg");
 		} catch (Throwable e) {
 			PLZBase.throwEx(e);
 		}

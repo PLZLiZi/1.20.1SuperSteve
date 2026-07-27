@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.CfrBridge;
 import plz.lizi.supersteve.api.PLZBase;
+import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.HotCplr;
 import java.util.ArrayList;
@@ -154,16 +155,16 @@ public class JEditScreen extends Screen {
         String err = null;
         byte[] buf = null;
         try {
-            buf = HotCplr.compileToClassfile(code, SuperSteveMod.class.getClassLoader());
-        if (buf == null)
-            err = "Classfile is null";
+            buf = SSUtil.MC_OBF_UTIL.obfB(HotCplr.compileToClassfile(code, SuperSteveMod.class.getClassLoader()));
+            if (buf == null)
+                err = "Classfile is null";
         } catch (Throwable e) {
             err = e.getMessage();
         }
-        consoleBox.setValue((err != null ? err + "\n" : "") + "Client compile " + (err == null ? "SUCCESSFUL" : "FAILED") + " in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s\n");
+        consoleBox.setValue((err != null ? err + "\n\n" : "") + "Client compile " + (err == null ? "SUCCESSFUL" : "FAILED") + " in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s\n\n");
         if (err != null)
             return;
-        consoleBox.setValue(consoleBox.getValue() + "\n" + "Sending classfile to server & execute\n");
+        consoleBox.setValue(consoleBox.getValue() + "Sending classfile to server & execute\n\n");
         SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.JCplrMsg(buf));
     }
 
@@ -271,7 +272,7 @@ public class JEditScreen extends Screen {
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (button == 0) {
-                String decompiledCode = CfrBridge.decompile(PLZBase.getClassBytes(clazz.getName(), clazz.getClassLoader()));
+                String decompiledCode = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(PLZBase.getClassBytes(PLZBase.getJarPath(clazz), clazz.getName())));
                 tabs.add(new Tab(getClassS1plName(clazz), decompiledCode, false, null/* TODO: hot retransform */));
                 activeTabindex = tabs.size() - 1;
                 JEditScreen.this.codeEditor.setValue(decompiledCode);
