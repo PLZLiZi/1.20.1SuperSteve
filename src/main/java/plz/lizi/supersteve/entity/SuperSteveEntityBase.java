@@ -27,7 +27,7 @@ import plz.lizi.supersteve.level.SSBossEvent;
 
 public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 4F;
-	public static final int MAX_INVULNERABLE_TIME = 40;
+	public static final int MAX_INVULNERABLE_TICK = 40;
 	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块下落开始 / 环出现 / 多边形出现 */, 80/* 方块下落结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
 	public static final int[] DEATH_ACTIVE = { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */ };
 	public static final EntityDataAccessor<String> SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
@@ -38,7 +38,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final EntityDataAccessor<Vector3f> SS_SAFE_POS = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.VECTOR3);
 	public final List<Attack> attacks = new ArrayList<>();
 	public Auto health = o -> 20F;
-	public int iInvulnerableTime = 0;
+	public long[/* 0: tick, 1: time */] hurtData = { 0, System.currentTimeMillis() };
 	public SSBossEvent bossEvent;
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
@@ -64,7 +64,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 					}
 				} catch (Throwable e) {
 				}
-				health.opreate(20F);
+				health.operate(20F);
 				return 20F;
 			}
 		});
@@ -101,7 +101,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			int stateTime = stateTime();
 			if (state == State.ENTER && stateTime > ENTER_ACTIVE[0])
 				newState = State.ALIVE;
-			else if (state == State.ALIVE && (float) health.opreate() <= 0F)
+			else if (state == State.ALIVE && (float) health.operate() <= 0F)
 				newState = State.EXIT;
 			if (state != newState)
 				setState(newState);
@@ -159,6 +159,6 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		ENTER, ALIVE, EXIT;
 	}
 	public interface Auto {
-		Object opreate(Object... o);
+		Object operate(Object... o);
 	}
 }

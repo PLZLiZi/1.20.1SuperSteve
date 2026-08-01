@@ -266,7 +266,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				}
 			}
 		}
-		iInvulnerableTime = Math.max(0, iInvulnerableTime - 1);
+		hurtData[0] = Math.max(0, hurtData[0] - 1);
 		baseTick();
 		this.updatingUsingItem();
 		this.updateSwimAmount();
@@ -431,7 +431,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public float ssGetHealth() {
-		return (float) health.opreate();
+		return (float) health.operate();
 	}
 
 	@Override
@@ -848,31 +848,32 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			} else {
 				if (distanceTo(player) > ATTACK_RANGE)
 					return false;
-				if (iInvulnerableTime <= 0) {
-					iInvulnerableTime = MAX_INVULNERABLE_TIME;
-					{
-						// TODO: 彩蛋
-						String playerName = player.getGameProfile().getName();
-						if (playerName.equals("shugangan") || playerName.equals("shiki214ein")) {
-							if (!level.isClientSide) {
-								idrops.clear();
-								((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
-								player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
-							}
-							health.opreate(0F);
-							return true;
+				if (System.currentTimeMillis() - hurtData[1] < MAX_INVULNERABLE_TICK * 50)
+					return false;
+				hurtData[1] = System.currentTimeMillis();
+				hurtData[0] = MAX_INVULNERABLE_TICK;
+				{
+					// TODO: 彩蛋
+					String playerName = player.getGameProfile().getName();
+					if (playerName.equals("shugangan") || playerName.equals("shiki214ein")) {
+						if (!level.isClientSide) {
+							idrops.clear();
+							((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
+							player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 						}
+						health.operate(0F);
+						return true;
 					}
-					float attackPst = Math.min(1F, Math.max(0.1F, (float) (amount / SSUtil.getMaxDamageInBag(player, (SuperSteveEntityBase) this))));
-					if (Float.isInfinite(attackPst) || Float.isNaN(attackPst))
-						attackPst = 1F;
-					boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
-					if (!level.isClientSide)
-						health.opreate(ssGetHealth() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
-					super.hurt(damagesource, 0F);
-					SSUtil.forceHurtEx(player, damageSources().generic(), amount);
-					return true;
 				}
+				float attackPst = Math.min(1F, Math.max(0.1F, (float) (amount / SSUtil.getMaxDamageInBag(player, (SuperSteveEntityBase) this))));
+				if (Float.isInfinite(attackPst) || Float.isNaN(attackPst))
+					attackPst = 1F;
+				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
+				if (!level.isClientSide)
+					health.operate(ssGetHealth() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
+				super.hurt(damagesource, 0F);
+				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
+				return true;
 			}
 		}
 		return false;
@@ -1407,7 +1408,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			health.opreate(20.0F);
+			health.operate(20.0F);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);

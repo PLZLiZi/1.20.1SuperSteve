@@ -14,13 +14,13 @@ public class SSSheildLayer extends SSLayer {
 
     @Override
     public void render(PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
-        if (entity.iInvulnerableTime <= 0)
+        if (System.currentTimeMillis() - entity.hurtData[0] <= SuperSteveEntityBase.MAX_INVULNERABLE_TICK)
             return;
         poseStack.pushPose();
         poseStack.translate(0, 0.4f, 0);
         poseStack.scale(1, 1.5f, 1);
         float[] color = SSUtil.getRainbowColor(3);
-        SSRenders.renderBall(bufferSource.getBuffer(SSRenders.POSITION_COLOR), poseStack, 0.8f, color[0], color[1], color[2], (float) (entity.iInvulnerableTime + partialTick) / (float) SuperSteveEntityBase.MAX_INVULNERABLE_TIME / 2F, packedLight);
+        SSRenders.renderBall(bufferSource.getBuffer(SSRenders.POSITION_COLOR), poseStack, 0.8f, color[0], color[1], color[2], (float) (entity.hurtData[0] + partialTick) / (float) SuperSteveEntityBase.MAX_INVULNERABLE_TICK / 2F, packedLight);
         poseStack.popPose();
     }
 

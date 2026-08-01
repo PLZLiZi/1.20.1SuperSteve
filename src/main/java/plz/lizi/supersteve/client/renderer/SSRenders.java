@@ -44,7 +44,6 @@ public class SSRenders {
             vc.vertex(pose, hfW * endDPgs, -hfH * (1f - endDPgs), hfW * endDPgs).color(r, g, b, a).endVertex();
             vc.vertex(pose, hfW * topDPgs, -hfH * (1f - topDPgs), hfW * topDPgs).color(r, g, b, a).endVertex();
             vc.vertex(pose, -hfW * topDPgs, -hfH * (1f - topDPgs), hfW * topDPgs).color(r, g, b, a).endVertex();
-            //
             vc.vertex(pose, -hfW * (1f - endUPgs), hfH * endUPgs, hfW * (1f - endUPgs)).color(r, g, b, a).endVertex();
             vc.vertex(pose, hfW * (1f - endUPgs), hfH * endUPgs, hfW * (1f - endUPgs)).color(r, g, b, a).endVertex();
             vc.vertex(pose, hfW * (1f - topUPgs), hfH * topUPgs, hfW * (1f - topUPgs)).color(r, g, b, a).endVertex();
@@ -56,14 +55,13 @@ public class SSRenders {
         float topYPgs = 2f * topPgs - 1f;
         float endYPgs = 2f * endPgs - 1f;
         vc.vertex(poseStack.last().pose(), hfW * topFcPgs, hfH * topYPgs, hfW * topFcPgs).color(r, g, b, a).endVertex();
-        vc.vertex(poseStack.last().pose(), -hfW * topFcPgs, hfH * topYPgs, hfW * topFcPgs).color(r, g, b, a).endVertex();
-        vc.vertex(poseStack.last().pose(), -hfW * topFcPgs, hfH * topYPgs, -hfW * topFcPgs).color(r, g, b, a).endVertex();
         vc.vertex(poseStack.last().pose(), hfW * topFcPgs, hfH * topYPgs, -hfW * topFcPgs).color(r, g, b, a).endVertex();
-        //
+        vc.vertex(poseStack.last().pose(), -hfW * topFcPgs, hfH * topYPgs, -hfW * topFcPgs).color(r, g, b, a).endVertex();
+        vc.vertex(poseStack.last().pose(), -hfW * topFcPgs, hfH * topYPgs, hfW * topFcPgs).color(r, g, b, a).endVertex();
         vc.vertex(poseStack.last().pose(), hfW * endFcPgs, hfH * endYPgs, hfW * endFcPgs).color(r, g, b, a).endVertex();
-        vc.vertex(poseStack.last().pose(), hfW * endFcPgs, hfH * endYPgs, -hfW * endFcPgs).color(r, g, b, a).endVertex();
-        vc.vertex(poseStack.last().pose(), -hfW * endFcPgs, hfH * endYPgs, -hfW * endFcPgs).color(r, g, b, a).endVertex();
         vc.vertex(poseStack.last().pose(), -hfW * endFcPgs, hfH * endYPgs, hfW * endFcPgs).color(r, g, b, a).endVertex();
+        vc.vertex(poseStack.last().pose(), -hfW * endFcPgs, hfH * endYPgs, -hfW * endFcPgs).color(r, g, b, a).endVertex();
+        vc.vertex(poseStack.last().pose(), hfW * endFcPgs, hfH * endYPgs, -hfW * endFcPgs).color(r, g, b, a).endVertex();
         poseStack.popPose();
     }
 

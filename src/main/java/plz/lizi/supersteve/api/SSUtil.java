@@ -562,7 +562,7 @@ public class SSUtil {
 			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
-				ss.health.opreate(0F);
+				ss.health.operate(0F);
 				if (!entity.level.isClientSide) {
 					if (ss.bossEvent != null) {
 						ss.bossEvent.removeAllPlayers();
