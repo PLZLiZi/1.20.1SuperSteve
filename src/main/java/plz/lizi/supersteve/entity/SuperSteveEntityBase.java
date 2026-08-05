@@ -1,7 +1,6 @@
 package plz.lizi.supersteve.entity;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import org.joml.Vector3f;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -28,6 +27,7 @@ import plz.lizi.supersteve.level.SSBossEvent;
 public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 4F;
 	public static final int MAX_INVULNERABLE_TICK = 40;
+	public static final float MAX_HEALTH = 20F;
 	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块下落开始 / 环出现 / 多边形出现 */, 80/* 方块下落结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
 	public static final int[] DEATH_ACTIVE = { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */ };
 	public static final EntityDataAccessor<String> SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
@@ -36,44 +36,48 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final EntityDataAccessor<String> SS_STATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<Integer> SS_LSTATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
 	public static final EntityDataAccessor<Vector3f> SS_SAFE_POS = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.VECTOR3);
+	public final byte[] key = new byte[SSUtil.randint(10, 99)];
 	public final List<Attack> attacks = new ArrayList<>();
-	public Auto health = o -> 20F;
-	public long[/* 0: tick, 1: time */] hurtData = { 0, System.currentTimeMillis() };
+	public Operator health = o -> MAX_HEALTH;
+	public long[/* 0: tick, 1: llmax - time */] hurtData = { 0, Long.MAX_VALUE - System.currentTimeMillis() };
 	public SSBossEvent bossEvent;
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
-		PLZBase.setField(this, false, "health", (Auto) o -> {
-			if (o.length > 0) {
+		PLZBase.setField(this, false, "health", (Operator) o -> {
+			if (o.length == 2 && o[1] == (Integer)key.length) {
 				if (o[0] instanceof Float fhealth) {
 					try {
-						int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
-						getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
+						getEntityData().set(SS_HEALTH, "SSH=" + (Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ (int) getUUID().getMostSignificantBits(), 13) ^ (int)getUUID().getMostSignificantBits()));
+						//int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
+						//getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
 						// getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
 					} catch (Throwable e) {
 					}
 				}
 				return null;
-			} else {
+			} else if (o.length == 0) {
 				try {
 					String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
 					if (ssh.startsWith("SSH=")) {
-						byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
-						return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
+						return Float.intBitsToFloat(Integer.rotateRight(Integer.parseInt(ssh.substring(4, ssh.length())) ^ (int) getUUID().getMostSignificantBits(), 13) ^ (int) getUUID().getMostSignificantBits());
+						//byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
+						//return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
 						// return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
 					}
 				} catch (Throwable e) {
 				}
-				health.operate(20F);
-				return 20F;
+				health.operate(MAX_HEALTH, null);
+				return MAX_HEALTH;
 			}
+			return null;
 		});
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
 		AttributeSupplier.Builder builder = Mob.createMobAttributes();
 		builder = builder.add(Attributes.MOVEMENT_SPEED, 0.5);
-		builder = builder.add(Attributes.MAX_HEALTH, 20);
+		builder = builder.add(Attributes.MAX_HEALTH, MAX_HEALTH);
 		builder = builder.add(Attributes.ARMOR, 32767);
 		builder = builder.add(Attributes.ATTACK_DAMAGE, 32767);
 		builder = builder.add(Attributes.FOLLOW_RANGE, 2048);
@@ -83,8 +87,6 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	}
 
 	public abstract void ssTick(boolean threadCall);
-
-	public abstract float ssGetHealth();
 
 	public abstract SSMode ssGetMode();
 
@@ -158,7 +160,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static enum State {
 		ENTER, ALIVE, EXIT;
 	}
-	public interface Auto {
+	public interface Operator {
 		Object operate(Object... o);
 	}
 }

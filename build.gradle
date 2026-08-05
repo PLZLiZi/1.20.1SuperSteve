@@ -64,7 +64,7 @@ repositories {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
     implementation 'dev:cfr:1.0'
-    implementation 'dev:endofplz-0:1.0'
+    implementation fg.deobf('dev:endofplz-0:1.0')
 }
 
 tasks.named('processResources', ProcessResources).configure {

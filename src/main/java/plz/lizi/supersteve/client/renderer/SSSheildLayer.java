@@ -14,7 +14,7 @@ public class SSSheildLayer extends SSLayer {
 
     @Override
     public void render(PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
-        if (System.currentTimeMillis() - entity.hurtData[0] <= SuperSteveEntityBase.MAX_INVULNERABLE_TICK)
+        if (System.currentTimeMillis() - (Long.MAX_VALUE - entity.hurtData[1]) > SuperSteveEntityBase.MAX_INVULNERABLE_TICK * 50)
             return;
         poseStack.pushPose();
         poseStack.translate(0, 0.4f, 0);

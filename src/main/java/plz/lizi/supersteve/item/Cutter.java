@@ -262,7 +262,7 @@ public class Cutter extends Item {
             if (me.getId() == entity.getId())
                 continue;
             if (entity instanceof SuperSteveEntityBase ss) {
-                ss.health.operate(0F);
+                ss.health.operate(0F, ss.key.length);
                 continue;
             }
             for (var clazz : SSUtil.classChainReverse(entity.getClass(), LivingEntity.class)) {

@@ -430,14 +430,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public float ssGetHealth() {
-		return (float) health.operate();
-	}
-
-	@Override
 	public void onAddedToWorld() {
-		var old = SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).clientInstance;
-		if (level.isClientSide && old != null) {
+		var oldi = SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>());
+		var old = !level.isClientSide ? oldi.serverInstance : oldi.clientInstance;
+		if (old != null && old != this) {
 			old.level = level;
 			old.levelCallback = EntityInLevelCallback.NULL;
 			((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
@@ -510,7 +506,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		this.level.getProfiler().push("sensing");
 		this.sensing.tick();
 		this.level.getProfiler().pop();
-		int i = getServer().getTickCount() + this.getId();
+		// TODO: ??? getServer().getTickCount()
+		int i = ssGetTick() + this.getId();
 		if (i % 2 != 0 && this.tickCount > 1) {
 			this.level.getProfiler().push("targetSelector");
 			this.targetSelector.tickRunningGoals(false);
@@ -832,7 +829,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public float getMaxHealth() {
-		return 20.0F;
+		return MAX_HEALTH;
 	}
 
 	public Entity old = null;
@@ -848,9 +845,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			} else {
 				if (distanceTo(player) > ATTACK_RANGE)
 					return false;
-				if (System.currentTimeMillis() - hurtData[1] < MAX_INVULNERABLE_TICK * 50)
+				if (System.currentTimeMillis() - (Long.MAX_VALUE - hurtData[1]) < MAX_INVULNERABLE_TICK * 50)
 					return false;
-				hurtData[1] = System.currentTimeMillis();
+				hurtData[1] = Long.MAX_VALUE - System.currentTimeMillis();
 				hurtData[0] = MAX_INVULNERABLE_TICK;
 				{
 					// TODO: 彩蛋
@@ -861,7 +858,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 							((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 							player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 						}
-						health.operate(0F);
+						health.operate(0F, key.length);
 						return true;
 					}
 				}
@@ -870,7 +867,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					attackPst = 1F;
 				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
-					health.operate(ssGetHealth() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
+					health.operate((float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst), key.length);
 				super.hurt(damagesource, 0F);
 				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 				return true;
@@ -1066,7 +1063,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public float getHealth() {
-		return ssGetHealth();
+		return (float) health.operate();
 	}
 
 	@Override
@@ -1134,7 +1131,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void remove(RemovalReason p_276115_) {
-		if (ssGetHealth() <= 0.0F) {
+		if ((float) health.operate() <= 0.0F) {
 			setRemoved(p_276115_);
 			brain.clearMemories();
 		}
@@ -1142,7 +1139,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isAlive() {
-		return ssGetHealth() > 0.0F;
+		return (float) health.operate() > 0.0F;
 	}
 
 	@Override
@@ -1165,7 +1162,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public void dropAllDeathLoot(DamageSource p_21192_) {
 		if (level.isClientSide)
 			return;
-		if (ssGetHealth() <= 0F) {
+		if ((float) health.operate() <= 0F) {
 			synchronized (idrops) {
 				for (var drop : idrops) {
 					drop.setPos(position());
@@ -1384,7 +1381,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public double getAttributeValue(Attribute p_21134_) {
 		if (p_21134_ == Attributes.MAX_HEALTH) {
-			return 20.0d;
+			return MAX_HEALTH;
 		} else if (p_21134_ == Attributes.ARMOR) {
 			return Double.MAX_VALUE;
 		}
@@ -1408,7 +1405,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			health.operate(20.0F);
+			health.operate(MAX_HEALTH, key.length);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);

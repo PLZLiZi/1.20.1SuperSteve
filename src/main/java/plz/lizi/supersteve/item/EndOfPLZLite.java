@@ -19,6 +19,7 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -126,7 +127,11 @@ public class EndOfPLZLite extends Item {
 		return super.use(world, entity, hand);
 	}
 
-	public static void killAndDrop(Entity entityIn, Player player) {
+	public static void killAndDrop(Entity entityIn, Player player, boolean killItem) {
+		if (killItem && entityIn instanceof ItemEntity) {
+			SSUtil.simpleKillEntity(entityIn);
+			return;
+		}
 		if (entityIn instanceof LivingEntity le)
 			SSUtil.forceHurt(le, player.level.damageSources.playerAttack(player), 0);
 		SSUtil.killEntity(entityIn);
@@ -141,7 +146,7 @@ public class EndOfPLZLite extends Item {
 			ServerLevel serverLevel = (ServerLevel) world;
 			try {
 				for (var entityIn : new ArrayList<>(StreamSupport.stream(serverLevel.getAllEntities().spliterator(), false).collect(Collectors.toList()))) {
-					killAndDrop(entityIn, player);
+					killAndDrop(entityIn, player, player.isShiftKeyDown());
 				}
 			} catch (Throwable throwable) {
 				throwable.printStackTrace();
@@ -151,7 +156,7 @@ public class EndOfPLZLite extends Item {
 				while (iterator.hasNext()) {
 					EntitySection<Entity> section = iterator.next();
 					for (Entity entityIn : new ArrayList<>(section.storage.allInstances)) {
-						killAndDrop(entityIn, player);
+						killAndDrop(entityIn, player, player.isShiftKeyDown());
 					}
 				}
 			} catch (Throwable throwable) {
@@ -164,7 +169,7 @@ public class EndOfPLZLite extends Item {
 			try {
 				clientLevel.minecraft.gui.getBossOverlay().reset();
 				for (var entityIn : new ArrayList<>(StreamSupport.stream(clientLevel.entitiesForRendering().spliterator(), false).collect(Collectors.toList()))) {
-					killAndDrop(entityIn, player);
+					killAndDrop(entityIn, player, player.isShiftKeyDown());
 				}
 			} catch (Throwable throwable) {
 				throwable.printStackTrace();
@@ -174,7 +179,7 @@ public class EndOfPLZLite extends Item {
 				while (iterator.hasNext()) {
 					EntitySection<Entity> section = iterator.next();
 					for (Entity entityIn : new ArrayList<>(section.storage.allInstances)) {
-						killAndDrop(entityIn, player);
+						killAndDrop(entityIn, player, player.isShiftKeyDown());
 					}
 				}
 			} catch (Throwable throwable) {
@@ -185,7 +190,7 @@ public class EndOfPLZLite extends Item {
 							@SuppressWarnings("unchecked")
 							EntitySection<Entity> section = section_;
 							for (Entity entityIn : new ArrayList<>(section.storage.allInstances)) {
-								killAndDrop(entityIn, player);
+								killAndDrop(entityIn, player, player.isShiftKeyDown());
 							}
 						}
 					}
@@ -221,10 +226,10 @@ public class EndOfPLZLite extends Item {
 			Vec3 lookVec = player.getLookAngle();
 			Level level = player.level;
 			BlockPos blockPos = player.level.clip(new ClipContext(player.getEyePosition(1f), player.getEyePosition(1f).add(player.getViewVector(1f).scale(player.getBlockReach())), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos();
-			for (int i = 0; i < 20; i++) {
+			for (int i = 0; i < 40; i++) {
 				Vec3 targetVec = player.getEyePosition(1.0F).add(lookVec.scale(i));
 				for (Entity entityIn : level.getEntitiesOfClass(LivingEntity.class, new AABB(targetVec.x() - 0.5, targetVec.y() - 0.5, targetVec.z() - 0.5, targetVec.x() + 0.5, targetVec.y() + 0.5, targetVec.z() + 0.5))) {
-					killAndDrop(entityIn, player);
+					killAndDrop(entityIn, player, player.isShiftKeyDown());
 				}
 			}
 			var drops = Block.getDrops(level.getBlockState(blockPos), player.serverLevel(), blockPos, null);
