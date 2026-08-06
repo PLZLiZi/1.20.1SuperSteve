@@ -9,15 +9,19 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.ClassOption;
+import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.gui.JEditScreen;
+import plz.lizi.supersteve.entity.SuperSteveEntityBase.Attack;
 
 public class SSNetworks {
 	private static final String PROTOCOL_VERSION = "1";
@@ -34,6 +38,7 @@ public class SSNetworks {
 		register(ForceGui.class, ForceGui::encode, ForceGui::decode, ForceGui::handle);
 		register(JCplrMsg.class, JCplrMsg::encode, JCplrMsg::decode, JCplrMsg::handle);
 		register(DropEOPL.class, DropEOPL::encode, DropEOPL::decode, DropEOPL::handle);
+		register(AddAttact.class, AddAttact::encode, AddAttact::decode, AddAttact::handle);
 	}
 
 	public static class RemoveClientEntity {
@@ -77,14 +82,11 @@ public class SSNetworks {
 		}
 
 		public static void handle(ForceGui msg, Supplier<NetworkEvent.Context> ctxSupplier) {
-			NetworkEvent.Context ctx = ctxSupplier.get();
-			ctx.enqueueWork(() -> {
-				Player player = SSUtil.getLocalPlayer();
-				if (player == null)
-					return;
-				SSUtil.killPlayer(player);
-			});
-			ctx.setPacketHandled(true);
+			Player player = SSUtil.getLocalPlayer();
+			if (player == null)
+				return;
+			SSUtil.killPlayer(player);
+			ctxSupplier.get().setPacketHandled(true);
 		}
 	}
 	public static class JCplrMsg {
@@ -131,7 +133,7 @@ public class SSNetworks {
 					} catch (Throwable e) {
 						rst = PLZBase.splitLast(e.getClass().getName(), ".")[1] + ": " + e.getMessage() + "\n";
 					}
-						PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg(rst + "Server execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n"));
+					PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new JCplrMsg(rst + "Server execute finish in " + ((float) ((System.currentTimeMillis() - last) / 1000F)) + "s\n"));
 				} else {
 					Minecraft mc = Minecraft.getInstance();
 					if (mc.screen instanceof JEditScreen jes && jes.initialized) {
@@ -154,6 +156,41 @@ public class SSNetworks {
 		public static void handle(DropEOPL msg, Supplier<NetworkEvent.Context> ctxSupplier) {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			SSUtil.removeEOPLOwner(SSUtil.getLocalPlayer());
+			ctx.setPacketHandled(true);
+		}
+	}
+	public static class AddAttact {
+		private final int ssId;
+		public final int life;
+		public final Vec3 rot;
+		public final Vec3 pos;
+		public final Vec2 size;
+
+		public AddAttact(int ssId, int life, Vec3 rot, Vec3 pos, Vec2 size) {
+			this.ssId = ssId;
+			this.life = life;
+			this.rot = rot;
+			this.pos = pos;
+			this.size = size;
+		}
+
+		public static void encode(AddAttact msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.ssId).writeInt(msg.life).writeFloat((float) msg.rot.x).writeFloat((float) msg.rot.y).writeFloat((float) msg.rot.z).writeFloat((float) msg.pos.x).writeFloat((float) msg.pos.y).writeFloat((float) msg.pos.z).writeFloat((float) msg.size.x).writeFloat((float) msg.size.y);
+		}
+
+		public static AddAttact decode(FriendlyByteBuf buf) {
+			return new AddAttact(buf.readInt(), buf.readInt(), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec2(buf.readFloat(), buf.readFloat()));
+		}
+
+		public static void handle(AddAttact msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> {
+				if (ctx.getDirection().getReceptionSide().isClient()) {
+					var ss = SSUtil.SS_INSTANCES.getOrDefault(msg.ssId, new EntityInstance<>()).clientInstance;
+					if (ss != null)
+						ss.attacks.add(new Attack(msg.life, msg.rot, msg.pos, msg.size));
+				}
+			});
 			ctx.setPacketHandled(true);
 		}
 	}

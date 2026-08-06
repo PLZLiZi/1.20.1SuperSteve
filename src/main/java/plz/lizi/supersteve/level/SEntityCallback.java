@@ -8,7 +8,6 @@ import net.minecraft.world.level.entity.EntityInLevelCallback;
 import net.minecraft.world.level.entity.EntitySection;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import net.minecraft.world.level.entity.Visibility;
-import net.minecraftforge.common.ForgeHooks;
 
 public class SEntityCallback<T extends EntityAccess> implements EntityInLevelCallback {
     public PersistentEntitySectionManager<T> base;
@@ -33,16 +32,15 @@ public class SEntityCallback<T extends EntityAccess> implements EntityInLevelCal
             if (!this.currentSection.remove(this.entity)) {
                 PersistentEntitySectionManager.LOGGER.warn("Entity {} wasn't found in section {} (moving to {})", new Object[] { this.entity, SectionPos.of(this.currentSectionKey), i });
             }
-            base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
+            try {
+                base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
+            } catch (Throwable e) {
+            }
             EntitySection<T> entitysection = base.sectionStorage.getOrCreateSection(i);
             entitysection.add(this.entity);
-            long oldSectionKey = this.currentSectionKey;
             this.currentSection = entitysection;
             this.currentSectionKey = i;
             this.updateStatus(visibility, entitysection.getStatus());
-            if (this.realEntity != null) {
-                ForgeHooks.onEntityEnterSection(this.realEntity, oldSectionKey, i);
-            }
         }
     }
 

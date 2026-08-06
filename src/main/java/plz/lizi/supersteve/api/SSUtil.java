@@ -450,16 +450,8 @@ public class SSUtil {
 				Int2ObjectMap<Entity> newActive = null;
 				if (section != null && !section.storage.allInstances.contains(entity)) {
 					newAllInstances = copyList(section.storage.allInstances);
-					newByClass = copyMap(section.storage.byClass);
 					newAllInstances.add(entity);
-					for (Map.Entry<Class<?>, List<Entity>> entry : newByClass.entrySet()) {
-						Class<?> key = entry.getKey();
-						if (key != section.storage.baseClass && key.isInstance(entity)) {
-							List<Entity> newInList = copyList(entry.getValue());
-							newInList.add(entity);
-							newByClass.put(key, newInList);
-						}
-					}
+					newByClass = copyMap(section.storage.byClass);
 					newByClass.put(section.storage.baseClass, newAllInstances);
 				}
 				if (serverWorld.getChunkSource().chunkMap.entityMap.get(entity.getId()) == null || serverWorld.getChunkSource().chunkMap.entityMap.get(entity.getId()).entity != entity) {
@@ -509,16 +501,8 @@ public class SSUtil {
 				Int2ObjectMap<Entity> newActive = null;
 				if (section != null && !section.storage.allInstances.contains(entity)) {
 					newAllInstances = copyList(section.storage.allInstances);
-					newByClass = copyMap(section.storage.byClass);
 					newAllInstances.add(entity);
-					for (Map.Entry<Class<?>, List<Entity>> entry : newByClass.entrySet()) {
-						Class<?> key = entry.getKey();
-						if (key != section.storage.baseClass && key.isInstance(entity)) {
-							List<Entity> newInList = copyList(entry.getValue());
-							newInList.add(entity);
-							newByClass.put(key, newInList);
-						}
-					}
+					newByClass = copyMap(section.storage.byClass);
 					newByClass.put(section.storage.baseClass, newAllInstances);
 				}
 				EntityLookup<Entity> lookup = clientWorld.entityStorage.entityStorage;

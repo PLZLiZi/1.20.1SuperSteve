@@ -65,6 +65,7 @@ import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.event.entity.living.PotionColorCalculationEvent;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.network.NetworkHooks;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.PlayMessages;
 import net.minecraftforge.registries.ForgeRegistries;
 import plz.lizi.supersteve.api.EntityInstance;
@@ -75,6 +76,7 @@ import plz.lizi.supersteve.init.SSModEntities;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.init.SSModSounds;
 import plz.lizi.supersteve.level.SSBossEvent;
+import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.SSCore;
 import java.util.Arrays;
 import java.util.Optional;
@@ -1090,7 +1092,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		} else {
 			Player player = (Player) entity;
 			if (!SSUtil.EOPL_OWNERS.containsKey(player.getUUID())) {
-				if (level instanceof ServerLevel serverLevel) {
+				if (level instanceof ServerLevel) {
 					float hurtValue = (player.getMaxHealth() / 50.0F);
 					if (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) {
 						if (player.getInventory().contains(new ItemStack(SSModItems.SSP_SIGN.get()))) {
@@ -1103,11 +1105,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 						hurtValue = 0;
 					if (hurtValue > 0.0F) {
 						SSUtil.forceHurtEx(player, player.damageSources().generic(), hurtValue);
-						Random rand = new Random();
-						double offsetX = (rand.nextDouble() - 0.5) * 1.0;
-						double offsetY = (rand.nextDouble() - 0.5) * 1.0;
-						double offsetZ = (rand.nextDouble() - 0.5) * 1.0;
-						serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, player.getX() + offsetX, player.getY() + player.getBbHeight() / 2 + offsetY, player.getZ() + offsetZ, 0, 0, 0, 0, 0);
+						SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getId(), SSUtil.randint(3, 6), new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), entity.position.add(SSUtil.randfloat(-0.5F, 0.5F), entity.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1f), SSUtil.randfloat(0.5f, 1f))));
+						//Random rand = new Random();
+						//double offsetX = (rand.nextDouble() - 0.5) * 1.0;
+						//double offsetY = (rand.nextDouble() - 0.5) * 1.0;
+						//double offsetZ = (rand.nextDouble() - 0.5) * 1.0;
+						//serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, player.getX() + offsetX, player.getY() + player.getBbHeight() / 2 + offsetY, player.getZ() + offsetZ, 0, 0, 0, 0, 0);
 					} else if (hurtValue == 0) {
 					} else {
 						SSUtil.killPlayer(player);

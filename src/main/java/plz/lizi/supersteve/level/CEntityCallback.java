@@ -8,7 +8,6 @@ import net.minecraft.world.level.entity.EntityInLevelCallback;
 import net.minecraft.world.level.entity.EntitySection;
 import net.minecraft.world.level.entity.TransientEntitySectionManager;
 import net.minecraft.world.level.entity.Visibility;
-import net.minecraftforge.common.ForgeHooks;
 
 public class CEntityCallback<T extends EntityAccess> implements EntityInLevelCallback {
     public TransientEntitySectionManager<T> base;
@@ -36,7 +35,6 @@ public class CEntityCallback<T extends EntityAccess> implements EntityInLevelCal
             base.removeSectionIfEmpty(this.currentSectionKey, this.currentSection);
             EntitySection<T> entitysection = base.sectionStorage.getOrCreateSection(i);
             entitysection.add(this.entity);
-            long oldSectionKey = this.currentSectionKey;
             this.currentSection = entitysection;
             this.currentSectionKey = i;
             base.callbacks.onSectionChange(this.entity);
@@ -48,9 +46,6 @@ public class CEntityCallback<T extends EntityAccess> implements EntityInLevelCal
                 } else if (!flag && flag1) {
                     base.callbacks.onTickingStart(this.entity);
                 }
-            }
-            if (this.realEntity != null) {
-                ForgeHooks.onEntityEnterSection(this.realEntity, oldSectionKey, i);
             }
         }
     }
