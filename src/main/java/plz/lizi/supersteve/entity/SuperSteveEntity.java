@@ -75,6 +75,7 @@ import plz.lizi.supersteve.entity.ai.GroundNavigationEx;
 import plz.lizi.supersteve.init.SSModEntities;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.init.SSModSounds;
+import plz.lizi.supersteve.item.Cutter;
 import plz.lizi.supersteve.level.SSBossEvent;
 import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.SSCore;
@@ -176,6 +177,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		boot32k = SSUtil.make32K(new ItemStack(Items.NETHERITE_BOOTS));
 		mainhand32k = SSUtil.make32K(new ItemStack(Items.NETHERITE_SWORD));
 		offhand32k = ItemStack.EMPTY;
+		new ItemStack(SSModItems.CUTTER.get());
 		setItemSlot(EquipmentSlot.MAINHAND, mainhand32k);
 		setItemSlot(EquipmentSlot.OFFHAND, offhand32k);
 		setItemSlot(EquipmentSlot.HEAD, head32k);
@@ -240,10 +242,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.joined", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
 			} else if (state == State.EXIT) {
 				float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
-				for (var t : sl.getAllEntities()) {
-					if (t == null || !(t instanceof LivingEntity livingEntity) || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
+				for (var t : sl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
+					if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz || SSUtil.EOPL_OWNERS.containsKey(t.getUUID()))
 						continue;
-					SSUtil.forceHurtEx(livingEntity, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(livingEntity.getMaxHealth() / 40F, livingEntity.getHealth() / 40F))));
+					float health = Cutter.getHealth(t, t.getHealth());
+					Cutter.cutterSetHealth(this, t, health - Math.max(1f / 3f, Math.abs(Math.max(t.getMaxHealth() / 60F, health / 60F))));
+					//SSUtil.forceHurtEx(t, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(t.getMaxHealth() / 40F, t.getHealth() / 40F + 100))));
 				}
 			} else if (state == State.ALIVE) {
 			}
@@ -261,10 +265,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				SSMusic.playWithEntity(this, SSModSounds.FUKUMA_MIZUSHI1.get(), true);
 			} else if (state == State.EXIT) {
 				float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
-				for (var t : cl.entitiesForRendering()) {
-					if (t == null || !(t instanceof LivingEntity) || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
+				for (var t : cl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
+					if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
 						continue;
-					attacks.add(new Attack(SSUtil.randint(5, 10), null, t.position.add(SSUtil.randfloat(-0.5F, 0.5F), t.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1.5f), SSUtil.randfloat(0.5f, 1.5f))));
+					attacks.add(new Attack(SSUtil.randint(4, 6), null, t.position.add(SSUtil.randfloat(-0.5F, 0.5F), t.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1.5f), SSUtil.randfloat(1f, 1.5f))));
 				}
 			}
 		}
@@ -1310,9 +1314,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public void tickDeath() {
 		if (!isAlive() && getState() == State.EXIT) {
-			if (!level.isClientSide) {
+			if (level instanceof ServerLevel sl) {
 				if (stateTime() == DEATH_ACTIVE[0])
-					((ServerLevel) level).getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.left", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
+					sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.left", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
 				else if (stateTime() >= DEATH_ACTIVE[0])
 					SSUtil.killEntity(this);
 			} else {

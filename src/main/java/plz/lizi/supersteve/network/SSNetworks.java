@@ -8,7 +8,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkEvent;
@@ -22,6 +24,7 @@ import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.gui.JEditScreen;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.Attack;
+import plz.lizi.supersteve.item.Cutter;
 
 public class SSNetworks {
 	private static final String PROTOCOL_VERSION = "1";
@@ -39,6 +42,7 @@ public class SSNetworks {
 		register(JCplrMsg.class, JCplrMsg::encode, JCplrMsg::decode, JCplrMsg::handle);
 		register(DropEOPL.class, DropEOPL::encode, DropEOPL::decode, DropEOPL::handle);
 		register(AddAttact.class, AddAttact::encode, AddAttact::decode, AddAttact::handle);
+		register(CutterSH.class, CutterSH::encode, CutterSH::decode, CutterSH::handle);
 	}
 
 	public static class RemoveClientEntity {
@@ -191,6 +195,37 @@ public class SSNetworks {
 						ss.attacks.add(new Attack(msg.life, msg.rot, msg.pos, msg.size));
 				}
 			});
+			ctx.setPacketHandled(true);
+		}
+	}
+	public static class CutterSH {
+		private final int id;
+		private final float health;
+
+		public CutterSH(int id, float health) {
+			this.id = id;
+			this.health = health;
+		}
+
+		public static void encode(CutterSH msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.id);
+			buf.writeFloat(msg.health);
+		}
+
+		public static CutterSH decode(FriendlyByteBuf buf) {
+			return new CutterSH(buf.readInt(), buf.readFloat());
+		}
+
+		public static void handle(CutterSH msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			if (ctx.getDirection().getReceptionSide().isClient()) {
+				Level level = SSUtil.getClientLevel();
+				if (level != null) {
+					Entity entity = level.getEntity(msg.id);
+					if (entity instanceof LivingEntity l)
+						Cutter.cutterSetHealth(null, l, msg.health);
+				}
+			}
 			ctx.setPacketHandled(true);
 		}
 	}

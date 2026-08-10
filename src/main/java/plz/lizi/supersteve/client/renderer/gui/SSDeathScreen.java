@@ -1,4 +1,4 @@
-package plz.lizi.supersteve.client.renderer;
+package plz.lizi.supersteve.client.renderer.gui;
 
 import java.util.List;
 import java.util.Objects;
@@ -9,6 +9,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.GenericDirtMessageScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -21,6 +24,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class SSDeathScreen extends Screen {
+    public List<Renderable> renderables = Lists.newArrayList();
     private int delayTicker;
     private final Component causeOfDeath;
     private final boolean hardcore;
@@ -95,7 +99,9 @@ public class SSDeathScreen extends Screen {
                 p_283488_.renderComponentHoverEffect(this.font, $$4, p_283551_, p_283002_);
             }
         }
-        super.render(p_283488_, p_283551_, p_283002_, p_281981_);
+        for (Renderable renderable : this.renderables) {
+            renderable.render(p_283488_, p_283551_, p_283002_, p_281981_);
+        }
         if (this.exitToTitleButton != null && this.minecraft.getReportingContext().hasDraftReport()) {
             p_283488_.blit(AbstractWidget.WIDGETS_LOCATION, this.exitToTitleButton.getX() + this.exitToTitleButton.getWidth() - 17, this.exitToTitleButton.getY() + 3, 182, 24, 15, 15);
         }
@@ -143,6 +149,11 @@ public class SSDeathScreen extends Screen {
         for (Button $$1 : this.exitButtons) {
             $$1.active = p_273413_;
         }
+    }
+
+    public <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T pWidget) {
+        this.renderables.add(pWidget);
+        return (T) this.addWidget(pWidget);
     }
 
     @OnlyIn(Dist.CLIENT)

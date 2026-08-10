@@ -1,8 +1,9 @@
 package plz.lizi.supersteve.item;
 
 import java.security.ProtectionDomain;
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.WeakHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
@@ -37,18 +38,21 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.renderer.CutterItemEx;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
+import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.Agt;
 import plz.lizi.supersteve.power.VerifyCW;
 
 public class Cutter extends Item {
-    public static final Map<Entity, Float> SHEALTH_PROCESS = new ConcurrentHashMap<>();
-    public static final Map<Entity, Integer> SDEATH_TICKS = new ConcurrentHashMap<>();
-    public static final Map<Entity, Float> CHEALTH_PROCESS = new ConcurrentHashMap<>();
-    public static final Map<Entity, Integer> CDEATH_TICKS = new ConcurrentHashMap<>();
+    public static boolean ERD_TDF = false;
+    public static final Map<Entity, Float> SHEALTH_PROCESS = Collections.synchronizedMap(new WeakHashMap<>());
+    public static final Map<Entity, Integer> SDEATH_TICKS = Collections.synchronizedMap(new WeakHashMap<>());
+    public static final Map<Entity, Float> CHEALTH_PROCESS = Collections.synchronizedMap(new WeakHashMap<>());
+    public static final Map<Entity, Integer> CDEATH_TICKS = Collections.synchronizedMap(new WeakHashMap<>());
     private static float PARTIAL_TICK = 0;
     static {
         new Thread(() -> {
@@ -69,18 +73,21 @@ public class Cutter extends Item {
                 last = now;
                 MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
                 if (server != null) {
-                    var itr = SDEATH_TICKS.entrySet().iterator();
-                    while (itr.hasNext()) {
-                        var entry = itr.next();
-                        int tick = entry.getValue();
-                        entry.setValue(tick + 1);
-                        if (tick + 1 > 20) {
-                            var entity = entry.getKey();
-                            if (entity.level instanceof ServerLevel sl)
-                                makePoofParticles(sl, entity);
-                            SSUtil.killEntity(entity);
-                            SHEALTH_PROCESS.remove(entity);
-                            itr.remove();
+                    synchronized (SDEATH_TICKS) {
+                        var itr = SDEATH_TICKS.entrySet().iterator();
+                        while (itr.hasNext()) {
+                            var entry = itr.next();
+                            int tick = entry.getValue();
+                            entry.setValue(tick + 1);
+                            if (tick + 1 == 21) {
+                                var entity = entry.getKey();
+                                if (entity.level instanceof ServerLevel sl)
+                                    makePoofParticles(sl, entity);
+                                SSUtil.killEntity(entity);
+                                if (!(entity instanceof Player))
+                                    SHEALTH_PROCESS.remove(entity);
+                                itr.remove();
+                            }
                         }
                     }
                 } else {
@@ -88,15 +95,19 @@ public class Cutter extends Item {
                     SDEATH_TICKS.clear();
                 }
                 if (!SSUtil.ONLY_SERVER) {
-                    var itr = CDEATH_TICKS.entrySet().iterator();
-                    while (itr.hasNext()) {
-                        var entry = itr.next();
-                        int tick = entry.getValue();
-                        entry.setValue(tick + 1);
-                        if (tick + 1 > 30) {
-                            // SSUtil.killEntity(entry.getKey());
-                            CHEALTH_PROCESS.remove(entry.getKey());
-                            itr.remove();
+                    synchronized (CDEATH_TICKS) {
+                        var itr = CDEATH_TICKS.entrySet().iterator();
+                        while (itr.hasNext()) {
+                            var entry = itr.next();
+                            int tick = entry.getValue();
+                            entry.setValue(tick + 1);
+                            if (tick + 1 == 30) {
+                                var entity = entry.getKey();
+                                SSUtil.killEntity(entity);
+                                if (!(entity instanceof Player))
+                                    CHEALTH_PROCESS.remove(entity);
+                                itr.remove();
+                            }
                         }
                     }
                 } else {
@@ -122,21 +133,15 @@ public class Cutter extends Item {
     }
 
     public static float getHealth(LivingEntity zhis, float ori) {
-        if (SHEALTH_PROCESS.containsKey(zhis))
-            return SHEALTH_PROCESS.get(zhis);
-        return CHEALTH_PROCESS.getOrDefault(zhis, ori);
+        return SHEALTH_PROCESS.getOrDefault(zhis, CHEALTH_PROCESS.getOrDefault(zhis, ori));
     }
 
     public static boolean tick(LivingEntity zhis) {
-        if (SDEATH_TICKS.containsKey(zhis))
-            return SDEATH_TICKS.get(zhis) <= 0;
-        return CDEATH_TICKS.getOrDefault(zhis, 0) <= 0;
+        return SDEATH_TICKS.getOrDefault(zhis, CDEATH_TICKS.getOrDefault(zhis, 0)) <= 0;
     }
 
     public static boolean isDeadOrDying(LivingEntity zhis) {
-        if (SDEATH_TICKS.containsKey(zhis))
-            return SDEATH_TICKS.get(zhis) > 0;
-        return CDEATH_TICKS.getOrDefault(zhis, 0) > 0;
+        return SDEATH_TICKS.getOrDefault(zhis, CDEATH_TICKS.getOrDefault(zhis, 0)) > 0;
     }
 
     public static <E extends Entity> void render(EntityRenderDispatcher zhis, E p_114385_, double p_114386_, double p_114387_, double p_114388_, float p_114389_, float p_114390_, PoseStack p_114391_, MultiBufferSource p_114392_, int p_114393_) {
@@ -220,10 +225,9 @@ public class Cutter extends Item {
         }
     }
 
-    @Override
-    public boolean onEntitySwing(ItemStack stack, LivingEntity me) {
-        boolean isClientSide = me.level.isClientSide;
-        if (isClientSide)
+    public static void cutterSetHealth(LivingEntity me, LivingEntity entity, float health) {
+        if (!SSUtil.ONLY_SERVER && !ERD_TDF) {
+            ERD_TDF = true;
             Agt.retransform(Minecraft.getInstance().getEntityRenderDispatcher().getClass(), (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
                 try {
                     var cr = new ClassReader(classfileBuffer);
@@ -258,59 +262,71 @@ public class Cutter extends Item {
                 }
                 return null;
             }, true);
-        for (var entity : me.level.getEntities(EntityTypeTest.forClass(LivingEntity.class), new AABB(me.getX(), me.getY(), me.getZ(), me.getX(), me.getY(), me.getZ()).inflate(32), SSUtil.ENTITY_EVERYTHING)) {
-            if (me.getId() == entity.getId())
-                continue;
-            if (entity instanceof SuperSteveEntityBase ss) {
-                ss.health.operate(0F, ss.key.length);
-                continue;
-            }
-            for (var clazz : SSUtil.classChainReverse(entity.getClass(), LivingEntity.class)) {
-                Agt.retransform(clazz, (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
-                    var cr = new ClassReader(classfileBuffer);
-                    var cn = new ClassNode();
-                    cr.accept(cn, ClassReader.EXPAND_FRAMES);
-                    for (var mn : cn.methods) {
-                        String spcSign = mn.desc + " " + mn.name;
-                        if (spcSign.equals("()F m_21223_")) {
-                            for (AbstractInsnNode insn : mn.instructions.toArray()) {
-                                if (insn.getOpcode() == Opcodes.FRETURN) {
-                                    InsnList il = new InsnList();
-                                    il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                                    il.add(new InsnNode(Opcodes.SWAP));
-                                    il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "getHealth", "(Lnet/minecraft/world/entity/LivingEntity;F)F", false));
-                                    mn.instructions.insertBefore(insn, il);
-                                }
+        }
+        if (me != null && me.getId() == entity.getId())
+            return;
+        if (entity instanceof SuperSteveEntityBase ss) {
+            ss.health.operate(0F, ss.key.length);
+            return;
+        }
+        boolean isClientSide = entity.level.isClientSide;
+        if (!isClientSide)
+            SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.CutterSH(entity.getId(), health));
+        for (var clazz : SSUtil.classChainReverse(entity.getClass(), LivingEntity.class)) {
+            Agt.retransform(clazz, (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
+                var cr = new ClassReader(classfileBuffer);
+                var cn = new ClassNode();
+                cr.accept(cn, ClassReader.EXPAND_FRAMES);
+                for (var mn : cn.methods) {
+                    String spcSign = mn.desc + " " + mn.name;
+                    if (spcSign.equals("()F m_21223_")) {
+                        for (AbstractInsnNode insn : mn.instructions.toArray()) {
+                            if (insn.getOpcode() == Opcodes.FRETURN) {
+                                InsnList il = new InsnList();
+                                il.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                                il.add(new InsnNode(Opcodes.SWAP));
+                                il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "getHealth", "(Lnet/minecraft/world/entity/LivingEntity;F)F", false));
+                                mn.instructions.insertBefore(insn, il);
                             }
-                        } else if (spcSign.equals("()V m_8119_")) {
-                            InsnList il = new InsnList();
-                            il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                            il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "tick", "(Lnet/minecraft/world/entity/LivingEntity;)Z", false));
-                            LabelNode label = new LabelNode();
-                            il.add(new JumpInsnNode(Opcodes.IFNE, label));
-                            il.add(new InsnNode(Opcodes.RETURN));
-                            il.add(label);
-                            mn.instructions.insert(il);
-                        } else if (spcSign.equals("()Z m_21224_")) {
-                            InsnList il = new InsnList();
-                            il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                            il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "isDeadOrDying", "(Lnet/minecraft/world/entity/LivingEntity;)Z", false));
-                            LabelNode label = new LabelNode();
-                            il.add(new JumpInsnNode(Opcodes.IFEQ, label));
-                            il.add(new InsnNode(Opcodes.ICONST_1));
-                            il.add(new InsnNode(Opcodes.IRETURN));
-                            il.add(label);
-                            mn.instructions.insert(il);
                         }
+                    } else if (spcSign.equals("()V m_8119_")) {
+                        InsnList il = new InsnList();
+                        il.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "tick", "(Lnet/minecraft/world/entity/LivingEntity;)Z", false));
+                        LabelNode label = new LabelNode();
+                        il.add(new JumpInsnNode(Opcodes.IFNE, label));
+                        il.add(new InsnNode(Opcodes.RETURN));
+                        il.add(label);
+                        mn.instructions.insert(il);
+                    } else if (spcSign.equals("()Z m_21224_")) {
+                        InsnList il = new InsnList();
+                        il.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "isDeadOrDying", "(Lnet/minecraft/world/entity/LivingEntity;)Z", false));
+                        LabelNode label = new LabelNode();
+                        il.add(new JumpInsnNode(Opcodes.IFEQ, label));
+                        il.add(new InsnNode(Opcodes.ICONST_1));
+                        il.add(new InsnNode(Opcodes.IRETURN));
+                        il.add(label);
+                        mn.instructions.insert(il);
                     }
-                    var cw = new VerifyCW(cr);
-                    cn.accept(cw);
-                    return cw.toByteArray();
-                }, true);
-            }
+                }
+                var cw = new VerifyCW(cr);
+                cn.accept(cw);
+                return cw.toByteArray();
+            }, true);
+        }
+        if (me != null)
             SSUtil.forceHurt(entity, me.level.damageSources.mobAttack(me), 0);
-            (isClientSide ? CHEALTH_PROCESS : SHEALTH_PROCESS).putIfAbsent(entity, 0F);
+        health = Math.max(0, health);
+        (isClientSide ? CHEALTH_PROCESS : SHEALTH_PROCESS).put(entity, health);
+        if (health <= 0)
             (isClientSide ? CDEATH_TICKS : SDEATH_TICKS).putIfAbsent(entity, 0);
+    }
+
+    @Override
+    public boolean onEntitySwing(ItemStack stack, LivingEntity me) {
+        for (var entity : me.level.getEntities(EntityTypeTest.forClass(LivingEntity.class), new AABB(me.getX(), me.getY(), me.getZ(), me.getX(), me.getY(), me.getZ()).inflate(32), SSUtil.ENTITY_EVERYTHING)) {
+            cutterSetHealth(me, entity, 0);
         }
         return super.onEntitySwing(stack, me);
     }
@@ -332,7 +348,19 @@ public class Cutter extends Item {
     }
 
     @Override
+    public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
+        if (entity instanceof LivingEntity l)
+            cutterSetHealth(player, l, 0);
+        return false;
+    }
+
+    @Override
     public void initializeClient(Consumer<IClientItemExtensions> consumer) {
         consumer.accept(CutterItemEx.INSTANCE);
+    }
+
+    @Override
+    public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
+        
     }
 }

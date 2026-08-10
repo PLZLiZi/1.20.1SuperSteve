@@ -102,7 +102,7 @@ import net.minecraftforge.entity.PartEntity;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.server.ServerLifecycleHooks;
-import plz.lizi.supersteve.client.renderer.SSDeathScreen;
+import plz.lizi.supersteve.client.renderer.gui.SSDeathScreen;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
@@ -110,6 +110,7 @@ import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.level.CEntityCallback;
 import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
+import plz.lizi.supersteve.power.SSCore;
 
 public class SSUtil {
 	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
@@ -560,8 +561,10 @@ public class SSUtil {
 					killEntity(ssi.clientInstance);
 					killEntity(ssi.serverInstance);
 				}
+			} else {
+				SSCore.DEATH_ENTITIES.add(entity);
 			}
-			if (!entity.level.isClientSide) {
+			if (entity.level instanceof ServerLevel) {
 				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RemoveClientEntity(entity.getId()));
 			}
 			if (entity instanceof LivingEntity livingEntity && entity.level instanceof ServerLevel sl) {

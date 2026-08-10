@@ -37,7 +37,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final EntityDataAccessor<Integer> SS_LSTATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
 	public static final EntityDataAccessor<Vector3f> SS_SAFE_POS = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.VECTOR3);
 	public final byte[] key = new byte[SSUtil.randint(10, 99)];
-	public final List<Attack> attacks =  new ArrayList<>();
+	public final List<Attack> attacks = new ArrayList<>();
 	public Operator health = o -> MAX_HEALTH;
 	public long[/* 0: tick, 1: llmax - time */] hurtData = { 0, Long.MAX_VALUE - System.currentTimeMillis() };
 	public SSBossEvent bossEvent;
@@ -47,7 +47,8 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		PLZBase.setField(this, false, "health", (Operator) o -> {
 			if (o.length == 2 && o[0] instanceof Float fhealth && o[1] == (Integer) key.length) {
 				try {
-					getEntityData().set(SS_HEALTH, "SSH" + (Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ (int) getUUID().getMostSignificantBits(), 13) ^ (int) getUUID().getMostSignificantBits()));
+					int hash = getUUID().hashCode();
+					getEntityData().set(SS_HEALTH, "SSH" + hash + (Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ hash, 13) ^ -hash));
 					// int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
 					// getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
 					// getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
@@ -56,15 +57,17 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			} else if (o.length == 0) {
 				try {
 					String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
-					if (ssh.startsWith("SSH")) {
-						return Float.intBitsToFloat(Integer.rotateRight(Integer.parseInt(ssh.substring(3, ssh.length())) ^ (int) getUUID().getMostSignificantBits(), 13) ^ (int) getUUID().getMostSignificantBits());
+					int hash = getUUID().hashCode();
+					String verify = "SSH" + hash;
+					if (ssh.startsWith(verify)) {
+						return Float.intBitsToFloat(Integer.rotateRight(Integer.parseInt(ssh.substring(verify.length(), ssh.length())) ^ -hash, 13) ^ hash);
 						// byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
 						// return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
 						// return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
 					}
 				} catch (Throwable e) {
 				}
-				health.operate(MAX_HEALTH, null);
+				health.operate(MAX_HEALTH, key.length);
 				return MAX_HEALTH;
 			}
 			return null;

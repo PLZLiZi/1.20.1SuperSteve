@@ -92,8 +92,7 @@ public class Agt {
             if (once)
                 Tsf.TSFD_CLASSES.add(clazz);
         } catch (Throwable e) {
-            System.err.print("SSAgt retransform " + clazz.getName() + " error: ");
-            e.printStackTrace();
+            System.err.print("SSAgt retransform " + clazz.getName() + " error: " + e.getMessage());
         }
         if (klass != 0)
             PLZBase.UNSAFE.putInt(klass + 164, accessflags);

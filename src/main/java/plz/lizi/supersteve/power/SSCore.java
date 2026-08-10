@@ -2,6 +2,7 @@ package plz.lizi.supersteve.power;
 
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 
 public class SSCore {
+    public static final Set<Entity> DEATH_ENTITIES = Collections.synchronizedSet(PLZBase.weakHashSet());
     public static final Set<Class<?>> TSF_SERVERS = new CopyOnWriteArraySet<>();
     public static final Map<SuperSteveEntityBase, Long> SERVER_TICK_MANAGER = new WeakHashMap<>();
     public static final Map<SuperSteveEntityBase, Long> CLIENT_TICK_MANAGER = new WeakHashMap<>();
@@ -83,6 +85,7 @@ public class SSCore {
             }
         }
         sss.removeIf(Objects::isNull);
+        val.removeAll(DEATH_ENTITIES);
         val.addAll(sss);
         return Iterables.unmodifiableIterable(val);
     }
@@ -97,6 +100,9 @@ public class SSCore {
             }
             return Continuation.CONTINUE;
         });
+        synchronized (DEATH_ENTITIES) {
+            pOutput.removeAll(DEATH_ENTITIES);
+        }
         for (var instance : SSUtil.SS_INSTANCES.values()) {
             if (instance != null && instance.serverInstance != null && !pOutput.contains(instance.serverInstance)) {
                 T t = pTypeTest.tryCast(instance.serverInstance);
