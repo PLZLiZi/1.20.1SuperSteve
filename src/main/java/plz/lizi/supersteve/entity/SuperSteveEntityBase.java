@@ -1,7 +1,6 @@
 package plz.lizi.supersteve.entity;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.joml.Vector3f;
 import net.minecraft.network.syncher.EntityDataAccessor;
