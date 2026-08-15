@@ -223,7 +223,7 @@ public class SSNetworks {
 				if (level != null) {
 					Entity entity = level.getEntity(msg.id);
 					if (entity instanceof LivingEntity l)
-						Cutter.cutterSetHealth(null, l, msg.health);
+						Cutter.cutHealth(null, l, msg.health);
 				}
 			}
 			ctx.setPacketHandled(true);

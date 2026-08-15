@@ -13,9 +13,12 @@ import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.HotCplr;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import com.google.common.base.Objects;
+import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 
 public class JEditScreen extends Screen {
     private static final int SIDEBAR_WIDTH = 120;
@@ -96,7 +99,14 @@ public class JEditScreen extends Screen {
             return;
         this.query = query;
         classList.clearEntries();
-        for (var clazz : PLZBase.loadedClasses(SuperSteveMod.class.getClassLoader())) {
+        Set<Class<?>> classes = new HashSet<>();
+        for (ClassLoader cl = Minecraft.class.getClassLoader(); cl != null; cl = cl.getParent()) {
+            classes.addAll(PLZBase.loadedClasses(cl));
+        }
+        for (ClassLoader cl = ILaunchPluginService.class.getClassLoader(); cl != null; cl = cl.getParent()) {
+            classes.addAll(PLZBase.loadedClasses(cl));
+        }
+        for (var clazz : classes) {
             if (clazz == null || getClassS1plName(clazz).isEmpty() || !clazz.getName().contains(query))
                 continue;
             classList.addEntry(new ClassEntry(clazz));
@@ -219,9 +229,12 @@ public class JEditScreen extends Screen {
         }
         if (mouseX >= startX && mouseX <= startX + PLUS_BUTTON_WIDTH && mouseY >= tabY && mouseY <= tabY + tabHeight) {
             String defaultContent = "package plz.lizi.supersteve.dynamic;\n\npublic class DynamicClass {\n   // Main entry\n    public static void main() {\n    \n    }\n}";
-            tabs.add(new Tab("Executor.java", defaultContent, true, tab -> {
-                compileSendToExec(tab.content);
-            }));
+            Tab tab = new Tab("Executor.java", defaultContent, true, t -> {
+                compileSendToExec(t.content);
+            });
+            if (tabs.contains(tab))
+                return true;
+            tabs.add(tab);
             activeTabindex = tabs.size() - 1;
             this.codeEditor.setValue(defaultContent);
             this.codeEditor.setEdit(true);
@@ -248,6 +261,13 @@ public class JEditScreen extends Screen {
             this.editable = editable;
             this.exec = exec;
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Tab t))
+                return false;
+            return title.equals(t.title);
+        }
     }
 
     private static String getClassS1plName(Class<?> clazz) {
@@ -272,10 +292,13 @@ public class JEditScreen extends Screen {
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (button == 0) {
-                String decompiledCode = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(PLZBase.getClassBytes(PLZBase.getJarPath(clazz), clazz.getName())));
-                tabs.add(new Tab(getClassS1plName(clazz), decompiledCode, false, null/* TODO: hot retransform */));
+                Tab tab = new Tab(getClassS1plName(clazz), "Preparing...", false, null/* TODO: hot retransform */);
+                if (tabs.contains(tab))
+                    return true;
+                tab.content = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(PLZBase.getClassBytes(PLZBase.getJarPath(clazz), clazz.getName())));
+                tabs.add(tab);
                 activeTabindex = tabs.size() - 1;
-                JEditScreen.this.codeEditor.setValue(decompiledCode);
+                JEditScreen.this.codeEditor.setValue(tab.content);
                 JEditScreen.this.codeEditor.setEdit(false);
             }
             return true;

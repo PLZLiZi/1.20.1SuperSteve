@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.ObjectUtils;
 import org.objectweb.asm.tree.MethodNode;
@@ -45,6 +46,7 @@ import net.minecraft.client.gui.screens.DeathScreen.TitleConfirmScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -74,6 +76,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.MobType;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -389,7 +392,7 @@ public class SSUtil {
 		}
 	}
 
-	public static void safeEntity(LivingEntity entity) {
+	public static void safeEntity(Entity entity) {
 		if (entity == null)
 			return;
 		try {
@@ -402,14 +405,16 @@ public class SSUtil {
 			entity.canUpdate = true;
 			entity.removalReason = null;
 			entity.isAddedToWorld = true;
-			entity.dead = false;
-			entity.deathTime = -1;
 			entity.wasOnFire = false;
 			entity.isInPowderSnow = false;
 			entity.wasInPowderSnow = false;
 			entity.bb = entity.makeBoundingBox();
 			entity.noPhysics = false;
 			entity.setInvisible(false);
+			if (entity instanceof LivingEntity l) {
+				l.dead = false;
+				l.deathTime = -1;
+			}
 			if (entity instanceof Mob mob) {
 				mob.setNoAi(false);
 				mob.setAggressive(true);
@@ -547,7 +552,7 @@ public class SSUtil {
 			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
-				ss.health.operate(0F, ss.key.length);
+				ss.health.operate(ss.key.length, 0F);
 				if (!entity.level.isClientSide) {
 					if (ss.bossEvent != null) {
 						ss.bossEvent.removeAllPlayers();
@@ -1244,5 +1249,21 @@ public class SSUtil {
 		if (ONLY_SERVER)
 			return false;
 		return net.minecraft.client.Minecraft.getInstance().isPaused();
+	}
+
+	public static <T extends Entity> T forceSpawn(EntityType<T> type, ServerLevel pServerLevel, ItemStack pStack, Player pPlayer, BlockPos pPos, MobSpawnType pSpawnType, boolean pShouldOffsetY, boolean pShouldOffsetYMore) {
+	    Consumer<T> consumer;
+	    CompoundTag compoundtag;
+	    if (pStack != null) {
+	        compoundtag = pStack.getTag();
+	        consumer = EntityType.createDefaultStackConfig(pServerLevel, pStack, pPlayer);
+	    } else {
+	        consumer = (p_263563_) -> {
+	        };
+	        compoundtag = null;
+	    }
+	    T entity = type.create(pServerLevel, compoundtag, consumer, pPos, pSpawnType, pShouldOffsetY, pShouldOffsetYMore);
+	    safeEntity(entity);
+	    return entity;
 	}
 }

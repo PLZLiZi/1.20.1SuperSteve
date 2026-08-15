@@ -11,16 +11,14 @@ import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.item.Cutter;
 import plz.lizi.supersteve.item.JEdit;
 import plz.lizi.supersteve.item.SSPSign;
+import plz.lizi.supersteve.item.SSSpawnEgg;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraft.world.item.Item;
 
 public class SSModItems {
 	public static final DeferredRegister<Item> REGISTRY = DeferredRegister.create(ForgeRegistries.ITEMS, SuperSteveMod.MODID);
-	public static final RegistryObject<Item> SUPER_STEVE_SPAWN_EGG = REGISTRY.register("super_steve_spawn_egg", () -> new ForgeSpawnEggItem(SSModEntities.SUPER_STEVE, -16735068, -6070722, new Item.Properties()));
-	// Start of user code block custom items
-	// End of user code block custom items
+	public static final RegistryObject<Item> SUPER_STEVE_SPAWN_EGG = REGISTRY.register("super_steve_spawn_egg", () -> new SSSpawnEgg(SSModEntities.SUPER_STEVE, -16735068, -6070722, new Item.Properties()));
 
 	public static final RegistryObject<Item> ENDOFPLZ_LITE = REGISTRY.register("endof" + (SuperSteveMod.SAFEMODE ? "twdr" : "plz_lite"), () -> {
 		try {

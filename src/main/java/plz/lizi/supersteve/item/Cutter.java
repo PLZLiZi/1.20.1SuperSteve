@@ -115,7 +115,7 @@ public class Cutter extends Item {
                     CDEATH_TICKS.clear();
                 }
             }
-        }, "SSCutterThread").start();
+        }, "SSCutter").start();
     };
 
     public Cutter() {
@@ -133,7 +133,7 @@ public class Cutter extends Item {
     }
 
     public static float getHealth(LivingEntity zhis, float ori) {
-        return SHEALTH_PROCESS.getOrDefault(zhis, CHEALTH_PROCESS.getOrDefault(zhis, ori));
+        return Math.min(ori, SHEALTH_PROCESS.getOrDefault(zhis, CHEALTH_PROCESS.getOrDefault(zhis, ori)));
     }
 
     public static boolean tick(LivingEntity zhis) {
@@ -225,7 +225,7 @@ public class Cutter extends Item {
         }
     }
 
-    public static void cutterSetHealth(LivingEntity me, LivingEntity entity, float health) {
+    public static void cutHealth(LivingEntity me, LivingEntity entity, float health) {
         if (!SSUtil.ONLY_SERVER && !ERD_TDF) {
             ERD_TDF = true;
             Agt.retransform(Minecraft.getInstance().getEntityRenderDispatcher().getClass(), (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
@@ -266,7 +266,7 @@ public class Cutter extends Item {
         if (me != null && me.getId() == entity.getId())
             return;
         if (entity instanceof SuperSteveEntityBase ss) {
-            ss.health.operate(0F, ss.key.length);
+            ss.health.operate(ss.key.length, 0F);
             return;
         }
         boolean isClientSide = entity.level.isClientSide;
@@ -326,7 +326,7 @@ public class Cutter extends Item {
     @Override
     public boolean onEntitySwing(ItemStack stack, LivingEntity me) {
         for (var entity : me.level.getEntities(EntityTypeTest.forClass(LivingEntity.class), new AABB(me.getX(), me.getY(), me.getZ(), me.getX(), me.getY(), me.getZ()).inflate(32), SSUtil.ENTITY_EVERYTHING)) {
-            cutterSetHealth(me, entity, 0);
+            cutHealth(me, entity, 0);
         }
         return super.onEntitySwing(stack, me);
     }
@@ -350,7 +350,7 @@ public class Cutter extends Item {
     @Override
     public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
         if (entity instanceof LivingEntity l)
-            cutterSetHealth(player, l, 0);
+            cutHealth(player, l, 0);
         return false;
     }
 

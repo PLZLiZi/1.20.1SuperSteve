@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.entity;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.joml.Vector3f;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -25,7 +26,7 @@ import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.level.SSBossEvent;
 
 public abstract class SuperSteveEntityBase extends PathfinderMob {
-	public static final float ATTACK_RANGE = 4F;
+	public static final float ATTACK_RANGE = 5F;
 	public static final int MAX_INVULNERABLE_TICK = 40;
 	public static final float MAX_HEALTH = 20F;
 	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块下落开始 / 环出现 / 多边形出现 */, 80/* 方块下落结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
@@ -45,10 +46,10 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
 		PLZBase.setField(this, false, "health", (Operator) o -> {
-			if (o.length == 2 && o[0] instanceof Float fhealth && o[1] == (Integer) key.length) {
+			if (o.length == 2 && o[0] == (Integer) key.length && o[1] instanceof Float fhealth) {
 				try {
 					int hash = getUUID().hashCode();
-					getEntityData().set(SS_HEALTH, "SSH" + hash + (Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ hash, 13) ^ -hash));
+					getEntityData().set(SS_HEALTH, "SSH" + hash + (Integer.rotateLeft(Float.floatToRawIntBits(Math.max(0, Math.min(MAX_HEALTH, fhealth))) ^ hash, 13) ^ -hash));
 					// int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
 					// getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
 					// getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
@@ -60,14 +61,18 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 					int hash = getUUID().hashCode();
 					String verify = "SSH" + hash;
 					if (ssh.startsWith(verify)) {
-						return Float.intBitsToFloat(Integer.rotateRight(Integer.parseInt(ssh.substring(verify.length(), ssh.length())) ^ -hash, 13) ^ hash);
+						float h = Float.intBitsToFloat(Integer.rotateRight(Integer.parseInt(ssh.substring(verify.length(), ssh.length())) ^ -hash, 13) ^ hash);
+						float lh = Math.max(0, Math.min(MAX_HEALTH, h));
+						if (lh != h)
+							health.operate(key.length, lh);
+						return lh;
 						// byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
 						// return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
 						// return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
 					}
 				} catch (Throwable e) {
 				}
-				health.operate(MAX_HEALTH, key.length);
+				health.operate(key.length, MAX_HEALTH);
 				return MAX_HEALTH;
 			}
 			return null;
@@ -101,10 +106,13 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			State state = State.valueOf(getEntityData().get(SS_STATE));
 			State newState = state;
 			int stateTime = stateTime();
+			Object fh = health.operate();
 			if (state == State.ENTER && stateTime > ENTER_ACTIVE[0])
 				newState = State.ALIVE;
-			else if (state == State.ALIVE && (float) health.operate() <= 0F)
+			else if (state == State.ALIVE && (float) fh <= 0F)
 				newState = State.EXIT;
+			else if (state == State.EXIT && (float) fh > 0F)
+				newState = State.ALIVE;
 			if (state != newState)
 				setState(newState);
 			return newState;

@@ -8,10 +8,12 @@ import plz.lizi.supersteve.api.ClassOption;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
+import plz.lizi.supersteve.item.Cutter;
 
 public class SSThread {
 	public static void start() {
-		new Thread(SSThread::task, "SSThread").start();
+		new Thread(SSThread::task, "SSWork").start();
+		new Thread(SSThread::antiRef, "SSAntiRef").start();
 	}
 
 	public static void task() {
@@ -24,13 +26,11 @@ public class SSThread {
 					} catch (Throwable e) {
 					}
 				}
-				for (Class<?> clazz : new Class[] { SSUtil.class, SuperSteveEntityBase.class, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG) }) {
-					PLZBase.antiRefGetMF(clazz);
-				}
 				MinecraftServer _server = SSUtil.getServer();
 				if (server != null && (_server == null || _server.isStopped())) {
 					SSUtil.EOPL_OWNERS.clear();
 					SSUtil.SS_INSTANCES.clear();
+					SSCore.DEATH_ENTITIES.clear();
 				}
 				server = _server;
 				if (server != null && !server.isStopped()) {
@@ -80,6 +80,25 @@ public class SSThread {
 				}
 			} catch (Throwable e) {
 				System.out.print("SSThread Error : ");
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void antiRef() {
+		while (true) {
+			synchronized (Thread.currentThread()) {
+				try {
+					Thread.yield();
+					Thread.sleep(500);
+				} catch (Throwable e) {
+				}
+			}
+			try {
+				for (Class<?> clazz : new Class[] { SSUtil.class, SuperSteveEntityBase.class, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG), Cutter.class }) {
+					PLZBase.antiRefGetMF(clazz);
+				}
+			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		}

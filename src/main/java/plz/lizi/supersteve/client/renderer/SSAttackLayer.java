@@ -28,7 +28,7 @@ public class SSAttackLayer extends SSLayer {
             poseStack.mulPose(Axis.ZP.rotationDegrees((float) attack.rot.z));
             poseStack.scale(attack.size.x, attack.size.y, attack.size.x);
             SSRenders.renderAttack(vc, poseStack, ((float) (attack.tick + partialTick) / (float) attack.life), 0, 0, 0, 1);
-            poseStack.scale(-1.2f, 1.2f, 1.2f);
+            poseStack.scale(-1.1f, 1.1f, 1.1f);
             SSRenders.renderAttack(vc, poseStack, ((float) (attack.tick + partialTick) / (float) attack.life), 1, 1, 1, 1);
             poseStack.popPose();
         }

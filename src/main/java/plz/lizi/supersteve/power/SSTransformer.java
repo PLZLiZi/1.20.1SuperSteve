@@ -20,7 +20,7 @@ import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.PLZBase;
 
 public class SSTransformer implements ClassFileTransformer {
-	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
+    public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
@@ -60,7 +60,7 @@ public class SSTransformer implements ClassFileTransformer {
                             il2.add(new VarInsnNode(Opcodes.ALOAD, 6));
                             il2.add(new VarInsnNode(Opcodes.ILOAD, 7));
                             il2.add(new VarInsnNode(Opcodes.ALOAD, tmpResultSlot));
-                            il2.add(new MethodInsnNode(Opcodes.INVOKESTATIC,"plz/lizi/supersteve/power/AgtCallback","afterTransform","(Ljava/lang/instrument/Instrumentation;Ljava/lang/Module;Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/Class;Ljava/security/ProtectionDomain;[BZ[B)[B",false));
+                            il2.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/power/AgtCallback", "afterTransform", "(Ljava/lang/instrument/Instrumentation;Ljava/lang/Module;Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/Class;Ljava/security/ProtectionDomain;[BZ[B)[B", false));
                             mn.instructions.insertBefore(insn, il2);
                         }
                     }

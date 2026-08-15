@@ -32,7 +32,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -246,8 +245,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz || SSUtil.EOPL_OWNERS.containsKey(t.getUUID()))
 						continue;
 					float health = Cutter.getHealth(t, t.getHealth());
-					Cutter.cutterSetHealth(this, t, health - Math.max(1f / 3f, Math.abs(Math.max(t.getMaxHealth() / 60F, health / 60F))));
-					//SSUtil.forceHurtEx(t, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(t.getMaxHealth() / 40F, t.getHealth() / 40F + 100))));
+					Cutter.cutHealth(this, t, health - Math.max(1f / 3f, Math.abs(Math.max(t.getMaxHealth() / 60F, health / 60F))));
+					// SSUtil.forceHurtEx(t, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(t.getMaxHealth() / 40F, t.getHealth() / 40F + 100))));
 				}
 			} else if (state == State.ALIVE) {
 			}
@@ -838,23 +837,21 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		return MAX_HEALTH;
 	}
 
-	public Entity old = null;
-
 	@Override
 	public boolean hurt(DamageSource damagesource, float amount) {
-		if (!isAlive() || getState() != State.ALIVE)
+		if (!isAlive() || getState() != State.ALIVE || damagesource.getEntity() == null)
 			return false;
-		if (damagesource.getEntity() != null && damagesource.is(DamageTypes.PLAYER_ATTACK) && damagesource.getEntity() instanceof Player player) {
+		if (distanceTo(damagesource.getEntity()) > ATTACK_RANGE)
+			return false;
+		if (System.currentTimeMillis() - (Long.MAX_VALUE - hurtData[1]) < MAX_INVULNERABLE_TICK * 50)
+			return false;
+		hurtData[1] = Long.MAX_VALUE - System.currentTimeMillis();
+		hurtData[0] = MAX_INVULNERABLE_TICK;
+		if (damagesource.getEntity() instanceof Player player) {
 			if (player.getMainHandItem().equals(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), false)) {
 				SSUtil.killEntity(this);
 				return true;
 			} else {
-				if (distanceTo(player) > ATTACK_RANGE)
-					return false;
-				if (System.currentTimeMillis() - (Long.MAX_VALUE - hurtData[1]) < MAX_INVULNERABLE_TICK * 50)
-					return false;
-				hurtData[1] = Long.MAX_VALUE - System.currentTimeMillis();
-				hurtData[0] = MAX_INVULNERABLE_TICK;
 				{
 					// TODO: 彩蛋
 					String playerName = player.getGameProfile().getName();
@@ -873,13 +870,19 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					attackPst = 1F;
 				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
-					health.operate((float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst), key.length);
+					health.operate(key.length, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 				super.hurt(damagesource, 0F);
 				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 				return true;
 			}
+		} else {
+			Entity attacker = damagesource.getEntity();
+			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
+			if (!level.isClientSide)
+				health.operate(key.length, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f)));
+			doHurtTarget(attacker);
+			return true;
 		}
-		return false;
 	}
 
 	@Override
@@ -1091,10 +1094,18 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public boolean doHurtTarget(Entity entity, boolean threadCall) {
 		if (entity == null || entity instanceof SuperSteveEntityBase || !(entity instanceof LivingEntity))
 			return false;
-		if (!(entity instanceof Player)) {
-			SSUtil.killEntity(entity);
+		if (!threadCall)
+			SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getId(), SSUtil.randint(3, 6), new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), entity.position.add(SSUtil.randfloat(-0.5F, 0.5F), entity.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1f), SSUtil.randfloat(0.5f, 1f))));
+		if (!(entity instanceof Player player)) {
+			// SSUtil.killEntity(entity);
+			if (entity instanceof LivingEntity lt) {
+				SSUtil.forceHurt(lt, lt.damageSources().mobAttack(this), 0);
+				if (!threadCall) {
+					float health = Cutter.getHealth(lt, lt.getHealth());
+					Cutter.cutHealth(this, lt, health - Math.max(1f / 12f, Math.abs(Math.max(lt.getMaxHealth() / 240F, health / 240F))));
+				}
+			}
 		} else {
-			Player player = (Player) entity;
 			if (!SSUtil.EOPL_OWNERS.containsKey(player.getUUID())) {
 				if (level instanceof ServerLevel) {
 					float hurtValue = (player.getMaxHealth() / 50.0F);
@@ -1108,13 +1119,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					if (threadCall)
 						hurtValue = 0;
 					if (hurtValue > 0.0F) {
-						SSUtil.forceHurtEx(player, player.damageSources().generic(), hurtValue);
-						SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getId(), SSUtil.randint(3, 6), new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), entity.position.add(SSUtil.randfloat(-0.5F, 0.5F), entity.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1f), SSUtil.randfloat(0.5f, 1f))));
-						//Random rand = new Random();
-						//double offsetX = (rand.nextDouble() - 0.5) * 1.0;
-						//double offsetY = (rand.nextDouble() - 0.5) * 1.0;
-						//double offsetZ = (rand.nextDouble() - 0.5) * 1.0;
-						//serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, player.getX() + offsetX, player.getY() + player.getBbHeight() / 2 + offsetY, player.getZ() + offsetZ, 0, 0, 0, 0, 0);
+						SSUtil.forceHurtEx(player, player.damageSources().mobAttack(this), hurtValue);
+						// Random rand = new Random();
+						// double offsetX = (rand.nextDouble() - 0.5) * 1.0;
+						// double offsetY = (rand.nextDouble() - 0.5) * 1.0;
+						// double offsetZ = (rand.nextDouble() - 0.5) * 1.0;
+						// serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, player.getX() + offsetX, player.getY() + player.getBbHeight() / 2 + offsetY, player.getZ() + offsetZ, 0, 0, 0, 0, 0);
 					} else if (hurtValue == 0) {
 					} else {
 						SSUtil.killPlayer(player);
