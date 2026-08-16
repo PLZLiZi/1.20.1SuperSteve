@@ -276,6 +276,6 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-		consumer.accept(EOPLItemEx.INSTACNE);
+		consumer.accept(EOPLItemEx.getInstance());
 	}
 }
