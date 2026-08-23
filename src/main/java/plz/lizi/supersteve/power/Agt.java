@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -23,7 +24,7 @@ import com.sun.jna.ptr.IntByReference;
 import plz.lizi.supersteve.api.PLZBase;
 
 public class Agt {
-    private static volatile Instrumentation INST;
+    private static final AtomicReference<Instrumentation> INST = new AtomicReference<>();
 
     public static void start() {
         // if (!System.getProperty("os.name").toLowerCase().contains("win"))
@@ -48,11 +49,11 @@ public class Agt {
             JNI_GetCreatedJavaVMs.invokeInt(new Object[] { pJavaVMs, 1, new IntByReference(1).getPointer() });
             Function.getFunction("instrument", "Agent_OnAttach").invokeInt(new Object[] { pJavaVMs[0], jar.toAbsolutePath().toString(), null });
             long time = System.currentTimeMillis();
-            while (INST == null) {
+            while (INST.get() == null) {
                 if (System.currentTimeMillis() - time > 1000)
                     throw new TimeoutException("SSAgt time out");
             }
-            INST.addTransformer(new Tsf(), true);
+            INST.get().addTransformer(new Tsf(), true);
         } catch (Throwable e) {
             System.err.print("SSAgt load failed: ");
             e.printStackTrace();
@@ -61,11 +62,11 @@ public class Agt {
     }
 
     public static Instrumentation inst() {
-        return INST;
+        return INST.get();
     }
 
     public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once) {
-        if (INST == null)
+        if (INST.get() == null)
             return false;
         Class<?> clazz = null;
         if (obj instanceof Class oc)
@@ -88,7 +89,7 @@ public class Agt {
             PLZBase.UNSAFE.putInt(klass + 164L, accessflags & 0xFBFFFFFF);
         }
         try {
-            INST.retransformClasses(clazz);
+            INST.get().retransformClasses(clazz);
             if (once)
                 Tsf.TSFD_CLASSES.add(clazz);
         } catch (Throwable e) {

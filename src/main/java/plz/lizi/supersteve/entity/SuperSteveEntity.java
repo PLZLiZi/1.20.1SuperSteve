@@ -70,7 +70,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
-import plz.lizi.supersteve.entity.ai.GroundNavigationEx;
+import plz.lizi.supersteve.entity.ai.SSFlyingMoveControl;
 import plz.lizi.supersteve.init.SSModEntities;
 import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.init.SSModSounds;
@@ -116,6 +116,7 @@ import net.minecraft.world.entity.ai.control.BodyRotationControl;
 import net.minecraft.world.entity.ai.control.JumpControl;
 import net.minecraft.world.entity.ai.control.LookControl;
 import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.FlyingAnimal;
 import net.minecraft.world.entity.vehicle.Boat;
@@ -198,6 +199,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				idrops.add(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.SSP_SIGN_SPLINTER.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 			}
 		}
+		moveControl = new SSFlyingMoveControl(this);
 		setPersistenceRequired();
 	}
 
@@ -548,9 +550,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public PathNavigation createNavigation(Level pLevel) {
-		return new GroundNavigationEx(this, pLevel);
-		// TODO Auto-generated method stub
-		// return super.createNavigation(pLevel);
+		return new FlyingPathNavigation(this, pLevel);
 	}
 
 	@Override
@@ -691,132 +691,19 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		updateSwingTime();
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public void travel(Vec3 pTravelVector) {
 		if (this.isControlledByLocalInstance()) {
-			double d0 = 0.08;
-			AttributeInstance gravity = this.getAttribute((Attribute) ForgeMod.ENTITY_GRAVITY.get());
-			boolean flag = this.getDeltaMovement().y <= (double) 0.0F;
-			if (flag && this.hasEffect(MobEffects.SLOW_FALLING)) {
-				if (!gravity.hasModifier(SLOW_FALLING)) {
-					gravity.addTransientModifier(SLOW_FALLING);
-				}
-			} else if (gravity.hasModifier(SLOW_FALLING)) {
-				gravity.removeModifier(SLOW_FALLING);
-			}
-			d0 = gravity.getValue();
-			FluidState fluidstate = this.level().getFluidState(this.blockPosition());
-			if ((this.isInWater() || this.isInFluidType(fluidstate) && fluidstate.getFluidType() != ForgeMod.LAVA_TYPE.get()) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
-				if (this.isInWater() || this.isInFluidType(fluidstate) && !this.moveInFluid(fluidstate, pTravelVector, d0)) {
-					double d9 = this.getY();
-					float f4 = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
-					float f5 = 0.02F;
-					float f6 = (float) EnchantmentHelper.getDepthStrider(this);
-					if (f6 > 3.0F) {
-						f6 = 3.0F;
-					}
-					if (!this.onGround()) {
-						f6 *= 0.5F;
-					}
-					if (f6 > 0.0F) {
-						f4 += (0.54600006F - f4) * f6 / 3.0F;
-						f5 += (this.getSpeed() - f5) * f6 / 3.0F;
-					}
-					if (this.hasEffect(MobEffects.DOLPHINS_GRACE)) {
-						f4 = 0.96F;
-					}
-					f5 *= (float) this.getAttribute((Attribute) ForgeMod.SWIM_SPEED.get()).getValue();
-					this.moveRelative(f5, pTravelVector);
-					this.move(MoverType.SELF, this.getDeltaMovement());
-					Vec3 vec36 = this.getDeltaMovement();
-					if (this.horizontalCollision && this.onClimbable()) {
-						vec36 = new Vec3(vec36.x, 0.2, vec36.z);
-					}
-					this.setDeltaMovement(vec36.multiply((double) f4, (double) 0.8F, (double) f4));
-					Vec3 vec32 = this.getFluidFallingAdjustedMovement(d0, flag, this.getDeltaMovement());
-					this.setDeltaMovement(vec32);
-					if (this.horizontalCollision && this.isFree(vec32.x, vec32.y + (double) 0.6F - this.getY() + d9, vec32.z)) {
-						this.setDeltaMovement(vec32.x, (double) 0.3F, vec32.z);
-					}
-				}
-			} else if (this.isInLava() && this.isAffectedByFluids() && !this.canStandOnFluid(fluidstate)) {
-				double d8 = this.getY();
+			if (this.isInWater()) {
 				this.moveRelative(0.02F, pTravelVector);
 				this.move(MoverType.SELF, this.getDeltaMovement());
-				if (this.getFluidHeight(FluidTags.LAVA) <= this.getFluidJumpThreshold()) {
-					this.setDeltaMovement(this.getDeltaMovement().multiply((double) 0.5F, (double) 0.8F, (double) 0.5F));
-					Vec3 vec33 = this.getFluidFallingAdjustedMovement(d0, flag, this.getDeltaMovement());
-					this.setDeltaMovement(vec33);
-				} else {
-					this.setDeltaMovement(this.getDeltaMovement().scale((double) 0.5F));
-				}
-				if (!this.isNoGravity()) {
-					this.setDeltaMovement(this.getDeltaMovement().add((double) 0.0F, -d0 / (double) 4.0F, (double) 0.0F));
-				}
-				Vec3 vec34 = this.getDeltaMovement();
-				if (this.horizontalCollision && this.isFree(vec34.x, vec34.y + (double) 0.6F - this.getY() + d8, vec34.z)) {
-					this.setDeltaMovement(vec34.x, (double) 0.3F, vec34.z);
-				}
-			} else if (this.isFallFlying()) {
-				this.checkSlowFallDistance();
-				Vec3 vec3 = this.getDeltaMovement();
-				Vec3 vec31 = this.getLookAngle();
-				float f = this.getXRot() * ((float) Math.PI / 180F);
-				double d1 = Math.sqrt(vec31.x * vec31.x + vec31.z * vec31.z);
-				double d3 = vec3.horizontalDistance();
-				double d4 = vec31.length();
-				double d5 = Math.cos((double) f);
-				d5 = d5 * d5 * Math.min((double) 1.0F, d4 / 0.4);
-				vec3 = this.getDeltaMovement().add((double) 0.0F, d0 * ((double) -1.0F + d5 * (double) 0.75F), (double) 0.0F);
-				if (vec3.y < (double) 0.0F && d1 > (double) 0.0F) {
-					double d6 = vec3.y * -0.1 * d5;
-					vec3 = vec3.add(vec31.x * d6 / d1, d6, vec31.z * d6 / d1);
-				}
-				if (f < 0.0F && d1 > (double) 0.0F) {
-					double d10 = d3 * (double) (-Mth.sin(f)) * 0.04;
-					vec3 = vec3.add(-vec31.x * d10 / d1, d10 * 3.2, -vec31.z * d10 / d1);
-				}
-				if (d1 > (double) 0.0F) {
-					vec3 = vec3.add((vec31.x / d1 * d3 - vec3.x) * 0.1, (double) 0.0F, (vec31.z / d1 * d3 - vec3.z) * 0.1);
-				}
-				this.setDeltaMovement(vec3.multiply((double) 0.99F, (double) 0.98F, (double) 0.99F));
+				this.setDeltaMovement(this.getDeltaMovement().scale(0.8F));
+			} else if (this.isInLava()) {
+				this.moveRelative(0.02F, pTravelVector);
 				this.move(MoverType.SELF, this.getDeltaMovement());
-				if (this.horizontalCollision && !this.level().isClientSide) {
-					double d11 = this.getDeltaMovement().horizontalDistance();
-					double d7 = d3 - d11;
-					float f1 = (float) (d7 * (double) 10.0F - (double) 3.0F);
-					if (f1 > 0.0F) {
-						this.playSound(this.getFallDamageSound((int) f1), 1.0F, 1.0F);
-						this.hurt(this.damageSources().flyIntoWall(), f1);
-					}
-				}
-				if (this.onGround() && !this.level().isClientSide) {
-					this.setSharedFlag(7, false);
-				}
+				this.setDeltaMovement(this.getDeltaMovement().scale(0.5F));
 			} else {
-				BlockPos blockpos = this.getBlockPosBelowThatAffectsMyMovement();
-				float f2 = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getFriction(this.level(), this.getBlockPosBelowThatAffectsMyMovement(), this);
-				float f3 = this.onGround() ? f2 * 0.91F : 0.91F;
-				// TODO: move
-				Vec3 vec35 = this.handleRelativeFrictionAndCalculateMovement(pTravelVector, f2);
-				double d2 = vec35.y;
-				if (this.hasEffect(MobEffects.LEVITATION)) {
-					d2 += (0.05 * (double) (this.getEffect(MobEffects.LEVITATION).getAmplifier() + 1) - vec35.y) * 0.2;
-				} else if (this.level().isClientSide && !this.level().hasChunkAt(blockpos)) {
-					if (this.getY() > (double) this.level().getMinBuildHeight()) {
-						d2 = -0.1;
-					} else {
-						d2 = (double) 0.0F;
-					}
-				} else if (!this.isNoGravity()) {
-					d2 -= d0;
-				}
-				if (this.shouldDiscardFriction()) {
-					this.setDeltaMovement(vec35.x, d2, vec35.z);
-				} else {
-					this.setDeltaMovement(vec35.x * (double) f3, d2 * (double) 0.98F, vec35.z * (double) f3);
-				}
+				this.move(MoverType.SELF, this.getDeltaMovement());
 			}
 		}
 		this.calculateEntityAnimation(this instanceof FlyingAnimal);
@@ -861,7 +748,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 							((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 							player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 						}
-						health.operate(0F, key.length);
+						health.operate(health, 0F);
 						return true;
 					}
 				}
@@ -870,7 +757,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					attackPst = 1F;
 				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
-					health.operate(key.length, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
+					health.operate(health, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 				super.hurt(damagesource, 0F);
 				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 				return true;
@@ -879,7 +766,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			Entity attacker = damagesource.getEntity();
 			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 			if (!level.isClientSide)
-				health.operate(key.length, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f)));
+				health.operate(health, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f)));
 			doHurtTarget(attacker);
 			return true;
 		}
@@ -887,7 +774,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isNoGravity() {
-		return getState() != State.ALIVE;
+		return getState() == State.ALIVE;
 	}
 
 	@Override
@@ -1422,7 +1309,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			health.operate(MAX_HEALTH, key.length);
+			health.operate(health, MAX_HEALTH);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
@@ -3549,9 +3436,11 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setDeltaMovement(Vec3 pDeltaMovement) {
-		if (getState() != State.ALIVE || pDeltaMovement.horizontalDistanceSqr() >= 101)
-			// TODO: ?????
+		if (getState() != State.ALIVE)
 			return;
+		double maxSpeed = 10.0;
+		if (pDeltaMovement.lengthSqr() > maxSpeed * maxSpeed)
+			pDeltaMovement = pDeltaMovement.normalize().scale(maxSpeed);
 		this.deltaMovement = pDeltaMovement;
 	}
 

@@ -4,10 +4,12 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Field;
 import java.security.ProtectionDomain;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AgtCallback {
     public static Instrumentation INST = null;
 
+    @SuppressWarnings("unchecked")
     public static void agentmain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException {
         INST = inst;
         for (Class<?> clazz : inst.getAllLoadedClasses()) {
@@ -15,7 +17,7 @@ public class AgtCallback {
                 try {
                     Field f = clazz.getDeclaredField("INST");
                     f.setAccessible(true);
-                    f.set(null, inst);
+                    ((AtomicReference<Instrumentation>) f.get(null)).set(inst);
                 } catch (Throwable e) {
                     System.out.print("SSAgt callback err: ");
                     e.printStackTrace();

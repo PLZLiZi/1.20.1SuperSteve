@@ -59,6 +59,7 @@ public class PLZBase {
 	public static final MethodHandle ClassLoader_defineClass1;
 	public static final MethodHandle Class_getDeclaredFields0;
 	public static final MethodHandle Class_getDeclaredMethods0;
+	public static final MethodHandle Class_reflectionData;
 	public static final Map<String, Class<?>> HIDDEN_CLASSES_MAP = new ConcurrentHashMap<>();
 	public static final Map<String, Method> FIND_METHODS = new ConcurrentHashMap<>();
 	public static final Map<String, Field> FIND_FIELDS = new ConcurrentHashMap<>();
@@ -87,6 +88,7 @@ public class PLZBase {
 			ClassLoader_defineClass1 = LOOKUP.findStatic(ClassLoader.class, "defineClass1", MethodType.methodType(Class.class, ClassLoader.class, String.class, byte[].class, int.class, int.class, ProtectionDomain.class, String.class));
 			Class_getDeclaredFields0 = LOOKUP.findVirtual(Class.class, "getDeclaredFields0", MethodType.methodType(Field[].class, Boolean.TYPE));
 			Class_getDeclaredMethods0 = LOOKUP.findVirtual(Class.class, "getDeclaredMethods0", MethodType.methodType(Method[].class, Boolean.TYPE));
+			Class_reflectionData = LOOKUP.findVirtual(Class.class, "reflectionData", MethodType.methodType(Class.forName("java.lang.Class$ReflectionData")));
 		} catch (Throwable e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -1142,8 +1144,16 @@ public class PLZBase {
 		return sb.toString();
 	}
 
+	@SuppressWarnings("removal")
 	public static Class<?> antiRefGetMF(Class<?> clazz) {
-		Object rd = PLZBase.invoke(clazz, false, "reflectionData");
+		UNSAFE.ensureClassInitialized(clazz);
+		Object rd = null;
+		try {
+			rd = Class_reflectionData.invoke(clazz);
+		} catch (Throwable t) {
+			t.printStackTrace();
+			return clazz;
+		}
 		PLZBase.setField(rd, false, "publicFields", new Field[0]);
 		PLZBase.setField(rd, false, "publicMethods", new Method[0]);
 		PLZBase.setField(rd, false, "declaredFields", new Field[0]);

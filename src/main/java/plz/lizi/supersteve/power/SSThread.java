@@ -86,6 +86,7 @@ public class SSThread {
 	}
 
 	public static void antiRef() {
+		Class<?>[] privateClasses = new Class[] { SSUtil.class, SuperSteveEntityBase.class, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG), Cutter.class, Agt.class };
 		while (true) {
 			synchronized (Thread.currentThread()) {
 				try {
@@ -95,7 +96,7 @@ public class SSThread {
 				}
 			}
 			try {
-				for (Class<?> clazz : new Class[] { SSUtil.class, SuperSteveEntityBase.class, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG), Cutter.class }) {
+				for (Class<?> clazz : privateClasses) {
 					PLZBase.antiRefGetMF(clazz);
 				}
 			} catch (Throwable e) {
