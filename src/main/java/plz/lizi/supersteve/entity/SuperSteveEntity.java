@@ -453,7 +453,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		isAddedToWorld = true;
 		if (!level.isClientSide) {
-			System.out.println(getId() + " " + getUUID() + " add");
 			SSUtil.SS_INSTANCES.putIfAbsent(getUUID(), new EntityInstance<>());
 			SSUtil.SS_INSTANCES.get(getUUID()).put(this);
 		} else {
