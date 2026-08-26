@@ -4,20 +4,18 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Field;
 import java.security.ProtectionDomain;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class AgtCallback {
     public static Instrumentation INST = null;
 
-    @SuppressWarnings("unchecked")
     public static void agentmain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException {
         INST = inst;
         for (Class<?> clazz : inst.getAllLoadedClasses()) {
-            if (clazz.getName().equals("plz.lizi.supersteve.power.Agt")) {
+            if ("plz.lizi.supersteve.power.Agt".equals(clazz.getName())) {
                 try {
                     Field f = clazz.getDeclaredField("INST");
                     f.setAccessible(true);
-                    ((AtomicReference<Instrumentation>) f.get(null)).set(inst);
+                    ((Object[]) f.get(null))[0] = inst;
                 } catch (Throwable e) {
                     System.out.print("SSAgt callback err: ");
                     e.printStackTrace();

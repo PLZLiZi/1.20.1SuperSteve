@@ -118,7 +118,7 @@ import plz.lizi.supersteve.power.SSCore;
 public class SSUtil {
 	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
 	public static final Map<UUID, EntityInstance<Player>> EOPL_OWNERS = new ConcurrentHashMap<>();
-	public static final Map<Integer, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
+	public static final Map<UUID, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
 	public static final boolean ONLY_SERVER = Dist.DEDICATED_SERVER.equals(FMLEnvironment.dist);
@@ -398,8 +398,8 @@ public class SSUtil {
 		try {
 			if (entity instanceof SuperSteveEntityBase superSteveEntity) {
 				if (superSteveEntity.isAlive()) {
-					SSUtil.SS_INSTANCES.putIfAbsent(superSteveEntity.getId(), new EntityInstance<>());
-					SSUtil.SS_INSTANCES.get(superSteveEntity.getId()).put(superSteveEntity);
+					SSUtil.SS_INSTANCES.putIfAbsent(superSteveEntity.getUUID(), new EntityInstance<>());
+					SSUtil.SS_INSTANCES.get(superSteveEntity.getUUID()).put(superSteveEntity);
 				}
 			}
 			entity.canUpdate = true;
@@ -561,7 +561,7 @@ public class SSUtil {
 				} else {
 					SSMusic.endWithEntity(ss);
 				}
-				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES.remove(ss.getId());
+				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES.remove(ss.getUUID());
 				if (ssi != null) {
 					killEntity(ssi.clientInstance);
 					killEntity(ssi.serverInstance);
@@ -570,7 +570,7 @@ public class SSUtil {
 				SSCore.DEATH_ENTITIES.add(entity);
 			}
 			if (entity.level instanceof ServerLevel) {
-				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RemoveClientEntity(entity.getId()));
+				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RemoveClientEntity(entity.getId(), entity.getUUID()));
 			}
 			if (entity instanceof LivingEntity livingEntity && entity.level instanceof ServerLevel sl) {
 				sl.getServer().execute(() -> {

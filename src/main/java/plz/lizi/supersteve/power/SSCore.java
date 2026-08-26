@@ -35,10 +35,12 @@ import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.level.entity.LevelEntityGetterAdapter;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SCPort;
+import plz.lizi.supersteve.api.SRTEntry;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 
 public class SSCore {
+    public static final Set<SRTEntry> D_SRT_ENTITIES = Collections.synchronizedSet(new HashSet<>());
     public static final Set<Entity> DEATH_ENTITIES = Collections.synchronizedSet(PLZBase.weakHashSet());
     public static final Set<Class<?>> TSF_SERVERS = new CopyOnWriteArraySet<>();
     public static final Map<SuperSteveEntityBase, Long> SERVER_TICK_MANAGER = new WeakHashMap<>();
@@ -52,8 +54,8 @@ public class SSCore {
         for (var istc : SSUtil.SS_INSTANCES.values()) {
             sss.add(istc.serverInstance);
         }
-        sss.removeIf(Objects::isNull);
         val.addAll(sss);
+        val.removeIf(Objects::isNull);
         return Iterables.unmodifiableIterable(val);
     }
 
@@ -64,8 +66,8 @@ public class SSCore {
         for (var istc : SSUtil.SS_INSTANCES.values()) {
             sss.add(istc.clientInstance);
         }
-        sss.removeIf(Objects::isNull);
         val.addAll(sss);
+        val.removeIf(Objects::isNull);
         return Iterables.unmodifiableIterable(val);
     }
 
@@ -77,16 +79,18 @@ public class SSCore {
             val = new HashSet<>();
         }
         Set<Entity> sss = new HashSet<>();
-        for (var istc : SSUtil.SS_INSTANCES.values()) {
-            if (GETTERS.get(SCPort.SERVER).contains(zhis)) {
+        if (GETTERS.get(SCPort.SERVER).contains(zhis)) {
+            for (var istc : SSUtil.SS_INSTANCES.values()) {
                 sss.add(istc.serverInstance);
-            } else if (GETTERS.get(SCPort.CLIENT).contains(zhis)) {
+            }
+        } else if (GETTERS.get(SCPort.CLIENT).contains(zhis)) {
+            for (var istc : SSUtil.SS_INSTANCES.values()) {
                 sss.add(istc.clientInstance);
             }
         }
-        sss.removeIf(Objects::isNull);
         val.removeAll(DEATH_ENTITIES);
         val.addAll(sss);
+        val.removeIf(Objects::isNull);
         return Iterables.unmodifiableIterable(val);
     }
 

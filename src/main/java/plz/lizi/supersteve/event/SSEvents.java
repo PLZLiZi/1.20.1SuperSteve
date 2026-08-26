@@ -46,9 +46,9 @@ public class SSEvents {
 		public static void bossEventProgress(CustomizeGuiOverlayEvent.BossEventProgress event) {
 			LerpingBossEvent bossEvent = event.getBossEvent();
 			SuperSteveEntityBase ss = null;
-			for (var ssi : SSUtil.SS_INSTANCES.values())
-				if (ssi != null && ssi.clientInstance != null && ssi.clientInstance.getUUID().equals(bossEvent.getId())) {
-					ss = ssi.clientInstance;
+			for (var ssi : SSUtil.SS_INSTANCES.entrySet())
+				if (ssi != null && bossEvent.getId().equals(ssi.getKey())) {
+					ss = ssi.getValue().clientInstance;
 					break;
 				}
 			if (ss != null) {

@@ -378,9 +378,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				this.updateControlFlags();
 			}
 		}
-		if (this == SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).serverInstance)
+		if (this == SSUtil.SS_INSTANCES.getOrDefault(getUUID(), new EntityInstance<>()).serverInstance)
 			SSCore.SERVER_TICK_MANAGER.put(this, System.currentTimeMillis());
-		if (this == SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>()).clientInstance)
+		if (this == SSUtil.SS_INSTANCES.getOrDefault(getUUID(), new EntityInstance<>()).clientInstance)
 			SSCore.CLIENT_TICK_MANAGER.put(this, System.currentTimeMillis());
 	}
 
@@ -437,24 +437,28 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public void onAddedToWorld() {
-		var oldi = SSUtil.SS_INSTANCES.getOrDefault(getId(), new EntityInstance<>());
+	public synchronized void onAddedToWorld() {
+		var oldi = SSUtil.SS_INSTANCES.getOrDefault(getUUID(), new EntityInstance<>());
 		var old = !level.isClientSide ? oldi.serverInstance : oldi.clientInstance;
 		if (old != null && old != this) {
 			old.level = level;
 			old.levelCallback = EntityInLevelCallback.NULL;
-			((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
+			if (level instanceof ServerLevel sl)
+				sl.entityManager.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
+			else if (level instanceof ClientLevel cl)
+				cl.entityStorage.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
 			SSUtil.safeEntity(old);
 			SSUtil.simpleKillEntity(this);
 			return;
 		}
 		isAddedToWorld = true;
 		if (!level.isClientSide) {
-			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES.get(getId()).put(this);
+			System.out.println(getId() + " " + getUUID() + " add");
+			SSUtil.SS_INSTANCES.putIfAbsent(getUUID(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES.get(getUUID()).put(this);
 		} else {
-			SSUtil.SS_INSTANCES.putIfAbsent(getId(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES.get(getId()).set(this);
+			SSUtil.SS_INSTANCES.putIfAbsent(getUUID(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES.get(getUUID()).set(this);
 		}
 	}
 
@@ -766,7 +770,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			Entity attacker = damagesource.getEntity();
 			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 			if (!level.isClientSide)
-				health.operate(health, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f)));
+				health.operate(health, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
+			super.hurt(damagesource, 0F);
 			doHurtTarget(attacker);
 			return true;
 		}
@@ -982,7 +987,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (entity == null || entity instanceof SuperSteveEntityBase || !(entity instanceof LivingEntity))
 			return false;
 		if (!threadCall)
-			SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getId(), SSUtil.randint(3, 6), new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), entity.position.add(SSUtil.randfloat(-0.5F, 0.5F), entity.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1f), SSUtil.randfloat(0.5f, 1f))));
+			SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getUUID(), SSUtil.randint(3, 6), new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), entity.position.add(SSUtil.randfloat(-0.5F, 0.5F), entity.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1f), SSUtil.randfloat(0.5f, 1f))));
 		if (!(entity instanceof Player player)) {
 			// SSUtil.killEntity(entity);
 			if (entity instanceof LivingEntity lt) {

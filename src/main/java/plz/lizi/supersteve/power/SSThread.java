@@ -12,11 +12,11 @@ import plz.lizi.supersteve.item.Cutter;
 
 public class SSThread {
 	public static void start() {
-		new Thread(SSThread::task, "SSWork").start();
-		new Thread(SSThread::antiRef, "SSAntiRef").start();
+		new Thread(SSThread::base, "SSWork").start();
+		new Thread(SSThread::exDef, "SSExDef").start();
 	}
 
-	public static void task() {
+	public static void base() {
 		MinecraftServer server = null;
 		while (true) {
 			try {
@@ -46,8 +46,8 @@ public class SSThread {
 						for (var id : SSUtil.SS_INSTANCES.keySet()) {
 							SuperSteveEntityBase ssteve = SSUtil.SS_INSTANCES.get(id).serverInstance;
 							if (ssteve != null) {
-								if (!id.equals(ssteve.getId()))
-									ssteve.setId(id);
+								if (!id.equals(ssteve.getUUID()))
+									ssteve.setUUID(id);
 								ssteve.ssTick(true);
 							}
 						}
@@ -68,8 +68,8 @@ public class SSThread {
 						for (var id : SSUtil.SS_INSTANCES.keySet()) {
 							SuperSteveEntityBase csteve = SSUtil.SS_INSTANCES.get(id).clientInstance;
 							if (csteve != null) {
-								if (!id.equals(csteve.getId()))
-									csteve.setId(id);
+								if (!id.equals(csteve.getUUID()))
+									csteve.setUUID(id);
 								csteve.ssTick(true);
 							}
 						}
@@ -85,8 +85,8 @@ public class SSThread {
 		}
 	}
 
-	public static void antiRef() {
-		Class<?>[] privateClasses = new Class[] { SSUtil.class, SuperSteveEntityBase.class, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG), Cutter.class, Agt.class };
+	public static void exDef() {
+		Class<?>[] privateClasses = new Class[] { SSUtil.class, SSCore.class, SuperSteveEntityBase.class, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG), Cutter.class, Agt.class };
 		while (true) {
 			synchronized (Thread.currentThread()) {
 				try {

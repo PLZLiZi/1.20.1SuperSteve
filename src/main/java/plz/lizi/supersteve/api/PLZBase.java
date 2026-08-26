@@ -144,13 +144,14 @@ public class PLZBase {
 		}
 	}
 
+	@SuppressWarnings("removal")
 	public static void klassPtr(Object o, Class<?> clazz) {
 		if (o == null || clazz == null)
 			return;
 		if (o.getClass().equals(clazz))
 			return;
 		try {
-			LOOKUP.ensureInitialized(clazz);
+			UNSAFE.ensureClassInitialized(clazz);
 			if (COMPRESSED_CLASS_POINTERS)
 				UNSAFE.putIntVolatile(o, 8, UNSAFE.getIntVolatile(UNSAFE.allocateInstance(clazz), 8));
 			else

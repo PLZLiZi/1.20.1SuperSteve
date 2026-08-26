@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.network;
 
 import java.lang.reflect.Method;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -47,17 +48,20 @@ public class SSNetworks {
 
 	public static class RemoveClientEntity {
 		private final int entityId;
+		private final UUID entityUUID;
 
-		public RemoveClientEntity(int entityId) {
+		public RemoveClientEntity(int entityId, UUID entityUUID) {
 			this.entityId = entityId;
+			this.entityUUID = entityUUID;
 		}
 
 		public static void encode(RemoveClientEntity msg, FriendlyByteBuf buf) {
 			buf.writeInt(msg.entityId);
+			buf.writeUUID(msg.entityUUID);
 		}
 
 		public static RemoveClientEntity decode(FriendlyByteBuf buf) {
-			return new RemoveClientEntity(buf.readInt());
+			return new RemoveClientEntity(buf.readInt(), buf.readUUID());
 		}
 
 		public static void handle(RemoveClientEntity msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -65,7 +69,7 @@ public class SSNetworks {
 			ctx.enqueueWork(() -> {
 				if (Minecraft.getInstance().level == null)
 					return;
-				var instance = SSUtil.SS_INSTANCES.get(msg.entityId);
+				var instance = SSUtil.SS_INSTANCES.get(msg.entityUUID);
 				if (instance != null && instance.clientInstance != null)
 					SSUtil.killEntity(instance.clientInstance);
 				Entity entity = Minecraft.getInstance().level.getEntity(msg.entityId);
@@ -164,13 +168,13 @@ public class SSNetworks {
 		}
 	}
 	public static class AddAttact {
-		private final int ssId;
+		private final UUID ssId;
 		public final int life;
 		public final Vec3 rot;
 		public final Vec3 pos;
 		public final Vec2 size;
 
-		public AddAttact(int ssId, int life, Vec3 rot, Vec3 pos, Vec2 size) {
+		public AddAttact(UUID ssId, int life, Vec3 rot, Vec3 pos, Vec2 size) {
 			this.ssId = ssId;
 			this.life = life;
 			this.rot = rot;
@@ -179,11 +183,11 @@ public class SSNetworks {
 		}
 
 		public static void encode(AddAttact msg, FriendlyByteBuf buf) {
-			buf.writeInt(msg.ssId).writeInt(msg.life).writeFloat((float) msg.rot.x).writeFloat((float) msg.rot.y).writeFloat((float) msg.rot.z).writeFloat((float) msg.pos.x).writeFloat((float) msg.pos.y).writeFloat((float) msg.pos.z).writeFloat((float) msg.size.x).writeFloat((float) msg.size.y);
+			buf.writeUUID(msg.ssId).writeInt(msg.life).writeFloat((float) msg.rot.x).writeFloat((float) msg.rot.y).writeFloat((float) msg.rot.z).writeFloat((float) msg.pos.x).writeFloat((float) msg.pos.y).writeFloat((float) msg.pos.z).writeFloat((float) msg.size.x).writeFloat((float) msg.size.y);
 		}
 
 		public static AddAttact decode(FriendlyByteBuf buf) {
-			return new AddAttact(buf.readInt(), buf.readInt(), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec2(buf.readFloat(), buf.readFloat()));
+			return new AddAttact(buf.readUUID(), buf.readInt(), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec2(buf.readFloat(), buf.readFloat()));
 		}
 
 		public static void handle(AddAttact msg, Supplier<NetworkEvent.Context> ctxSupplier) {
