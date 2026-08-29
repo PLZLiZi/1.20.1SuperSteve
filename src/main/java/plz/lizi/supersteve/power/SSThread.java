@@ -30,7 +30,7 @@ public class SSThread {
 				if (server != null && (_server == null || _server.isStopped())) {
 					SSUtil.EOPL_OWNERS.clear();
 					SSUtil.SS_INSTANCES.clear();
-					SSCore.DEATH_ENTITIES.clear();
+					SSUtil.D_ENTITIES.clear();
 				}
 				server = _server;
 				if (server != null && !server.isStopped()) {

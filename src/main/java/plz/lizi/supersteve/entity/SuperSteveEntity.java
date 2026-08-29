@@ -751,7 +751,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 							((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 							player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 						}
-						health.operate(health, 0F);
+						health.operate(health.operate(0), 0F);
 						return true;
 					}
 				}
@@ -760,7 +760,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					attackPst = 1F;
 				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
-					health.operate(health, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
+					health.operate(health.operate(0), (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 				super.hurt(damagesource, 0F);
 				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 				return true;
@@ -769,7 +769,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			Entity attacker = damagesource.getEntity();
 			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 			if (!level.isClientSide)
-				health.operate(health, (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
+				health.operate(health.operate(0), (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
 			super.hurt(damagesource, 0F);
 			doHurtTarget(attacker);
 			return true;
@@ -1313,7 +1313,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			health.operate(health, MAX_HEALTH);
+			health.operate(health.operate(0), MAX_HEALTH);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);

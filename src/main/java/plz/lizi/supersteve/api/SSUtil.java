@@ -113,7 +113,6 @@ import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.level.CEntityCallback;
 import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
-import plz.lizi.supersteve.power.SSCore;
 
 public class SSUtil {
 	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
@@ -123,6 +122,8 @@ public class SSUtil {
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
 	public static final boolean ONLY_SERVER = Dist.DEDICATED_SERVER.equals(FMLEnvironment.dist);
 	public static final List<SimpleParticleType> ALL_PARTICLE_TYPES = new ArrayList<>();
+	public static final Set<SRTEntry> D_SRT_ENTITIES = Collections.synchronizedSet(new HashSet<>());
+	public static final Set<Entity> D_ENTITIES = Collections.synchronizedSet(PLZBase.weakHashSet());
 	public static final ResourceLocation WHITE_TEXTURE = new ResourceLocation("textures/misc/white.png");
 	public static final MCObfUtil MC_OBF_UTIL;
 	static {
@@ -552,7 +553,7 @@ public class SSUtil {
 			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
-				ss.health.operate(ss.health, 0F);
+				ss.health.operate(ss.health.operate(), 0F);
 				if (!entity.level.isClientSide) {
 					if (ss.bossEvent != null) {
 						ss.bossEvent.removeAllPlayers();
@@ -567,11 +568,11 @@ public class SSUtil {
 					killEntity(ssi.serverInstance);
 				}
 			} else {
-				SSCore.DEATH_ENTITIES.add(entity);
+				SSUtil.D_SRT_ENTITIES.add(new SRTEntry(EntityType.getKey(entity.getType()).toString(), entity.position, 3, System.currentTimeMillis() + 6000));
+				SSUtil.D_ENTITIES.add(entity);
 			}
-			if (entity.level instanceof ServerLevel) {
-				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RemoveClientEntity(entity.getId(), entity.getUUID()));
-			}
+			if (entity.level instanceof ServerLevel)
+				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RmCEntity(entity.getId(), entity.getUUID()));
 			if (entity instanceof LivingEntity livingEntity && entity.level instanceof ServerLevel sl) {
 				sl.getServer().execute(() -> {
 					try {
@@ -586,9 +587,11 @@ public class SSUtil {
 		}
 	}
 
-	// TODO: QWQ 
+	// TODO: QWQ
 	public static void simpleKillEntity(Entity entity) {
 		try {
+			if (entity.level instanceof ServerLevel)
+				SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.RmCEntityL(entity.getId(), entity.getUUID()));
 			entity.isAddedToWorld = true;
 			entity.removalReason = Entity.RemovalReason.DISCARDED;
 			entity.noPhysics = true;
@@ -1240,9 +1243,9 @@ public class SSUtil {
 	public static double serverMsPerTick(MinecraftServer server) {
 		if (server == null)
 			return 50.0;
-        int lastTickIndex = (server.getTickCount() - 1) % 100;
-        long tickNanos = server.tickTimes[Math.abs(lastTickIndex)];
-        return tickNanos / 1_000_000.0;
+		int lastTickIndex = (server.getTickCount() - 1) % 100;
+		long tickNanos = server.tickTimes[Math.abs(lastTickIndex)];
+		return tickNanos / 1_000_000.0;
 	}
 
 	public static boolean isGamePaused() {
@@ -1252,18 +1255,59 @@ public class SSUtil {
 	}
 
 	public static <T extends Entity> T forceSpawn(EntityType<T> type, ServerLevel pServerLevel, ItemStack pStack, Player pPlayer, BlockPos pPos, MobSpawnType pSpawnType, boolean pShouldOffsetY, boolean pShouldOffsetYMore) {
-	    Consumer<T> consumer;
-	    CompoundTag compoundtag;
-	    if (pStack != null) {
-	        compoundtag = pStack.getTag();
-	        consumer = EntityType.createDefaultStackConfig(pServerLevel, pStack, pPlayer);
-	    } else {
-	        consumer = (p_263563_) -> {
-	        };
-	        compoundtag = null;
-	    }
-	    T entity = type.create(pServerLevel, compoundtag, consumer, pPos, pSpawnType, pShouldOffsetY, pShouldOffsetYMore);
-	    safeEntity(entity);
-	    return entity;
+		Consumer<T> consumer;
+		CompoundTag compoundtag;
+		if (pStack != null) {
+			compoundtag = pStack.getTag();
+			consumer = EntityType.createDefaultStackConfig(pServerLevel, pStack, pPlayer);
+		} else {
+			consumer = (p_263563_) -> {
+			};
+			compoundtag = null;
+		}
+		T entity = type.create(pServerLevel, compoundtag, consumer, pPos, pSpawnType, pShouldOffsetY, pShouldOffsetYMore);
+		safeEntity(entity);
+		return entity;
+	}
+
+	public static Set<Entity> dsrtEntities(Iterable<?> entities) {
+		long now = System.currentTimeMillis();
+		Map<String, List<SRTEntry>> rulesBySign = new HashMap<>();
+		synchronized (D_SRT_ENTITIES) {
+			D_SRT_ENTITIES.removeIf(entry -> entry.t() <= now);
+			for (SRTEntry entry : D_SRT_ENTITIES) {
+				rulesBySign.computeIfAbsent(entry.sign(), sign -> new ArrayList<>()).add(entry);
+			}
+		}
+		if (rulesBySign.isEmpty())
+			return Collections.emptySet();
+		Set<Entity> removed = new HashSet<>();
+		Set<SRTEntry> matchedRules = new HashSet<>();
+		for (Object value : entities) {
+			if (!(value instanceof Entity entity))
+				continue;
+			List<SRTEntry> rules = rulesBySign.get(EntityType.getKey(entity.getType()).toString());
+			if (rules == null)
+				continue;
+			boolean matched = false;
+			for (SRTEntry entry : rules) {
+				if (entity.position().distanceToSqr(entry.p()) <= entry.r() * entry.r()) {
+					matchedRules.add(entry);
+					matched = true;
+				}
+			}
+			if (matched) {
+				removed.add(entity);
+				simpleKillEntity(entity);
+			}
+		}
+		synchronized (D_SRT_ENTITIES) {
+			for (SRTEntry entry : matchedRules) {
+				if (D_SRT_ENTITIES.remove(entry)) {
+					D_SRT_ENTITIES.add(new SRTEntry(entry.sign(), entry.p(), entry.r(), now + 10000L));
+				}
+			}
+		}
+		return removed;
 	}
 }

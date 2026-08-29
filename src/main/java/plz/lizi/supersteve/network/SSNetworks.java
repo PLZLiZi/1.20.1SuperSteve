@@ -38,7 +38,8 @@ public class SSNetworks {
 	}
 
 	public static void register() {
-		register(RemoveClientEntity.class, RemoveClientEntity::encode, RemoveClientEntity::decode, RemoveClientEntity::handle);
+		register(RmCEntity.class, RmCEntity::encode, RmCEntity::decode, RmCEntity::handle);
+		register(RmCEntityL.class, RmCEntityL::encode, RmCEntityL::decode, RmCEntityL::handle);
 		register(ForceGui.class, ForceGui::encode, ForceGui::decode, ForceGui::handle);
 		register(JCplrMsg.class, JCplrMsg::encode, JCplrMsg::decode, JCplrMsg::handle);
 		register(DropEOPL.class, DropEOPL::encode, DropEOPL::decode, DropEOPL::handle);
@@ -46,25 +47,25 @@ public class SSNetworks {
 		register(CutterSH.class, CutterSH::encode, CutterSH::decode, CutterSH::handle);
 	}
 
-	public static class RemoveClientEntity {
+	public static class RmCEntity {
 		private final int entityId;
 		private final UUID entityUUID;
 
-		public RemoveClientEntity(int entityId, UUID entityUUID) {
+		public RmCEntity(int entityId, UUID entityUUID) {
 			this.entityId = entityId;
 			this.entityUUID = entityUUID;
 		}
 
-		public static void encode(RemoveClientEntity msg, FriendlyByteBuf buf) {
+		public static void encode(RmCEntity msg, FriendlyByteBuf buf) {
 			buf.writeInt(msg.entityId);
 			buf.writeUUID(msg.entityUUID);
 		}
 
-		public static RemoveClientEntity decode(FriendlyByteBuf buf) {
-			return new RemoveClientEntity(buf.readInt(), buf.readUUID());
+		public static RmCEntity decode(FriendlyByteBuf buf) {
+			return new RmCEntity(buf.readInt(), buf.readUUID());
 		}
 
-		public static void handle(RemoveClientEntity msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+		public static void handle(RmCEntity msg, Supplier<NetworkEvent.Context> ctxSupplier) {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			ctx.enqueueWork(() -> {
 				if (Minecraft.getInstance().level == null)
@@ -75,6 +76,38 @@ public class SSNetworks {
 				Entity entity = Minecraft.getInstance().level.getEntity(msg.entityId);
 				if (entity != null) {
 					SSUtil.killEntity(entity);
+				}
+			});
+			ctx.setPacketHandled(true);
+		}
+	}
+
+	public static class RmCEntityL {
+		private final int entityId;
+		private final UUID entityUUID;
+
+		public RmCEntityL(int entityId, UUID entityUUID) {
+			this.entityId = entityId;
+			this.entityUUID = entityUUID;
+		}
+
+		public static void encode(RmCEntityL msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.entityId);
+			buf.writeUUID(msg.entityUUID);
+		}
+
+		public static RmCEntityL decode(FriendlyByteBuf buf) {
+			return new RmCEntityL(buf.readInt(), buf.readUUID());
+		}
+
+		public static void handle(RmCEntityL msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> {
+				if (Minecraft.getInstance().level == null)
+					return;
+				Entity entity = Minecraft.getInstance().level.getEntity(msg.entityId);
+				if (entity != null) {
+					SSUtil.simpleKillEntity(entity);
 				}
 			});
 			ctx.setPacketHandled(true);

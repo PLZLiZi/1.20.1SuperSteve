@@ -2,6 +2,7 @@ package plz.lizi.supersteve.entity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.joml.Vector3f;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -36,51 +37,6 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final EntityDataAccessor<String> SS_STATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<Integer> SS_LSTATE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
 	public static final EntityDataAccessor<Vector3f> SS_SAFE_POS = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.VECTOR3);
-	//private static final Operator HEALTH_MATH = o2 -> {
-	//	if (o2.length == 2 && o2[0] instanceof Float f && o2[1] instanceof Integer vrf) {
-	//		int bits = Float.floatToRawIntBits(f);
-	//		int mixed = Integer.rotateLeft(bits ^ vrf, 13) ^ vrf;
-	//		long u = mixed & 0xFFFFFFFFL;
-	//		char[] buf = new char[12];
-	//		int pos = 10;
-	//		do {
-	//			buf[--pos] = (char) ('{' + (int) (u % 10));
-	//			u /= 10;
-	//		} while (u != 0);
-	//		int check = Math.floorMod(mixed ^ (vrf * 31), 100);
-	//		buf[10] = (char) ('{' + check / 10);
-	//		buf[11] = (char) ('{' + check % 10);
-	//		int mainLen = 10 - pos;
-	//		char[] result = new char[mainLen + 2];
-	//		System.arraycopy(buf, pos, result, 0, mainLen);
-	//		result[mainLen] = buf[10];
-	//		result[mainLen + 1] = buf[11];
-	//		return new String(result);
-	//	} else if (o2.length == 2 && o2[0] instanceof String s && o2[1] instanceof Integer vrf) {
-	//		if (s == null || s.length() < 3)
-	//			return null;
-	//		int len = s.length();
-	//		int c1 = s.charAt(len - 2) - '{';
-	//		int c2 = s.charAt(len - 1) - '{';
-	//		if (c1 < 0 || c1 > 9 || c2 < 0 || c2 > 9)
-	//			return null;
-	//		int expectedCheck = c1 * 10 + c2;
-	//		long value = 0;
-	//		for (int i = 0; i < len - 2; i++) {
-	//			int d = s.charAt(i) - '{';
-	//			if (d < 0 || d > 9)
-	//				return null;
-	//			value = value * 10 + d;
-	//		}
-	//		int mixed = (int) value;
-	//		int actualCheck = Math.floorMod(mixed ^ (vrf * 31), 100);
-	//		if (actualCheck != expectedCheck)
-	//			return null;
-	//		int bits = Integer.rotateRight(mixed ^ vrf, 13) ^ vrf;
-	//		return Float.valueOf(Float.intBitsToFloat(bits));
-	//	}
-	//	return null;
-	//};
 	public final List<Attack> attacks = new ArrayList<>();
 	public Operator health = o -> MAX_HEALTH;
 	public long[/* 0: tick, 1: llmax - time */] hurtData = { 0, Long.MAX_VALUE - System.currentTimeMillis() };
@@ -134,7 +90,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 				}
 				return null;
 			};
-			if (o.length == 2 && o[0] == health && o[1] instanceof Float fhealth) {
+			if (o.length == 2 && o[0] == SuperSteveEntityBase.class && o[1] instanceof Float fhealth) {
 				try {
 					int hash = getUUID().hashCode();
 					getEntityData().set(SS_HEALTH, "SSH" + hash + (String) HEALTH_MATH.operate(fhealth, hash));
@@ -154,7 +110,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 						float h = (float) HEALTH_MATH.operate(ssh.substring(verify.length(), ssh.length()), hash);
 						float lh = h > MAX_HEALTH ? MAX_HEALTH : (h < 0 ? 0 : h);
 						if (lh != h)
-							health.operate(health, lh);
+							health.operate(this.getClass(), lh);
 						return lh;
 						// byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
 						// return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
@@ -164,6 +120,8 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 				}
 				health.operate(health, MAX_HEALTH);
 				return MAX_HEALTH;
+			} else if (o.length == 1 && Objects.equals(o[0], 0)) {
+				return SuperSteveEntityBase.class;
 			}
 			return null;
 		});
