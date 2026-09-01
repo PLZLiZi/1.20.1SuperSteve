@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.event;
 
 import java.awt.Color;
+import java.util.List;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -30,6 +31,7 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.PLZBase;
@@ -155,5 +157,12 @@ public class SSEvents {
 			}
 		}
 	}
-	public static class Server {}
+	public static class Server {
+		@SubscribeEvent
+		public static void entityJoinLevel(EntityJoinLevelEvent event) {
+			var entity = event.getEntity();
+			if (SSUtil.D_ENTITIES.contains(entity) || SSUtil.dsrtEntities(List.of(entity)).contains(entity))
+				event.setCanceled(true);
+		}
+	}
 }

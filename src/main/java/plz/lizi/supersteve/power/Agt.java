@@ -232,7 +232,7 @@ public class Agt {
                 if (once)
                     Tsf.TSFD_CLASSES.add(clazz);
             } catch (Throwable e) {
-                System.err.println("SSAgt retransform " + clazz.getName() + " error: " + e.getMessage());
+                System.err.println("SSAgt retransform " + clazz.getName() + " error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
             if (klass != 0)
                 PLZBase.UNSAFE.putInt(klass + 164, accessflags);

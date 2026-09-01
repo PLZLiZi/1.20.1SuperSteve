@@ -125,6 +125,7 @@ public class SSUtil {
 	public static final Set<SRTEntry> D_SRT_ENTITIES = Collections.synchronizedSet(new HashSet<>());
 	public static final Set<Entity> D_ENTITIES = Collections.synchronizedSet(PLZBase.weakHashSet());
 	public static final ResourceLocation WHITE_TEXTURE = new ResourceLocation("textures/misc/white.png");
+	public static final Map<String, List<Class<?>>> CLASS_CHAINS = new HashMap<>();
 	public static final MCObfUtil MC_OBF_UTIL;
 	static {
 		try {
@@ -1180,7 +1181,11 @@ public class SSUtil {
 	}
 
 	public static List<Class<?>> classChain(Class<?> zhisClass, Class<?> superClass) {
-		List<Class<?>> chain = new ArrayList<>();
+		String sign = zhisClass.getName() + "->" + superClass.getName();
+		List<Class<?>> chain = CLASS_CHAINS.get(sign);
+		if (chain != null)
+			return chain;
+		chain = new ArrayList<>();
 		if (zhisClass == null || superClass == null) {
 			return chain;
 		}
@@ -1199,6 +1204,7 @@ public class SSUtil {
 			}
 			current = current.getSuperclass();
 		}
+		CLASS_CHAINS.put(sign, chain);
 		return chain;
 	}
 
