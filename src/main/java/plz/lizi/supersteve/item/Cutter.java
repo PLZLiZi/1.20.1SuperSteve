@@ -228,7 +228,7 @@ public class Cutter extends Item {
     public static void cutHealth(LivingEntity me, LivingEntity entity, float health) {
         if (!SSUtil.ONLY_SERVER && !ERD_TDF) {
             ERD_TDF = true;
-            Agt.retransform(Minecraft.getInstance().getEntityRenderDispatcher().getClass(), (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
+            Agt.retransform(Minecraft.getInstance().getEntityRenderDispatcher(), (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
                 try {
                     var cr = new ClassReader(classfileBuffer);
                     var cn = new ClassNode();

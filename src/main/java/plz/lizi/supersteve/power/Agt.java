@@ -32,6 +32,9 @@ public class Agt {
     private static final MethodHandle MH_RETRANSFORM;
     private static final MethodHandle MH_GETLOADEDCLASSES;
     private static final Object[] INST = new Object[2];
+    public static final Set<Class<?>> TSFD_CLASSES = new HashSet<>();
+    public static final Map<String, EZTsf> SUPPLIER = new ConcurrentHashMap<>();
+    public static final List<ClassFileTransformer> TRANSFORMERS = new CopyOnWriteArrayList<>();
     static {
         AGT = PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$AgtLoader", null, true, ClassOption.STRONG, ClassOption.NESTMATE);
         try {
@@ -75,28 +78,23 @@ public class Agt {
     }
 
     public static int watch(ClassFileTransformer tsf) {
-        Tsf.TRANSFORMERS.add(tsf);
-        return Tsf.TRANSFORMERS.indexOf(tsf);
+        TRANSFORMERS.add(tsf);
+        return TRANSFORMERS.indexOf(tsf);
     }
 
     public static ClassFileTransformer unwatch(int id) {
-        return Tsf.TRANSFORMERS.remove(id);
+        return TRANSFORMERS.remove(id);
     }
 
     public static interface EZTsf {
         byte[] transform(ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer);
     }
-    private static class Tsf implements ClassFileTransformer {
-        private static final Set<Class<?>> TSFD_CLASSES = new HashSet<>();
-        private static final Map<String, EZTsf> SUPPLIER = new ConcurrentHashMap<>();
-        private static final List<ClassFileTransformer> TRANSFORMERS = new CopyOnWriteArrayList<>();
-
+    public static class Tsf implements ClassFileTransformer {
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
             EZTsf tsf = SUPPLIER.get(className);
-            if (tsf != null) {
+            if (tsf != null)
                 return tsf.transform(loader, classBeingRedefined, protectionDomain, classfileBuffer);
-            }
             byte[] crt = null;
             for (var er : TRANSFORMERS) {
                 byte[] tsfd = er.transform(loader, className, classBeingRedefined, protectionDomain, crt == null ? classfileBuffer : crt);
@@ -207,14 +205,14 @@ public class Agt {
                 }
                 Agt.INST[1] = PLZBase.UNSAFE.allocateInstance(IMPL_CLASS);
                 mNativeAgent = (long) VH_NATIVE_AGENT.get(Agt.INST[0]);
-                addTransformer((Instrumentation) Agt.INST[0], new Tsf(), true);
+                addTransformer((Instrumentation) Agt.INST[0], (ClassFileTransformer) PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$Tsf", "plz.lizi.supersteve.power.Agt$TsfImpl", true, ClassOption.STRONG).getDeclaredConstructor().newInstance(), true);
             } catch (Throwable e) {
                 System.err.print("SSAgt load failed: ");
                 e.printStackTrace();
                 System.err.println("SuperSteve will not load with full mode");
             }
         }
-        
+
         public static Class<?>[] getLoadedClasses() {
             try {
                 return (Class<?>[]) MH_GET_ALL_LOADED_CLASSES_0.invoke(Agt.INST[1], mNativeAgent);
@@ -234,11 +232,11 @@ public class Agt {
                 clazz = obj.getClass();
             if (clazz == null || clazz.isPrimitive() || clazz.isArray() || clazz.getName().contains("$Lambda$$"))
                 return false;
-            if (once && Tsf.TSFD_CLASSES.contains(clazz))
+            if (once && TSFD_CLASSES.contains(clazz))
                 return true;
             String name = clazz.getName().replace("/", "+").replace(".", "/");
             if (tsf != null)
-                Tsf.SUPPLIER.put(name, tsf);
+                SUPPLIER.put(name, tsf);
             long klass = 0;
             int accessflags = 0;
             if (clazz.isHidden()) {
@@ -247,18 +245,15 @@ public class Agt {
                 PLZBase.UNSAFE.putInt(klass + 164L, accessflags & 0xFBFFFFFF);
             }
             try {
-                // retransformClasses0(long nativeAgent, Class<?>[] classes);
-                // PLZBase.klassPtr(INST[0], IMPL_CLASS);
                 MH_RETRNASFORM_CLASSES_0.invoke(Agt.INST[1], mNativeAgent, new Class<?>[] { clazz });
-                // INST.get().retransformClasses(clazz);
                 if (once)
-                    Tsf.TSFD_CLASSES.add(clazz);
+                    TSFD_CLASSES.add(clazz);
             } catch (Throwable e) {
                 System.err.println("SSAgt retransform " + clazz.getName() + " error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
             if (klass != 0)
                 PLZBase.UNSAFE.putInt(klass + 164, accessflags);
-            Tsf.SUPPLIER.remove(name);
+            SUPPLIER.remove(name);
             return true;
         }
     }
