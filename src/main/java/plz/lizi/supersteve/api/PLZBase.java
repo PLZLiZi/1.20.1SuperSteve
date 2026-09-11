@@ -677,6 +677,7 @@ public class PLZBase {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static List<Class<?>> loadedClasses(ClassLoader loader) {
 		try {
 			return new ArrayList<>((ArrayList<Class<?>>) LOOKUP.findGetter(ClassLoader.class, "classes", ArrayList.class).invoke(loader));

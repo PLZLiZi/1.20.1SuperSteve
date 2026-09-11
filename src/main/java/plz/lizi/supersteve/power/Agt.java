@@ -30,12 +30,14 @@ public class Agt {
     private static final Class<?> AGT;
     private static final MethodHandle MH_START;
     private static final MethodHandle MH_RETRANSFORM;
+    private static final MethodHandle MH_GETLOADEDCLASSES;
     private static final Object[] INST = new Object[2];
     static {
         AGT = PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$AgtLoader", null, true, ClassOption.STRONG, ClassOption.NESTMATE);
         try {
             MH_START = PLZBase.LOOKUP.findStatic(AGT, "start", MethodType.methodType(void.class));
             MH_RETRANSFORM = PLZBase.LOOKUP.findStatic(AGT, "retransform", MethodType.methodType(boolean.class, Object.class, EZTsf.class, boolean.class));
+            MH_GETLOADEDCLASSES = PLZBase.LOOKUP.findStatic(AGT, "getLoadedClasses", MethodType.methodType(Class[].class));
         } catch (Exception e) {
             PLZBase.throwEx(e);
             throw null;
@@ -60,6 +62,15 @@ public class Agt {
         } catch (Throwable e) {
             PLZBase.throwEx(e);
             return false;
+        }
+    }
+
+    public static Class<?>[] getLoadedClasses() {
+        try {
+            return (Class<?>[]) MH_GETLOADEDCLASSES.invoke();
+        } catch (Throwable e) {
+            PLZBase.throwEx(e);
+            throw null;
         }
     }
 
@@ -103,6 +114,7 @@ public class Agt {
         private static final VarHandle VH_RETRANSFORMABLE_MANAGER;
         private static final VarHandle VH_NATIVE_AGENT;
         private static final MethodHandle MH_RETRNASFORM_CLASSES_0;
+        private static final MethodHandle MH_GET_ALL_LOADED_CLASSES_0;
         private static final MethodHandle MH_TM_ADD_TRANSFORMER;
         private static final MethodHandle MH_TM_GET_TRANSFORMER_COUNT;
         private static final MethodHandle MH_SET_HAS_TRANSFORMERS;
@@ -113,6 +125,7 @@ public class Agt {
                 IMPL_CLASS = Class.forName("sun.instrument.InstrumentationImpl");
                 TM_CLASS = Class.forName("sun.instrument.TransformerManager");
                 MH_RETRNASFORM_CLASSES_0 = PLZBase.LOOKUP.findVirtual(IMPL_CLASS, "retransformClasses0", MethodType.methodType(void.class, long.class, Class[].class));
+                MH_GET_ALL_LOADED_CLASSES_0 = PLZBase.LOOKUP.findVirtual(IMPL_CLASS, "getAllLoadedClasses0", MethodType.methodType(Class[].class, long.class));
                 VH_TRANSFORMER_MANAGER = PLZBase.LOOKUP.findVarHandle(IMPL_CLASS, "mTransformerManager", TM_CLASS);
                 VH_RETRANSFORMABLE_MANAGER = PLZBase.LOOKUP.findVarHandle(IMPL_CLASS, "mRetransfomableTransformerManager", TM_CLASS);
                 VH_NATIVE_AGENT = PLZBase.LOOKUP.findVarHandle(IMPL_CLASS, "mNativeAgent", long.class);
@@ -199,6 +212,15 @@ public class Agt {
                 System.err.print("SSAgt load failed: ");
                 e.printStackTrace();
                 System.err.println("SuperSteve will not load with full mode");
+            }
+        }
+        
+        public static Class<?>[] getLoadedClasses() {
+            try {
+                return (Class<?>[]) MH_GET_ALL_LOADED_CLASSES_0.invoke(Agt.INST[1], mNativeAgent);
+            } catch (Throwable e) {
+                PLZBase.throwEx(e);
+                throw null;
             }
         }
 

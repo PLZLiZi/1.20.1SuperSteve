@@ -3,6 +3,7 @@ package plz.lizi.supersteve.power;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
+import java.util.List;
 import java.util.Map;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -18,9 +19,19 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.PLZBase;
+import plz.lizi.supersteve.api.SSUtil;
 
 public class SSTransformer implements ClassFileTransformer {
-    public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
+    // TODO: SSTransformer load before than SSUtil, write fields in here or else SSUtil will be transformed by core
+    private static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
+    public static final List<String> RESTORES = List.of("net/minecraft/commands/arguments/selector/EntitySelector", "net/minecraftforge/server/command/ForgeCommand");
+    
+    public static void init() {
+        for (Class<?> clazz : Agt.getLoadedClasses()) {
+            if (RESTORES.contains(clazz.getName().replace(".", "/")))
+                Agt.retransform(clazz, null, false);
+        }
+    }
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
@@ -69,6 +80,8 @@ public class SSTransformer implements ClassFileTransformer {
             ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
             cn.accept(cw);
             return cw.toByteArray();
+        } else if (RESTORES.contains(className)) {
+            return SSUtil.restoreClass(classfileBuffer);
         }
         return CLASSES.get(className);
     }

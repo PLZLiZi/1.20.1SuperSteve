@@ -46,7 +46,7 @@ public class ClassStruct {
 		try {
 			cr = new ClassReader(buf);
 		} catch (Throwable e) {
-			PLZBase.throwEx(new Throwable("ClassReader error " + PLZBase.dumpClassName(buf) + ": " + e.getMessage()));
+			PLZBase.throwEx(new ClassFormatError(e.getMessage()));
 		}
 		ClassNode cn = new ClassNode();
 		cr.accept(cn, ClassReader.EXPAND_FRAMES);
@@ -133,6 +133,10 @@ public class ClassStruct {
 
 	public Map<String, FieldNode> getFields() {
 		return fields;
+	}
+
+	public ClassNode getNode() {
+		return node;
 	}
 
 	/**

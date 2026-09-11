@@ -77,7 +77,8 @@ public class ExtraModel implements BakedModel {
 
 	public void render(ItemStack p_108830_, ItemDisplayContext p_270899_, PoseStack p_108832_, MultiBufferSource p_108833_, int p_108834_, int p_108835_) {
 		BufferSource buffersource = mc.renderBuffers.bufferSource;
-		renderOutline(p_108830_, p_270899_, p_108832_, p_108833_, p_108834_, p_108835_);
+		buffersource.endBatch();
+		renderOutline(p_108830_, p_270899_, p_108832_, buffersource, p_108834_, p_108835_);
 		buffersource.endBatch();
 		renderBase(p_108830_, p_270899_, p_108832_, buffersource, p_108834_, p_108835_);
 		buffersource.endBatch();

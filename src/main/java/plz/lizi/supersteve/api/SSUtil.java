@@ -113,6 +113,9 @@ import plz.lizi.supersteve.init.SSModItems;
 import plz.lizi.supersteve.level.CEntityCallback;
 import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
+import plz.lizi.supersteve.power.ClassStruct;
+import plz.lizi.supersteve.power.MNUtil;
+import plz.lizi.supersteve.power.VerifyCW;
 
 public class SSUtil {
 	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
@@ -1315,5 +1318,23 @@ public class SSUtil {
 			}
 		}
 		return removed;
+	}
+
+	public static byte[] restoreClass(byte[] current) {
+		var crs = ClassStruct.as(current);
+		if (crs == null)
+			return null;
+		var ors = ClassStruct.as(PLZBase.getClassBytes(crs.name(), SSUtil.class.getClassLoader()));
+		if (ors == null)
+			return null;
+		for (var orm : ors.getMethods().entrySet()) {
+			var crm = crs.getMethod(orm.getKey());
+			if (crm == null)
+				continue;
+			MNUtil.cloneMethodNodeInsn(orm.getValue(), crm);
+		}
+		var vcw = new VerifyCW(null);
+		crs.getNode().accept(vcw);
+		return vcw.toByteArray();
 	}
 }
