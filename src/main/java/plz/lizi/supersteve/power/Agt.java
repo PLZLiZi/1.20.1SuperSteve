@@ -189,7 +189,6 @@ public class Agt {
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Set-Native-Method-Prefix"), "true");
                 Path jar = Files.createTempFile("ssagt", ".jar");
-                jar.toFile().deleteOnExit();
                 try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(jar.toAbsolutePath().toString()), manifest)) {
                     jos.flush();
                 }
@@ -200,9 +199,12 @@ public class Agt {
                 Function.getFunction("instrument", "Agent_OnAttach").invokeInt(new Object[] { pJavaVMs[0], jar.toAbsolutePath().toString(), null });
                 long time = System.currentTimeMillis();
                 while (Agt.INST[0] == null) {
-                    if (System.currentTimeMillis() - time > 1000)
+                    if (System.currentTimeMillis() - time > 1000) {
+                        jar.toFile().delete();
                         throw new TimeoutException("SSAgt time out");
+                    }
                 }
+                jar.toFile().delete();
                 Agt.INST[1] = PLZBase.UNSAFE.allocateInstance(IMPL_CLASS);
                 mNativeAgent = (long) VH_NATIVE_AGENT.get(Agt.INST[0]);
                 addTransformer((Instrumentation) Agt.INST[0], (ClassFileTransformer) PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$Tsf", "plz.lizi.supersteve.power.Agt$TsfImpl", true, ClassOption.STRONG).getDeclaredConstructor().newInstance(), true);
