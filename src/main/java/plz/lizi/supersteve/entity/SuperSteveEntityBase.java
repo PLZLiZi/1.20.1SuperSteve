@@ -90,7 +90,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 				}
 				return null;
 			};
-			if (o.length == 2 && o[0] == SuperSteveEntityBase.class && o[1] instanceof Float fhealth) {
+			if (o.length == 2 && o[0] == this.getClass() && o[1] instanceof Float fhealth) {
 				try {
 					int hash = getUUID().hashCode();
 					getEntityData().set(SS_HEALTH, "SSH" + hash + (String) HEALTH_MATH.operate(fhealth, hash));
@@ -110,7 +110,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 						float h = (float) HEALTH_MATH.operate(ssh.substring(verify.length(), ssh.length()), hash);
 						float lh = h > MAX_HEALTH ? MAX_HEALTH : (h < 0 ? 0 : h);
 						if (lh != h)
-							health.operate(this.getClass(), lh);
+							health.operate(SuperSteveEntityBase.class, lh);
 						return lh;
 						// byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
 						// return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
@@ -118,10 +118,10 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 					}
 				} catch (Throwable e) {
 				}
-				health.operate(health, MAX_HEALTH);
+				health.operate(Operator.class, MAX_HEALTH);
 				return MAX_HEALTH;
-			} else if (o.length == 1 && Objects.equals(o[0], 0)) {
-				return SuperSteveEntityBase.class;
+			} else if (o.length == 1 && o[0] == SuperSteveEntityBase.class) {
+				return this.getClass();
 			}
 			return null;
 		});
