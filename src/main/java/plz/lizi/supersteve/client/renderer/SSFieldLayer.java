@@ -23,6 +23,7 @@ public class SSFieldLayer extends SSLayer {
 
     @Override
     public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, SuperSteveEntityBase entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
+        Minecraft mc = Minecraft.getInstance();
         poseStack.pushPose();
         int stateTime = entity.stateTime();
 		if (stateTime > SuperSteveEntityBase.DEATH_ACTIVE[1]) {
@@ -37,11 +38,10 @@ public class SSFieldLayer extends SSLayer {
 		}
         float openFieldPgs = SuperSteveEntityBase.openFieldPgs(stateTime, partialTick);
         float fieldSz = openFieldPgs * entity.ssGetAttR(true) * 8f;
-        SSRenders.renderBall(buffer.getBuffer(SSRenders.POSITION_COLOR_H), poseStack, fieldSz, 0/* 黑色到红色领域用这个153f / 255f * openFieldPgs */, 0, 0, openFieldPgs, packedLight);
+        SSRenders.renderBall(buffer.getBuffer(SSRenders.POSITION_COLOR_H), poseStack, fieldSz, 0, 0, 0, openFieldPgs, packedLight);
         //if (openFieldPgs >= 1)
         //    SSRenders.renderBall(buffer.getBuffer(SSRenders.POSITION_COLOR_NC), poseStack, fieldSz + 0.05F, 0, 0, 0, openFieldPgs, packedLight);
         poseStack.translate(0, -entity.getBbHeight() / 3, 0);
-        var mc = Minecraft.getInstance();
         var erd = mc.getEntityRenderDispatcher();
         var myPos = entity.getPosition(partialTick);
         for (var t : ((ClientLevel) entity.level).entitiesForRendering()) {

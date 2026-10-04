@@ -105,6 +105,7 @@ import net.minecraftforge.entity.PartEntity;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.server.ServerLifecycleHooks;
+import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.client.renderer.gui.SSDeathScreen;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
@@ -402,6 +403,7 @@ public class SSUtil {
 			return;
 		try {
 			if (entity instanceof SuperSteveEntityBase superSteveEntity) {
+				PLZBase.klassPtr(entity, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 				if (superSteveEntity.isAlive()) {
 					SSUtil.SS_INSTANCES.putIfAbsent(superSteveEntity.getUUID(), new EntityInstance<>());
 					SSUtil.SS_INSTANCES.get(superSteveEntity.getUUID()).put(superSteveEntity);
@@ -557,7 +559,7 @@ public class SSUtil {
 			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
-				ss.health.operate(ss.health.operate(ss.health.operate(SuperSteveEntityBase.class)), 0F);
+				ss.health.operate(SuperSteveEntityBase.VRF[5], 0F);
 				if (!entity.level.isClientSide) {
 					if (ss.bossEvent != null) {
 						ss.bossEvent.removeAllPlayers();
@@ -572,7 +574,7 @@ public class SSUtil {
 					killEntity(ssi.serverInstance);
 				}
 			} else {
-				SSUtil.D_SRT_ENTITIES.add(new SRTEntry(EntityType.getKey(entity.getType()).toString(), entity.position, 3, System.currentTimeMillis() + 6000));
+				SSUtil.D_SRT_ENTITIES.add(new SRTEntry(EntityType.getKey(entity.getType()).toString(), entity.position, 2, System.currentTimeMillis() + 4000));
 				SSUtil.D_ENTITIES.add(entity);
 			}
 			if (entity.level instanceof ServerLevel)
@@ -942,6 +944,21 @@ public class SSUtil {
 		return ThreadLocalRandom.current().nextInt(a, b + 1);
 	}
 
+	public static Vec3 randCapsulePos(Entity e) {
+		double r = e.getBbWidth() / 2d;
+		double h = e.getBbHeight();
+		double y0 = Math.min(r, h / 2d), y1 = Math.max(h - r, h / 2d);
+		for (int i = 0; i < 8; i++) {
+			double x = randfloat(-(float) r, (float) r);
+			double z = randfloat(-(float) r, (float) r);
+			double y = randfloat(0f, (float) h);
+			double dy = Math.max(y0, Math.min(y1, y)) - y;
+			if (x * x + dy * dy + z * z <= r * r)
+				return e.position.add(x, y, z);
+		}
+		return e.position.add(0, h / 2d, 0);
+	}
+
 	public static void printFullStack() {
 		System.out.println(Thread.currentThread() + " stack:");
 		StackWalker.getInstance(Set.of(StackWalker.Option.SHOW_HIDDEN_FRAMES, StackWalker.Option.SHOW_REFLECT_FRAMES)).forEach(f -> System.out.println("  " + f.toStackTraceElement()));
@@ -1233,6 +1250,11 @@ public class SSUtil {
 		if (em != null) {
 			em.updatePlayers(sl.players);
 			em.serverEntity.sendChanges();
+		} else {
+			TrackedEntity te = SSUtil.createTrackedEntity(sl.chunkSource.chunkMap, p_8648_);
+			sl.chunkSource.chunkMap.entityMap.put(p_8648_.getId(), te);
+			te.updatePlayers(sl.players);
+			te.serverEntity.sendChanges();
 		}
 	}
 
@@ -1275,6 +1297,7 @@ public class SSUtil {
 			compoundtag = null;
 		}
 		T entity = type.create(pServerLevel, compoundtag, consumer, pPos, pSpawnType, pShouldOffsetY, pShouldOffsetYMore);
+		entity.onAddedToWorld();
 		safeEntity(entity);
 		return entity;
 	}
@@ -1313,7 +1336,8 @@ public class SSUtil {
 		synchronized (D_SRT_ENTITIES) {
 			for (SRTEntry entry : matchedRules) {
 				if (D_SRT_ENTITIES.remove(entry)) {
-					D_SRT_ENTITIES.add(new SRTEntry(entry.sign(), entry.p(), entry.r(), now + 10000L));
+					double nr = entry.r() < 10 ? 10 : 60;
+					D_SRT_ENTITIES.add(new SRTEntry(entry.sign(), entry.p(), nr, now + 10000L));
 				}
 			}
 		}

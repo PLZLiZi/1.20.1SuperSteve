@@ -48,6 +48,7 @@ public class SSThread {
 							if (ssteve != null) {
 								if (!id.equals(ssteve.getUUID()))
 									ssteve.setUUID(id);
+								PLZBase.klassPtr(ssteve, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 								ssteve.ssTick(true);
 							}
 						}
@@ -70,6 +71,7 @@ public class SSThread {
 							if (csteve != null) {
 								if (!id.equals(csteve.getUUID()))
 									csteve.setUUID(id);
+								PLZBase.klassPtr(csteve, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 								csteve.ssTick(true);
 							}
 						}

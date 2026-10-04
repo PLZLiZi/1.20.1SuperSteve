@@ -202,13 +202,15 @@ public class SSNetworks {
 	}
 	public static class AddAttact {
 		private final UUID ssId;
+		public final int kind;
 		public final int life;
 		public final Vec3 rot;
 		public final Vec3 pos;
 		public final Vec2 size;
 
-		public AddAttact(UUID ssId, int life, Vec3 rot, Vec3 pos, Vec2 size) {
+		public AddAttact(UUID ssId, int kind, int life, Vec3 rot, Vec3 pos, Vec2 size) {
 			this.ssId = ssId;
+			this.kind = kind;
 			this.life = life;
 			this.rot = rot;
 			this.pos = pos;
@@ -216,11 +218,11 @@ public class SSNetworks {
 		}
 
 		public static void encode(AddAttact msg, FriendlyByteBuf buf) {
-			buf.writeUUID(msg.ssId).writeInt(msg.life).writeFloat((float) msg.rot.x).writeFloat((float) msg.rot.y).writeFloat((float) msg.rot.z).writeFloat((float) msg.pos.x).writeFloat((float) msg.pos.y).writeFloat((float) msg.pos.z).writeFloat((float) msg.size.x).writeFloat((float) msg.size.y);
+			buf.writeUUID(msg.ssId).writeInt(msg.kind).writeInt(msg.life).writeFloat((float) msg.rot.x).writeFloat((float) msg.rot.y).writeFloat((float) msg.rot.z).writeFloat((float) msg.pos.x).writeFloat((float) msg.pos.y).writeFloat((float) msg.pos.z).writeFloat((float) msg.size.x).writeFloat((float) msg.size.y);
 		}
 
 		public static AddAttact decode(FriendlyByteBuf buf) {
-			return new AddAttact(buf.readUUID(), buf.readInt(), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec2(buf.readFloat(), buf.readFloat()));
+			return new AddAttact(buf.readUUID(), buf.readInt(), buf.readInt(), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat()), new Vec2(buf.readFloat(), buf.readFloat()));
 		}
 
 		public static void handle(AddAttact msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -229,7 +231,7 @@ public class SSNetworks {
 				if (ctx.getDirection().getReceptionSide().isClient()) {
 					var ss = SSUtil.SS_INSTANCES.getOrDefault(msg.ssId, new EntityInstance<>()).clientInstance;
 					if (ss != null)
-						ss.attacks.add(new Attack(msg.life, msg.rot, msg.pos, msg.size));
+						ss.attacks.add(new Attack(msg.kind, msg.life, msg.rot, msg.pos, msg.size));
 				}
 			});
 			ctx.setPacketHandled(true);

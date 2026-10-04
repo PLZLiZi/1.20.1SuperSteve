@@ -1,6 +1,5 @@
 package plz.lizi.supersteve.client.renderer;
 
-import java.awt.Color;
 import java.util.List;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -29,8 +28,7 @@ public class EOPLItemEx implements IClientItemExtensions {
 		return INSTANCE;
 	}
 
-	private EOPLItemEx() {
-	}
+	private EOPLItemEx() {}
 
 	@Override
 	public ArmPose getArmPose(LivingEntity entityLiving, InteractionHand hand, ItemStack itemStack) {
@@ -73,11 +71,10 @@ public class EOPLItemEx implements IClientItemExtensions {
 		@Override
 		public void renderByItem(ItemStack stack, ItemDisplayContext transformType, PoseStack poseStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
 			if (MODEL == null)
-				MODEL = new ExtraModel().base(Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).getParticleIcon(null)).layer(() -> SSRenders.MC_SHADER, List.of(ResourceLocation.tryParse("supersteve:item/mask"))).outline(()->SSRenders.RAINBOW_OUTLINE_SHADER, 0.01F, () -> Color.WHITE.getRGB());
+				MODEL = new ExtraModel().base(Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).getParticleIcon(null)).layer(() -> SSRenders.MC_SHADER, List.of(ResourceLocation.tryParse("supersteve:item/mask"))).outline(() -> SSRenders.RAINBOW_OUTLINE_SHADER, 1, () -> 0);
 			poseStack.pushPose();
 			MODEL.render(stack, transformType, poseStack, buffer, combinedLight, combinedOverlay);
 			poseStack.popPose();
 		}
 	}
 }
-

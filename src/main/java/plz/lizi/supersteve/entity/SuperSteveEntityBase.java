@@ -2,7 +2,6 @@ package plz.lizi.supersteve.entity;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.joml.Vector3f;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -29,8 +28,10 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 5F;
 	public static final int MAX_INVULNERABLE_TICK = 40;
 	public static final float MAX_HEALTH = 20F;
-	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块下落开始 / 环出现 / 多边形出现 */, 80/* 方块下落结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
+	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块动画开始 / 环出现 / 多边形出现 */, 80/* 方块动画结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
 	public static final int[] DEATH_ACTIVE = { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */ };
+	public static final String[] VRF = { "asdhfoipe", "kanfdspjiej", "poidjfwenfn", "pijaspfjie", "weijvocnioi", "dpfj9iewjvj", "iodnfocuue", "lisdhfuehnn" };
+	public static final List<String> LVRF = List.of(VRF);
 	public static final EntityDataAccessor<String> SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<String> SS_TYPE = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<Integer> SS_TICK = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.INT);
@@ -90,7 +91,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 				}
 				return null;
 			};
-			if (o.length == 2 && o[0] == this.getClass() && o[1] instanceof Float fhealth) {
+			if (o.length == 2 && LVRF.contains(o[0]) && o[1] instanceof Float fhealth) {
 				try {
 					int hash = getUUID().hashCode();
 					getEntityData().set(SS_HEALTH, "SSH" + hash + (String) HEALTH_MATH.operate(fhealth, hash));
@@ -110,7 +111,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 						float h = (float) HEALTH_MATH.operate(ssh.substring(verify.length(), ssh.length()), hash);
 						float lh = h > MAX_HEALTH ? MAX_HEALTH : (h < 0 ? 0 : h);
 						if (lh != h)
-							health.operate(SuperSteveEntityBase.class, lh);
+							health.operate(VRF[SSUtil.randint(0, VRF.length - 1)], lh);
 						return lh;
 						// byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
 						// return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
@@ -118,10 +119,8 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 					}
 				} catch (Throwable e) {
 				}
-				health.operate(Operator.class, MAX_HEALTH);
+				health.operate(VRF[SSUtil.randint(0, VRF.length - 1)], MAX_HEALTH);
 				return MAX_HEALTH;
-			} else if (o.length == 1 && o[0] == SuperSteveEntityBase.class) {
-				return this.getClass();
 			}
 			return null;
 		});
@@ -201,12 +200,14 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	}
 	public static class Attack {
 		public int tick = 0;
+		public final int kind;
 		public final int life;
 		public final Vec3 rot;
 		public final Vec3 pos;
 		public final Vec2 size;
 
-		public Attack(int life, Vec3 rot, Vec3 pos, Vec2 size) {
+		public Attack(int kind, int life, Vec3 rot, Vec3 pos, Vec2 size) {
+			this.kind = kind;
 			this.life = life;
 			this.rot = rot == null ? new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)) : rot;
 			this.pos = pos;

@@ -31,6 +31,7 @@ public class Agt {
     private static final MethodHandle MH_START;
     private static final MethodHandle MH_RETRANSFORM;
     private static final MethodHandle MH_GETLOADEDCLASSES;
+    private static final MethodHandle MH_RMTNEXTTI;
     private static final Object[] INST = new Object[2];
     public static final Set<Class<?>> TSFD_CLASSES = new HashSet<>();
     public static final Map<String, EZTsf> SUPPLIER = new ConcurrentHashMap<>();
@@ -41,6 +42,7 @@ public class Agt {
             MH_START = PLZBase.LOOKUP.findStatic(AGT, "start", MethodType.methodType(void.class));
             MH_RETRANSFORM = PLZBase.LOOKUP.findStatic(AGT, "retransform", MethodType.methodType(boolean.class, Object.class, EZTsf.class, boolean.class));
             MH_GETLOADEDCLASSES = PLZBase.LOOKUP.findStatic(AGT, "getLoadedClasses", MethodType.methodType(Class[].class));
+            MH_RMTNEXTTI = PLZBase.LOOKUP.findStatic(AGT, "rmNextTi", MethodType.methodType(void.class));
         } catch (Exception e) {
             PLZBase.throwEx(e);
             throw null;
@@ -74,6 +76,14 @@ public class Agt {
         } catch (Throwable e) {
             PLZBase.throwEx(e);
             throw null;
+        }
+    }
+
+    public static void rmNextTi() {
+        try {
+            MH_RMTNEXTTI.invoke();
+        } catch (Throwable e) {
+            PLZBase.throwEx(e);
         }
     }
 
@@ -118,6 +128,8 @@ public class Agt {
         private static final MethodHandle MH_SET_HAS_TRANSFORMERS;
         private static final MethodHandle MH_SET_HAS_RETRANSFORMABLE_TRANSFORMERS;
         private static final MethodHandle MH_TM_CONSTRUCTOR;
+        private static long NATIVEAGENT = 0;
+        private static long TI = 0;
         static {
             try {
                 IMPL_CLASS = Class.forName("sun.instrument.InstrumentationImpl");
@@ -137,7 +149,6 @@ public class Agt {
                 throw null;
             }
         }
-        private static long mNativeAgent = 0;
 
         private static void addTransformer(Instrumentation zhis, ClassFileTransformer transformer, boolean canRetransform) {
             if (zhis == null) {
@@ -206,7 +217,7 @@ public class Agt {
                 }
                 jar.toFile().delete();
                 Agt.INST[1] = PLZBase.UNSAFE.allocateInstance(IMPL_CLASS);
-                mNativeAgent = (long) VH_NATIVE_AGENT.get(Agt.INST[0]);
+                NATIVEAGENT = (long) VH_NATIVE_AGENT.get(Agt.INST[0]);
                 addTransformer((Instrumentation) Agt.INST[0], (ClassFileTransformer) PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$Tsf", "plz.lizi.supersteve.power.Agt$TsfImpl", true, ClassOption.STRONG).getDeclaredConstructor().newInstance(), true);
             } catch (Throwable e) {
                 System.err.print("SSAgt load failed: ");
@@ -217,7 +228,7 @@ public class Agt {
 
         public static Class<?>[] getLoadedClasses() {
             try {
-                return (Class<?>[]) MH_GET_ALL_LOADED_CLASSES_0.invoke(Agt.INST[1], mNativeAgent);
+                return (Class<?>[]) MH_GET_ALL_LOADED_CLASSES_0.invoke(Agt.INST[1], NATIVEAGENT);
             } catch (Throwable e) {
                 PLZBase.throwEx(e);
                 throw null;
@@ -247,7 +258,7 @@ public class Agt {
                 PLZBase.UNSAFE.putInt(klass + 164L, accessflags & 0xFBFFFFFF);
             }
             try {
-                MH_RETRNASFORM_CLASSES_0.invoke(Agt.INST[1], mNativeAgent, new Class<?>[] { clazz });
+                MH_RETRNASFORM_CLASSES_0.invoke(Agt.INST[1], NATIVEAGENT, new Class<?>[] { clazz });
                 if (once)
                     TSFD_CLASSES.add(clazz);
             } catch (Throwable e) {
@@ -257,6 +268,15 @@ public class Agt {
                 PLZBase.UNSAFE.putInt(klass + 164, accessflags);
             SUPPLIER.remove(name);
             return true;
+        }
+
+        public static void rmNextTi() {
+            if (TI == 0 && NATIVEAGENT != 0) {
+                TI = PLZBase.UNSAFE.getAddress(NATIVEAGENT + 0x8);
+            }
+            if (TI != 0) {
+                PLZBase.UNSAFE.putAddress(TI + 0x10, 0);
+            }
         }
     }
 }

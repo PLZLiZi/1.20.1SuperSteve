@@ -24,7 +24,7 @@ import plz.lizi.supersteve.api.SSUtil;
 public class SSTransformer implements ClassFileTransformer {
     // TODO: SSTransformer load before than SSUtil, write fields in here or else SSUtil will be transformed by core
     private static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
-    public static final List<String> RESTORES = List.of("net/minecraft/commands/arguments/selector/EntitySelector", "net/minecraftforge/server/command/ForgeCommand");
+    public static final List<String> RESTORES = List.of("net/minecraft/commands/arguments/selector/EntitySelector", "net/minecraftforge/server/command/ForgeCommand", "net/minecraft/server/commands/SayCommand", "net/minecraft/commands/arguments/MessageArgument");
     
     public static void init() {
         for (Class<?> clazz : Agt.getLoadedClasses()) {

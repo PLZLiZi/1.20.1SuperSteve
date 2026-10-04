@@ -18,16 +18,16 @@ import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 
 public class SSEnterLayer extends SSLayer {
-    private static final float BLOCKS_R = 3F;
+    private static final float BLOCKS_RADIUS = 3F;
     private static final Block[] BLOCKS = { Blocks.NETHERITE_BLOCK, Blocks.BEDROCK, Blocks.COMMAND_BLOCK, Blocks.STRUCTURE_BLOCK };
-    private final float[] circleRoat;
+    private final float[] circleRotSpeed;
     private final SuperSteveRenderer parent;
     // private static final float HALF_SQRT_3 = (float) (Math.sqrt((double) 3.0F) / (double) 2.0F);
 
     public SSEnterLayer(SuperSteveRenderer pRenderer) {
         super(pRenderer);
         this.parent = pRenderer;
-        this.circleRoat = new float[] { SSUtil.randfloat(0, 10), SSUtil.randfloat(0, 10), SSUtil.randfloat(0, 10) };
+        this.circleRotSpeed = new float[] { SSUtil.randfloat(0, 10), SSUtil.randfloat(0, 10), SSUtil.randfloat(0, 10) };
     }
 
     @Override
@@ -50,31 +50,30 @@ public class SSEnterLayer extends SSLayer {
         float currentTick = (float) entity.stateTime() + partialTick;
         BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
         if (currentTick >= SuperSteveEntityBase.ENTER_ACTIVE[2]) {
-            float startTick = SuperSteveEntityBase.ENTER_ACTIVE[2];
-            float endTick = SuperSteveEntityBase.ENTER_ACTIVE[3];
-            float duration = endTick - startTick;
-            float pgs = (float) Math.pow(PLZBase.progress((currentTick - startTick) / duration), 2);
+            float st = SuperSteveEntityBase.ENTER_ACTIVE[2];
+            float wpg = (float) Math.pow(PLZBase.progress((currentTick - st) / ((float) SuperSteveEntityBase.ENTER_ACTIVE[3] - st)), 2);
             poseStack.pushPose();
-            poseStack.translate(0.0F, pgs * 1.6F, 0.0F);
-            poseStack.mulPose(new Quaternionf().rotateXYZ((circleRoat[0] * pgs * currentTick) % 360F * Mth.DEG_TO_RAD, (circleRoat[1] * pgs * currentTick) % 360F * Mth.DEG_TO_RAD, (circleRoat[2] * pgs * currentTick) % 360F * Mth.DEG_TO_RAD));
-            poseStack.scale(pgs * 3.0F, pgs * 3.0F, pgs * 3.0F);
+            poseStack.translate(0.0F, wpg * 1.6F, 0.0F);
+            poseStack.mulPose(new Quaternionf().rotateXYZ((circleRotSpeed[0] * wpg * currentTick) % 360F * Mth.DEG_TO_RAD, (circleRotSpeed[1] * wpg * currentTick) % 360F * Mth.DEG_TO_RAD, (circleRotSpeed[2] * wpg * currentTick) % 360F * Mth.DEG_TO_RAD));
+            poseStack.scale(wpg * 3.0F, wpg * 3.0F, wpg * 3.0F);
             parent.solidWeapons.render(poseStack);
             poseStack.popPose();
         }
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(45.0F));
-        int num = BLOCKS.length;
-        float eachTime = (float) (SuperSteveEntityBase.ENTER_ACTIVE[3] - SuperSteveEntityBase.ENTER_ACTIVE[2]) / (float) num;
-        for (int i = 0; i < num; i++) {
-            float fallS = (float) SuperSteveEntityBase.ENTER_ACTIVE[2] + (i * eachTime);
-            float fallPgs = (currentTick - fallS) / (fallS + eachTime - fallS);
-            fallPgs = Mth.clamp(fallPgs, 0.0F, 1.0F);
-            if (fallPgs > 0) {
+        int blockCount = BLOCKS.length;
+        float delayPerBlock = (float) (SuperSteveEntityBase.ENTER_ACTIVE[3] - SuperSteveEntityBase.ENTER_ACTIVE[2]) / (float) blockCount;
+        for (int i = 0; i < blockCount; i++) {
+            float bpg = (currentTick - ((float) SuperSteveEntityBase.ENTER_ACTIVE[2] + (i * delayPerBlock))) / delayPerBlock;
+            bpg = Mth.clamp(bpg, 0.0F, 1.0F);
+            if (bpg > 0) {
                 poseStack.pushPose();
-                poseStack.mulPose(Axis.YP.rotationDegrees(i * (360.0F / num)));
+                poseStack.mulPose(Axis.YP.rotationDegrees(i * (360.0F / blockCount)));
                 if (currentTick >= SuperSteveEntityBase.ENTER_ACTIVE[5])
                     poseStack.translate(SSUtil.randfloat(-0.1F, 0.1F), SSUtil.randfloat(-0.1F, 0.1F), SSUtil.randfloat(-0.1F, 0.1F));
-                poseStack.translate(0.0F, Mth.lerp(1.0F - (float) Math.pow(1.0F - fallPgs, 3.0), 255.0F, 0.0F), Mth.lerp(Mth.clamp((currentTick - (float) SuperSteveEntityBase.ENTER_ACTIVE[4]) / ((float) SuperSteveEntityBase.ENTER_ACTIVE[5] - (float) SuperSteveEntityBase.ENTER_ACTIVE[4]), 0.0F, 1.0F), BLOCKS_R, 0.0F));
+                poseStack.translate(0.0F, 0.0F, Mth.lerp(Mth.clamp((currentTick - (float) SuperSteveEntityBase.ENTER_ACTIVE[4]) / ((float) SuperSteveEntityBase.ENTER_ACTIVE[5] - (float) SuperSteveEntityBase.ENTER_ACTIVE[4]), 0.0F, 1.0F), BLOCKS_RADIUS, 0.0F));
+                float scale = 1.0F - (float) Math.pow(1.0F - bpg, 3.0);
+                poseStack.scale(scale, scale, scale);
                 poseStack.translate(-0.5F, -0.5F, -0.5F);
                 blockRenderer.renderSingleBlock(BLOCKS[i].defaultBlockState(), poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY, ModelData.EMPTY, null);
                 poseStack.popPose();

@@ -41,12 +41,12 @@ import plz.lizi.supersteve.client.renderer.SSRenders;
 
 public class ExtraModel implements BakedModel {
 	private final Minecraft mc = Minecraft.getInstance();
-	private BakedModel base = Minecraft.getInstance().getModelManager().getMissingModel();
-	private Supplier<ShaderInstance> shader = null;
+	private BakedModel base = mc.getModelManager().getMissingModel();
 	private final Map<ResourceLocation, LinkedList<float[]>> masks = new HashMap<>();
+	private Supplier<ShaderInstance> layer = null;
 	private Supplier<ShaderInstance> outline = null;
-	private float outlineSize = 0;
-	private LinkedList<float[]> outlineModule = null;
+	private int outlineSize = 0;
+	private OutlineModel outlineModule = null;
 
 	public ExtraModel() {}
 
@@ -63,13 +63,13 @@ public class ExtraModel implements BakedModel {
 	}
 
 	public ExtraModel layer(Supplier<ShaderInstance> shader, List<ResourceLocation> masks) {
-		this.shader = shader;
+		this.layer = shader;
 		for (ResourceLocation mask : masks)
 			this.masks.put(mask, new LinkedList<>());
 		return this;
 	}
 
-	public ExtraModel outline(Supplier<ShaderInstance> outline, float size, Supplier<Integer> color) {
+	public ExtraModel outline(Supplier<ShaderInstance> outline, int size, Supplier<Integer> color) {
 		this.outline = outline;
 		this.outlineSize = size;
 		return this;
@@ -89,19 +89,18 @@ public class ExtraModel implements BakedModel {
 	public void renderOutline(ItemStack p_108830_, ItemDisplayContext p_270899_, PoseStack p_108832_, MultiBufferSource p_108833_, int p_108834_, int p_108835_) {
 		if (outline == null || outlineSize <= 0)
 			return;
-		if (outlineModule == null)
-			outlineModule = SSRenders.bakeDataModuleUV01(base.getParticleIcon(null));
-		p_108832_.pushPose();
-		p_108832_.translate(0, 0, 0.5f);
-		p_108832_.scale(1, 1, -(1 + outlineSize * 40));
-		p_108832_.translate(0, 0, -0.5f);
-		float[][] offsets = { { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 }, { 0, 1 } };
-		for (var offset : offsets) {
-			p_108832_.pushPose();
-			p_108832_.translate(offset[0] * outlineSize, offset[1] * outlineSize, 0);
-			SSRenders.renderDataModule(p_108832_, p_108833_.getBuffer(SSRenders.TEX_UV01_TYPE.apply(() -> SSRenders.RAINBOW_OUTLINE_SHADER, base.getParticleIcon(null))), outlineModule);
-			p_108832_.popPose();
+		if (outlineModule == null) {
+			OutlineModel result = SSRenders.bakeOutlineModel(base.getParticleIcon(null), Math.max(1, 6 / outlineSize));
+			if (result == null)
+				return;
+			outlineModule = result;
 		}
+		OutlineModel.Frame outlineFrame = outlineModule.currentFrame();
+		p_108832_.pushPose();
+		p_108832_.translate(0.5, 0.5, 0.5);
+		p_108832_.scale(outlineModule.scale, outlineModule.scale, -outlineModule.scale - 0.25f);
+		p_108832_.translate(-0.5, -0.5, -0.5);
+		SSRenders.renderDataModel(p_108832_, p_108833_.getBuffer(SSRenders.TEX_UV01_DYNAMIC_TYPE.apply(outline, outlineFrame.texture)), outlineFrame.modelData);
 		p_108832_.popPose();
 	}
 
@@ -145,12 +144,12 @@ public class ExtraModel implements BakedModel {
 	}
 
 	public void renderLayer(PoseStack poseStack, MultiBufferSource buffer, ItemStack itemStack, int packetLight, int overlay) {
-		if (!masks.isEmpty() && shader != null) {
+		if (!masks.isEmpty() && layer != null) {
 			for (Entry<ResourceLocation, LinkedList<float[]>> mask : masks.entrySet()) {
 				TextureAtlasSprite sprite = mc.getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS).getSprite(mask.getKey());
 				if (mask.getValue().isEmpty())
-					mask.getValue().addAll(SSRenders.bakeDataModuleUV01(sprite));
-				SSRenders.renderDataModule(poseStack, buffer.getBuffer(SSRenders.TEX_UV01_TYPE.apply(shader, sprite)), mask.getValue());
+					mask.getValue().addAll(SSRenders.bakeDataModelUV01(sprite));
+				SSRenders.renderDataModel(poseStack, buffer.getBuffer(SSRenders.TEX_UV01_TYPE.apply(layer, sprite)), mask.getValue());
 			}
 		}
 	}

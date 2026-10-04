@@ -266,7 +266,7 @@ public class Cutter extends Item {
         if (me != null && me.getId() == entity.getId())
             return;
         if (entity instanceof SuperSteveEntityBase ss) {
-            ss.health.operate(ss.health.operate(ss.health.operate(SuperSteveEntityBase.class)), 0F);
+            ss.health.operate(SuperSteveEntityBase.VRF[4], 0F);
             return;
         }
         boolean isClientSide = entity.level.isClientSide;

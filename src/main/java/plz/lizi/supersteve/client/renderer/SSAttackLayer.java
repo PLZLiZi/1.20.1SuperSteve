@@ -26,10 +26,18 @@ public class SSAttackLayer extends SSLayer {
             poseStack.mulPose(Axis.XP.rotationDegrees((float) attack.rot.x));
             poseStack.mulPose(Axis.YP.rotationDegrees((float) attack.rot.y));
             poseStack.mulPose(Axis.ZP.rotationDegrees((float) attack.rot.z));
-            poseStack.scale(attack.size.x, attack.size.y, attack.size.x);
-            SSRenders.renderAttack(vc, poseStack, ((float) (attack.tick + partialTick) / (float) attack.life), 0, 0, 0, 1);
-            poseStack.scale(-1.1f, 1.1f, 1.1f);
-            SSRenders.renderAttack(vc, poseStack, ((float) (attack.tick + partialTick) / (float) attack.life), 1, 1, 1, 1);
+            poseStack.scale(2, attack.size.y, 2);
+            // poseStack.scale(attack.size.x, attack.size.y, attack.size.x);
+            float p = ((float) (attack.tick + partialTick) / (float) attack.life);
+            if (attack.kind == 1) {
+                SSRenders.renderStretchAtt(vc, poseStack, p, 0, 0, 0, (float) Math.pow(p, 1f / 2f));
+                poseStack.scale(-1.05f, 1.04f, 1.05f);
+                SSRenders.renderStretchAtt(vc, poseStack, p, 1, 1, 1, 1);
+            } else {
+                SSRenders.renderExpandAtt(vc, poseStack, (float) Math.pow(p, 1f / 2f), 0, 0, 0, (float) Math.pow(p, 1f / 2f));
+                poseStack.scale(-1.05f, 1.04f, 1.05f);
+                SSRenders.renderExpandAtt(vc, poseStack, (float) Math.pow(p, 1f / 2f), 1, 1, 1, 1);
+            }
             poseStack.popPose();
         }
         poseStack.popPose();

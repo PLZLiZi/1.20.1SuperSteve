@@ -269,7 +269,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				for (var t : cl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
 					if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
 						continue;
-					attacks.add(new Attack(SSUtil.randint(4, 6), null, t.position.add(SSUtil.randfloat(-0.5F, 0.5F), t.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1.5f), SSUtil.randfloat(1f, 1.5f))));
+					attacks.add(new Attack(SSUtil.randfloat(0, 1) < 0.5f ? 0 : 1, 5, null, SSUtil.randCapsulePos(t), new Vec2(t.getBbHeight(), t.getBbHeight())));
 				}
 			}
 		}
@@ -751,7 +751,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 							((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 							player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 						}
-						health.operate(health.operate(health.operate(SuperSteveEntityBase.class)), 0F);
+						health.operate(SuperSteveEntityBase.VRF[0], 0F);
 						return true;
 					}
 				}
@@ -760,7 +760,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					attackPst = 1F;
 				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
-					health.operate(health.operate(health.operate(SuperSteveEntityBase.class)), (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
+					health.operate(SuperSteveEntityBase.VRF[1], (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 				super.hurt(damagesource, 0F);
 				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 				return true;
@@ -769,7 +769,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			Entity attacker = damagesource.getEntity();
 			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 			if (!level.isClientSide)
-				health.operate(health.operate(health.operate(SuperSteveEntityBase.class)), (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
+				health.operate(SuperSteveEntityBase.VRF[2], (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
 			super.hurt(damagesource, 0F);
 			doHurtTarget(attacker);
 			return true;
@@ -986,7 +986,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (entity == null || entity instanceof SuperSteveEntityBase || !(entity instanceof LivingEntity))
 			return false;
 		if (!threadCall)
-			SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getUUID(), SSUtil.randint(3, 6), new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), entity.position.add(SSUtil.randfloat(-0.5F, 0.5F), entity.getBbHeight() / 2d + SSUtil.randfloat(-0.5F, 0.5F), SSUtil.randfloat(-0.5F, 0.5F)), new Vec2(SSUtil.randfloat(0.5f, 1f), SSUtil.randfloat(0.5f, 1f))));
+			SSNetworks.PACKET_HANDLER.send(PacketDistributor.ALL.noArg(), new SSNetworks.AddAttact(getUUID(), SSUtil.randfloat(0, 1) < 0.5f ? 0 : 1, 5, new Vec3(SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360), SSUtil.randfloat(0, 360)), SSUtil.randCapsulePos(entity), new Vec2(entity.getBbHeight(), entity.getBbHeight())));
 		if (!(entity instanceof Player player)) {
 			// SSUtil.killEntity(entity);
 			if (entity instanceof LivingEntity lt) {
@@ -1313,7 +1313,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			health.operate(health.operate(health.operate(SuperSteveEntityBase.class)), MAX_HEALTH);
+			health.operate(SuperSteveEntityBase.VRF[3], MAX_HEALTH);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
@@ -3844,4 +3844,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		float f1 = Math.min(1.0f, (float) Math.sqrt(vec3.x * vec3.x * (double) 0.2f + vec3.y * vec3.y + vec3.z * vec3.z * (double) 0.2f) * f);
 		this.playSwimSound(f1);
 	}
+
+	@Override
+	public void push(double pX, double pY, double pZ) {}
 }

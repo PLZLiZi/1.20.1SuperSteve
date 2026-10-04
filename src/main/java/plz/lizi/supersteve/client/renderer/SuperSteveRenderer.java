@@ -43,7 +43,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 		addSSLayer(new SSEnterLayer(this));
 		addSSLayer(new SSBackLayer(this));
 		addSSLayer(new SSGeoLayer(this));
-		addSSLayer(new SSStripeLayer(this));
+		// addSSLayer(new SSStripeLayer(this));
 		addSSLayer(new SSWeaponLayer(this));
 		addSSLayer(new SSSheildLayer(this));
 		addSSLayer(new SSFieldLayer(this));
