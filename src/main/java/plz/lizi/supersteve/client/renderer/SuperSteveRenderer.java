@@ -27,8 +27,8 @@ import com.mojang.math.Axis;
 
 public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase, SuperSteveModel> {
 	private static final ResourceLocation TEXTURE = ResourceLocation.tryBuild(SuperSteveMod.MODID, "textures/entities/steve.png");
-	private static final ResourceLocation WEAPON_CIRCLE = new ResourceLocation("supersteve:textures/entities/ss_weapon_circle.png");
 	private static final float SCALE = 0.95F;
+	public static final ResourceLocation WEAPON_CIRCLE = new ResourceLocation("supersteve:textures/entities/ss_weapon_circle.png");
 	private final HumanoidArmorLayer<SuperSteveEntityBase, SuperSteveModel, SuperSteveModel> armorLayer;
 	private final ItemInHandLayer<SuperSteveEntityBase, SuperSteveModel> itemInHandLayer;
 	private final List<SSLayer> moveLayers = new ArrayList<>();
@@ -40,10 +40,10 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 		solidWeapons = new SolidImgModel(WEAPON_CIRCLE, 1F / 16F);
 		itemInHandLayer = new ItemInHandLayer<>(this, context.getItemInHandRenderer());
 		armorLayer = (new HumanoidArmorLayer<>(this, new SuperSteveModel(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)), new SuperSteveModel(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)), context.getModelManager()));
+		addSSLayer(new SSEnvLayer(this));
 		addSSLayer(new SSEnterLayer(this));
 		addSSLayer(new SSBackLayer(this));
 		addSSLayer(new SSGeoLayer(this));
-		// addSSLayer(new SSStripeLayer(this));
 		addSSLayer(new SSWeaponLayer(this));
 		addSSLayer(new SSSheildLayer(this));
 		addSSLayer(new SSFieldLayer(this));

@@ -28,8 +28,9 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 5F;
 	public static final int MAX_INVULNERABLE_TICK = 40;
 	public static final float MAX_HEALTH = 20F;
-	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块动画开始 / 环出现 / 多边形出现 */, 80/* 方块动画结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */ };
-	public static final int[] DEATH_ACTIVE = { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */ };
+	public static final int[] ENTER_ACTIVE = { 110/* 入场时长 */, 108/* 爆炸产生 */, 0/* 方块动画开始 / 环出现 / 多边形出现 */, 80/* 方块动画结束 / 环最大 / 多边形大 */, 80/* 方块合并开始 */, 100/* 方块合并结束 */, 0/* 黑幕淡入开始 */, 100/* 黑幕淡入结束 */ };
+	public static final int[] ALIVE_ACTIVE = { 2/* 代码雨上升一格最少tick */, 4/* 代码雨上升一格最多tick */, 60/* 方块入场错峰总时长 */ };
+	public static final int[] DEATH_ACTIVE = { 750/* 死亡时长 */, 0/* 落剑开始 */, 80/* 落剑结束 */, 0/* 领域展开 */, 730/* 领域收回 */, 20/* 声音开始播放 */, 0/* 黑幕淡出开始 */, 60/* 黑幕淡出结束 */, 40/* 方块统一缩小消失tick */ };
 	public static final String[] VRF = { "asdhfoipe", "kanfdspjiej", "poidjfwenfn", "pijaspfjie", "weijvocnioi", "dpfj9iewjvj", "iodnfocuue", "lisdhfuehnn" };
 	public static final List<String> LVRF = List.of(VRF);
 	public static final EntityDataAccessor<String> SS_HEALTH = SynchedEntityData.defineId(SuperSteveEntityBase.class, EntityDataSerializers.STRING);

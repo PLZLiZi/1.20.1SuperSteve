@@ -39,6 +39,7 @@ import net.minecraft.client.renderer.block.model.BlockElementFace;
 import net.minecraft.client.renderer.block.model.FaceBakery;
 import net.minecraft.client.renderer.block.model.ItemModelGenerator;
 import net.minecraft.client.renderer.blockentity.TheEndPortalRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.SpriteContents;
@@ -72,6 +73,13 @@ public class SSRenders {
 			RenderSystem.setShaderTexture(0, tex.getId());
 	}, () -> {
 	}) {}).setWriteMaskState(WriteMaskStateShard.COLOR_WRITE).setTransparencyState(TransparencyStateShard.TRANSLUCENT_TRANSPARENCY).setCullState(CullStateShard.CULL).setLightmapState(LightmapStateShard.NO_LIGHTMAP).createCompositeState(false)));
+	public static AbstractTexture ENV_GLYPH_BIND;
+	public static final RenderType ENV_MASK = RenderType.create("supersteve:env_mask", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 4096, false, true, RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_SHADER).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setWriteMaskState(RenderStateShard.COLOR_WRITE).setCullState(RenderStateShard.NO_CULL).createCompositeState(false));
+	public static final RenderType ENV_GLYPH = RenderType.create("supersteve:env_glyph", DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, Mode.QUADS, 4096, false, false, RenderType.CompositeState.builder().setShaderState(RenderStateShard.RENDERTYPE_TEXT_SHADER).setTextureState(new EmptyTextureStateShard(() -> {
+		if (ENV_GLYPH_BIND != null)
+			RenderSystem.setShaderTexture(0, ENV_GLYPH_BIND.getId());
+	}, () -> {
+	}) {}).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setWriteMaskState(RenderStateShard.COLOR_WRITE).setCullState(RenderStateShard.NO_CULL).setLightmapState(LightmapStateShard.LIGHTMAP).createCompositeState(false));
 	public static ShaderInstance RAINBOW_OUTLINE_SHADER;
 	public static ShaderInstance MC_SHADER;
 

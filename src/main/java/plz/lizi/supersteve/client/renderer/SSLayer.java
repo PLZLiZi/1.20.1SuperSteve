@@ -6,16 +6,13 @@ import plz.lizi.supersteve.client.renderer.model.SuperSteveModel;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 
 public abstract class SSLayer extends RenderLayer<SuperSteveEntityBase, SuperSteveModel> {
-
     public SSLayer(SuperSteveRenderer pRenderer) {
         super(pRenderer);
     }
-    
+
     public abstract boolean deathReduce();
 
     public abstract boolean isStatic();
 
     public abstract Set<SuperSteveEntityBase.State> activeAt();
-
-    
 }

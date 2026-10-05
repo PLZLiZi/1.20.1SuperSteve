@@ -1087,8 +1087,8 @@ public class SSUtil {
 	}
 
 	public static class Edge {
-		public float x1, y1, x2, y2; // 缝的两个顶点
-		public Color color; // 对应的有颜色像素的颜色
+		public float x1, y1, x2, y2;
+		public Color color;
 
 		public Edge(float x1, float y1, float x2, float y2, Color color) {
 			this.x1 = x1;
