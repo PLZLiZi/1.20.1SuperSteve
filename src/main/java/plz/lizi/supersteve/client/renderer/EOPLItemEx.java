@@ -70,7 +70,7 @@ public class EOPLItemEx implements IClientItemExtensions {
 
 		@Override
 		public void renderByItem(ItemStack stack, ItemDisplayContext transformType, PoseStack poseStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-			if (MODEL == null)
+			if (MODEL == null && Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0) != Minecraft.getInstance().getModelManager().getMissingModel())
 				MODEL = new ExtraModel().base(Minecraft.getInstance().getItemRenderer().getModel(stack, null, null, 0).getParticleIcon(null)).layer(() -> SSRenders.MC_SHADER, List.of(ResourceLocation.tryParse("supersteve:item/mask"))).outline(() -> SSRenders.RAINBOW_OUTLINE_SHADER, 1, () -> 0);
 			poseStack.pushPose();
 			MODEL.render(stack, transformType, poseStack, buffer, combinedLight, combinedOverlay);

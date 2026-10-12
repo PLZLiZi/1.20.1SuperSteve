@@ -1,13 +1,4 @@
-// Minecraft Blocks. Created by Reinder Nijhoff 2013
-// Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
-// @reindernijhoff
-//
-// https://www.shadertoy.com/view/MdlGz4
-//
-// port of javascript minecraft: http://jsfiddle.net/uzMPU/
-// original code by Markus Persson: https://twitter.com/notch/status/275331530040160256
-
-#version 150
+#version 330
 
 uniform sampler2D Sampler0;
 uniform float GameTime;
@@ -17,41 +8,49 @@ in vec2 texCoord0;
 out vec4 fragColor;
 
 #define LIGNT 2.
+#define VIEW_SWAY 0.0
 
-float hash(float n) {
-    return fract(sin(n) * 43758.5453);
+uint hashU(uint x) {
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
 }
 
-// port of minecraft
+float hash(float n) {
+    return float(hashU(floatBitsToUint(n))) * (1.0 / 4294967296.0);
+}
 
 bool getMaterialColor(int i, vec2 coord, out vec3 color) {
-	// 16x16 tex
     vec2 uv = floor(coord);
 
     float n = uv.x + uv.y * 347.0 + 4321.0 * float(i);
     float h = hash(n);
 
     float br = 1. - h * (96. / 255.);
-    color = vec3(150. / 255., 108. / 255., 74. / 255.); // 0x966C4A;
+    color = vec3(150. / 255., 108. / 255., 74. / 255.);
 
     if(i == 4) {
-        color = vec3(127. / 255., 127. / 255., 127. / 255.); // 0x7F7F7F;
+        color = vec3(127. / 255., 127. / 255., 127. / 255.);
     }
 
     float xm1 = mod((uv.x * uv.x * 3. + uv.x * 81.) / 4., 4.);
 
     if(i == 1) {
         if(uv.y < (xm1 + 18.)) {
-            color = vec3(106. / 255., 170. / 255., 64. / 255.); // 0x6AAA40;
+            color = vec3(106. / 255., 170. / 255., 64. / 255.);
         } else if(uv.y < (xm1 + 19.)) {
-            br = br * (2. / 3.);
+            br *= (2. / 3.);
         }
     }
 
     if(i == 7) {
-        color = vec3(103. / 255., 82. / 255., 49. / 255.); // 0x675231;
-        if(uv.x > 0. && uv.x < 15. && ((uv.y > 0. && uv.y < 15.) || (uv.y > 32. && uv.y < 47.))) {
-            color = vec3(188. / 255., 152. / 255., 98. / 255.); // 0xBC9862;
+        color = vec3(103. / 255., 82. / 255., 49. / 255.);
+        if(uv.x > 0. && uv.x < 15. &&
+            ((uv.y > 0. && uv.y < 15.) || (uv.y > 32. && uv.y < 47.))) {
+            color = vec3(188. / 255., 152. / 255., 98. / 255.);
             float xd = (uv.x - 7.);
             float yd = (mod(uv.y, 16.) - 7.);
             if(xd < 0.)
@@ -60,21 +59,20 @@ bool getMaterialColor(int i, vec2 coord, out vec3 color) {
                 yd = 1. - yd;
             if(yd > xd)
                 xd = yd;
-
             br = 1. - (h * (32. / 255.) + mod(xd, 4.) * (32. / 255.));
         } else if(h < 0.5) {
-            br = br * (1.5 - mod(uv.x, 2.));
+            br *= (1.5 - mod(uv.x, 2.));
         }
     }
 
     if(i == 5) {
-        color = vec3(181. / 255., 58. / 255., 21. / 255.); // 0xB53A15;
+        color = vec3(181. / 255., 58. / 255., 21. / 255.);
         if(mod(uv.x + (floor(uv.y / 4.) * 5.), 8.) == 0. || mod(uv.y, 4.) == 0.) {
-            color = vec3(188. / 255., 175. / 255., 165. / 255.); // 0xBCAFA5;
+            color = vec3(188. / 255., 175. / 255., 165. / 255.);
         }
     }
     if(i == 9) {
-        color = vec3(64. / 255., 64. / 255., 255. / 255.); // 0x4040ff;
+        color = vec3(64. / 255., 64. / 255., 255. / 255.);
     }
 
     float brr = br;
@@ -82,23 +80,22 @@ bool getMaterialColor(int i, vec2 coord, out vec3 color) {
         brr /= 2.;
 
     if(i == 8) {
-        color = vec3(80. / 255., 217. / 255., 55. / 255.); // 0x50D937;
-        if(h < 0.5) {
+        color = vec3(80. / 255., 217. / 255., 55. / 255.);
+        if(h < 0.5)
             return false;
-        }
     }
 
     color *= brr;
-
     return true;
 }
 
 int getMap(vec3 pos) {
-    vec3 posf = floor((pos - vec3(32.)));
+    vec3 posf = floor(pos - vec3(32.));
 
     float n = posf.x + posf.y * 517.0 + 1313.0 * posf.z;
     float h = hash(n);
 
+    // sqrt(sqrt(x)) == x^0.25；GPU 上两个 sqrt 比 pow 更快
     if(h > sqrt(sqrt(dot(posf.yz, posf.yz) * 0.16)) - 0.8) {
         return 0;
     }
@@ -107,8 +104,15 @@ int getMap(vec3 pos) {
 }
 
 vec3 renderMinecraft(vec2 uv) {
-    float xRot = sin(GameTime * 1000. * 0.5) * 0.1 + (3.1415 / 2.);
-    float yRot = cos(GameTime * 1000. * 0.5) * 0.1;
+    float xRot, yRot;
+    if(VIEW_SWAY == 0.0) {
+        xRot = 3.1415 / 2.;
+        yRot = 0.;
+    } else {
+        xRot = sin(GameTime * 1000. * 0.5) * VIEW_SWAY + (3.1415 / 2.);
+        yRot = cos(GameTime * 1000. * 0.5) * VIEW_SWAY;
+    }
+
     float yCos = cos(yRot);
     float ySin = sin(yRot);
     float xCos = cos(xRot);
@@ -122,7 +126,7 @@ vec3 renderMinecraft(vec2 uv) {
 
     float gggzd = ggzd * yCos + ggyd * ySin;
 
-    vec3 _posd = vec3(gggxd * xCos + gggzd * xSin, ggyd * yCos - ggzd * ySin, gggzd * xCos - gggxd * xSin);
+    vec3 _posd = vec3(gggxd * xCos + gggzd * xSin, ggyd * yCos - gggzd * ySin, gggzd * xCos - gggxd * xSin);
 
     vec3 col = vec3(0.);
     float br = 1.;
@@ -136,7 +140,6 @@ vec3 renderMinecraft(vec2 uv) {
 
         float ll = abs(1. / dimLength);
         vec3 posd = _posd * ll;
-        ;
 
         float initial = fract(opos[d]);
         if(dimLength > 0.)
@@ -145,21 +148,21 @@ vec3 renderMinecraft(vec2 uv) {
         float dist = ll * initial;
 
         vec3 pos = opos + posd * initial;
-
-        if(dimLength < 0.) {
+        if(dimLength < 0.)
             pos[d] -= 1.;
-        }
+
+        if(dist >= closest)
+            continue;
 
         for(int i = 0; i < 30; i++) {
             if(dist > closest)
-                continue;
+                break;
 
-			//int tex = getMap( mod( pos, 64. ) );
             int tex = getMap(pos);
 
             if(tex > 0) {
                 vec2 texcoord;
-                texcoord.x = mod(((pos.x + pos.z) * 16.), 16.);
+                texcoord.x = mod((pos.x + pos.z) * 16., 16.);
                 texcoord.y = mod((pos.y * 16.), 16.) + 16.;
                 if(d == 1) {
                     texcoord.x = mod(pos.x * 16., 16.);
@@ -178,6 +181,7 @@ vec3 renderMinecraft(vec2 uv) {
             dist += ll;
         }
     }
+
     col.rgb *= LIGNT;
     return col * ddist * (br / 255.);
 }

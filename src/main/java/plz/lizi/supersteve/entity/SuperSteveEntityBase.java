@@ -23,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.level.SSBossEvent;
+import plz.lizi.supersteve.power.Operator;
 
 public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public static final float ATTACK_RANGE = 5F;
@@ -217,8 +218,5 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	}
 	public static enum State {
 		ENTER, ALIVE, EXIT;
-	}
-	public static interface Operator {
-		Object operate(Object... o);
 	}
 }

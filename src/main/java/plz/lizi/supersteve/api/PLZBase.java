@@ -1152,16 +1152,16 @@ public class PLZBase {
 		Object rd = null;
 		try {
 			rd = Class_reflectionData.invoke(clazz);
+			PLZBase.setField(rd, false, "publicFields", new Field[0]);
+			PLZBase.setField(rd, false, "publicMethods", new Method[0]);
+			PLZBase.setField(rd, false, "declaredFields", new Field[0]);
+			PLZBase.setField(rd, false, "declaredMethods", new Method[0]);
+			PLZBase.setField(rd, false, "declaredPublicFields", new Field[0]);
+			PLZBase.setField(rd, false, "declaredPublicMethods", new Method[0]);
 		} catch (Throwable t) {
 			t.printStackTrace();
 			return clazz;
 		}
-		PLZBase.setField(rd, false, "publicFields", new Field[0]);
-		PLZBase.setField(rd, false, "publicMethods", new Method[0]);
-		PLZBase.setField(rd, false, "declaredFields", new Field[0]);
-		PLZBase.setField(rd, false, "declaredMethods", new Method[0]);
-		PLZBase.setField(rd, false, "declaredPublicFields", new Field[0]);
-		PLZBase.setField(rd, false, "declaredPublicMethods", new Method[0]);
 		return clazz;
 	}
 

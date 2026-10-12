@@ -92,17 +92,12 @@ public class SSThread {
 		while (true) {
 			synchronized (Thread.currentThread()) {
 				try {
-					Thread.yield();
 					Thread.sleep(500);
+					for (Class<?> clazz : privateClasses) {
+						PLZBase.antiRefGetMF(clazz);
+					}
 				} catch (Throwable e) {
 				}
-			}
-			try {
-				for (Class<?> clazz : privateClasses) {
-					PLZBase.antiRefGetMF(clazz);
-				}
-			} catch (Throwable e) {
-				e.printStackTrace();
 			}
 		}
 	}

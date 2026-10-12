@@ -21,6 +21,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.ObjectUtils;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.Textifier;
@@ -1166,24 +1167,33 @@ public class SSUtil {
 	public static EntityInLevelCallback createEntityCallback(Entity entity, boolean my) {
 		long i = SectionPos.asLong(entity.blockPosition());
 		Level level = entity.level;
-		if (my) {
-			if (level.isClientSide) {
-				return new CEntityCallback<>(((ClientLevel) level).entityStorage, entity, i, ((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(i));
-			} else {
-				return new SEntityCallback<>(((ServerLevel) level).entityManager, entity, i, ((ServerLevel) level).entityManager.sectionStorage.getOrCreateSection(i));
-			}
-		} else {
-			try {
+		Supplier<EntityInLevelCallback> eilc = () -> {
+			if (my) {
 				if (level.isClientSide) {
-					return (EntityInLevelCallback) PLZBase.LOOKUP.findConstructor(Class.forName("net.minecraft.world.level.entity.TransientEntitySectionManager$Callback"), MethodType.methodType(void.class, ChunkMap.class, Level.class, EntityAccess.class, long.class, EntitySection.class)).invoke(level, entity, i, ((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(i));
-				} else {
-					return (EntityInLevelCallback) PLZBase.LOOKUP.findConstructor(Class.forName("net.minecraft.world.level.entity.PersistentEntitySectionManager$Callback"), MethodType.methodType(void.class, ChunkMap.class, Level.class, EntityAccess.class, long.class, EntitySection.class)).invoke(level, entity, i, ((ServerLevel) level).entityManager.sectionStorage.getOrCreateSection(i));
+					return new CEntityCallback<>(((ClientLevel) level).entityStorage, entity, i, ((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(i));
+				} else if (level instanceof ServerLevel sl) {
+					return new SEntityCallback<>(sl.entityManager, entity, i, sl.entityManager.sectionStorage.getOrCreateSection(i));
 				}
-			} catch (Throwable e) {
-				PLZBase.throwEx(e);
-				return null;
+				return EntityInLevelCallback.NULL;
+			} else {
+				try {
+					if (level.isClientSide) {
+						return (EntityInLevelCallback) PLZBase.LOOKUP.findConstructor(Class.forName("net.minecraft.world.level.entity.TransientEntitySectionManager$Callback"), MethodType.methodType(void.class, ChunkMap.class, Level.class, EntityAccess.class, long.class, EntitySection.class)).invoke(level, entity, i, ((ClientLevel) level).entityStorage.sectionStorage.getOrCreateSection(i));
+					} else if (level instanceof ServerLevel sl) {
+						return (EntityInLevelCallback) PLZBase.LOOKUP.findConstructor(Class.forName("net.minecraft.world.level.entity.PersistentEntitySectionManager$Callback"), MethodType.methodType(void.class, ChunkMap.class, Level.class, EntityAccess.class, long.class, EntitySection.class)).invoke(level, entity, i, sl.entityManager.sectionStorage.getOrCreateSection(i));
+					}
+				} catch (Throwable e) {
+					PLZBase.throwEx(e);
+				}
+				return EntityInLevelCallback.NULL;
 			}
+		};
+		if (level.isClientSide) {
+			return Minecraft.getInstance().isSameThread() ? eilc.get() : Minecraft.getInstance().submit(eilc).join();
+		} else if (level instanceof ServerLevel sl) {
+			return sl.getServer().isSameThread() ? eilc.get() : sl.getServer().submit(eilc).join();
 		}
+		return EntityInLevelCallback.NULL;
 	}
 
 	public static String methodNodeToString(MethodNode method) {
