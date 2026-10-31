@@ -33,12 +33,19 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 import javax.tools.JavaFileObject.Kind;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodNode;
 import plz.lizi.supersteve.api.ClassOption;
 import plz.lizi.supersteve.api.MCObfUtil;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 
 public class HotCplr {
+	public static final String NLSTR = "\n";
 	public static final Map<String, byte[]> MEMORY_CLASS_CACHE = new ConcurrentHashMap<>();
 	private static final Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+([a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*);");
 	private static final Pattern CLASS_PATTERN = Pattern.compile("(class|interface|enum|record)\\s+([a-zA-Z_][a-zA-Z0-9_]*)");
@@ -55,13 +62,18 @@ public class HotCplr {
 	}
 
 	public static byte[] compileToClassfile(String javaCode, ClassLoader cl) throws Exception {
-		String fullClassName = resolveFullClassName(javaCode);
+		return compileToClassfile(javaCode, null, cl);
+	}
+
+	public static byte[] compileToClassfile(String javaCode, String explicitClassName, ClassLoader cl) throws Exception {
+		String fullClassName = explicitClassName != null ? explicitClassName : resolveFullClassName(javaCode);
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
 			throw new IllegalStateException("ToolProvider.getSystemJavaCompiler() is null (env isn't a JDK)");
 		}
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		FileManager fileManager = new FileManager(compiler.getStandardFileManager(diagnostics, null, null), cl);
+		String fileName = fullClassName.substring(fullClassName.lastIndexOf('.') + 1) + ".java";
 		if (compiler.getTask(null, fileManager, diagnostics, List.of("-encoding", "UTF-8"), null, List.of(new DirectJavaFile(fullClassName, javaCode))).call()) {
 			return fileManager.getJavaClassObject().getBytes();
 		} else {
@@ -70,7 +82,7 @@ public class HotCplr {
 			for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
 				if (diagnostic.getLineNumber() != -1 && diagnostic.getKind() == Diagnostic.Kind.ERROR) {
 					hasRealError = true;
-					String error = compileError(diagnostic, javaCode);
+					String error = compileError(diagnostic, javaCode, fileName);
 					allErrors.append(error).append("\n");
 				}
 			}
@@ -102,37 +114,22 @@ public class HotCplr {
 		return packageName.isEmpty() ? className : packageName + "." + className;
 	}
 
-	protected static String compileError(Diagnostic<? extends JavaFileObject> diagnostic, String javaCode) {
+	protected static String compileError(Diagnostic<? extends JavaFileObject> diagnostic, String javaCode, String fileName) {
 		StringBuilder res = new StringBuilder();
-		res.append("§cCompile error\n");
-		res.append("§c==============================================§r\n");
 		long lineNum = diagnostic.getLineNumber();
 		long colNum = diagnostic.getColumnNumber();
-		res.append("Position  : Line ").append(lineNum).append(", Column ").append(colNum).append("\n");
-		res.append("Cause     : ").append(diagnostic.getMessage(null)).append("\n\n");
+		res.append("§7").append(fileName).append(":").append(lineNum).append(":").append(colNum).append(": ").append("§c").append("error: ").append("§f").append(diagnostic.getMessage(null)).append("§r").append(NLSTR);
 		if (javaCode != null && !javaCode.isEmpty() && lineNum > 0) {
-			String[] lines = javaCode.split("\\r?\\n");
-			int targetIndex = (int) lineNum - 1;
-			if (targetIndex < lines.length) {
-				if (targetIndex - 1 >= 0) {
-					res.append(String.format("§8%4d | %s\n", lineNum - 1, lines[targetIndex - 1]));
-				}
-				res.append(String.format("§c%4d | %s\n", lineNum, lines[targetIndex]));
-				res.append("§8     | ");
-				for (int i = 1; i < colNum; i++) {
-					if (i <= lines[targetIndex].length() && lines[targetIndex].charAt(i - 1) == '\t') {
-						res.append("\t");
-					} else {
-						res.append(" ");
-					}
-				}
-				res.append("§c^\n");
-				if (targetIndex + 1 < lines.length) {
-					res.append(String.format("§8%4d | %s\n", lineNum + 1, lines[targetIndex + 1]));
-				}
+			String[] lines = javaCode.split("\r?\n");
+			int idx = (int) lineNum - 1;
+			if (idx < lines.length) {
+				res.append("§f").append(lines[idx]).append("§r").append(NLSTR);
+				res.append("§c");
+				for (int i = 1; i < colNum; i++)
+					res.append(" ");
+				res.append("§c^§r");
 			}
 		}
-		res.append("§c==============================================§r");
 		return res.toString();
 	}
 
@@ -174,7 +171,7 @@ public class HotCplr {
 		private final String binaryName;
 		private final byte[] rawBytes;
 		private final MCObfUtil deobfuscator;
-		private volatile byte[] deobfBytes;
+		private volatile byte[] preparedBytes;
 
 		public DirectClassFile(String binaryName, byte[] rawBytes, MCObfUtil deobfuscator) {
 			super(URI.create("mem:///" + binaryName.replace('.', '/') + Kind.CLASS.extension), Kind.CLASS);
@@ -189,16 +186,51 @@ public class HotCplr {
 
 		@Override
 		public InputStream openInputStream() {
-			byte[] bytes = deobfBytes;
+			byte[] bytes = preparedBytes;
 			if (bytes == null) {
-				bytes = deobfuscator.deobfB(rawBytes);
-				deobfBytes = bytes;
+				bytes = widenAccess(deobfuscator.deobfB(rawBytes));
+				preparedBytes = bytes;
 			}
 			return new ByteArrayInputStream(bytes);
 		}
+
+		private static byte[] widenAccess(byte[] classBytes) {
+			try {
+				ClassReader cr = new ClassReader(classBytes);
+				ClassNode cn = new ClassNode();
+				cr.accept(cn, 0);
+				cn.access |= Opcodes.ACC_PUBLIC;
+				cn.access &= ~(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED | Opcodes.ACC_FINAL);
+				for (MethodNode mn : cn.methods) {
+					mn.access |= Opcodes.ACC_PUBLIC;
+					mn.access &= ~(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED | Opcodes.ACC_FINAL);
+					mn.visibleAnnotations = null;
+					mn.invisibleAnnotations = null;
+					mn.visibleParameterAnnotations = null;
+					mn.invisibleParameterAnnotations = null;
+					mn.visibleTypeAnnotations = null;
+					mn.invisibleTypeAnnotations = null;
+					mn.annotationDefault = null;
+				}
+				for (FieldNode fn : cn.fields) {
+					fn.access |= Opcodes.ACC_PUBLIC;
+					fn.access &= ~(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED | Opcodes.ACC_FINAL);
+					fn.visibleAnnotations = null;
+					fn.invisibleAnnotations = null;
+				}
+				cn.visibleAnnotations = null;
+				cn.invisibleAnnotations = null;
+				cn.visibleTypeAnnotations = null;
+				cn.invisibleTypeAnnotations = null;
+				ClassWriter cw = new ClassWriter(0);
+				cn.accept(cw);
+				return cw.toByteArray();
+			} catch (Throwable e) {
+				return classBytes;
+			}
+		}
 	}
 	protected static class FileManager extends ForwardingJavaFileManager<JavaFileManager> {
-		private static final Map<String, List<DirectClassFile>> PACKAGE_CACHE = new ConcurrentHashMap<>();
 		private static final Map<String, Map<String, byte[]>> ZIP_CACHE = new ConcurrentHashMap<>();
 		private final ClassLoader targetClassLoader;
 		private Result javaClassObject;
@@ -214,17 +246,16 @@ public class HotCplr {
 		}
 
 		@Override
-		public Iterable<JavaFileObject> list(Location location, String packageName, Set<Kind> kinds, boolean recurse) throws IOException {
-			Iterable<JavaFileObject> standard = super.list(location, packageName, kinds, recurse);
-			if (location == StandardLocation.CLASS_PATH && kinds.contains(Kind.CLASS)) {
-				Map<String, JavaFileObject> result = new HashMap<>();
-				standard.forEach(s -> result.put(s.getName(), s));
-				for (var o : PACKAGE_CACHE.computeIfAbsent(packageName, pn -> buildPackageClasses(pn))) {
-					result.put(o.getName(), o);
+		public JavaFileObject getJavaFileForInput(Location location, String className, Kind kind) throws IOException {
+			if (location == StandardLocation.CLASS_PATH && kind == Kind.CLASS) {
+				String path = className.replace('.', '/') + ".class";
+				try (java.io.InputStream is = targetClassLoader.getResourceAsStream(path)) {
+					if (is != null)
+						return new DirectClassFile(className, is.readAllBytes(), SSUtil.MC_OBF_UTIL);
+				} catch (Throwable e) {
 				}
-				return result.values();
 			}
-			return standard;
+			return super.getJavaFileForInput(location, className, kind);
 		}
 
 		private List<DirectClassFile> buildPackageClasses(String packageName) {
@@ -244,9 +275,14 @@ public class HotCplr {
 							if (connection instanceof JarURLConnection jarConnection) {
 								try (JarFile jarFile = jarConnection.getJarFile()) {
 									for (var file : cachedFilesInZip(jarFile).entrySet()) {
-										if (!file.getKey().startsWith(packagePath))
+										if (!file.getKey().startsWith(packagePath + "/"))
 											continue;
-										list.add(new DirectClassFile(file.getKey().replace('/', '.'), file.getValue(), SSUtil.MC_OBF_UTIL));
+										String bin = file.getKey().replace('/', '.');
+										if (bin.endsWith(".class"))
+											bin = bin.substring(0, bin.length() - 6);
+										if (isPackageShadow(bin, cachedFilesInZip(jarFile).keySet()))
+											continue;
+										list.add(new DirectClassFile(bin, file.getValue(), SSUtil.MC_OBF_UTIL));
 									}
 								}
 							} else if (connection != null) {
@@ -267,12 +303,14 @@ public class HotCplr {
 											pathPart = pathPart.substring(0, hashIdx);
 										}
 										for (var file : cachedFilesInZip(pathPart).entrySet()) {
-											if (file.getKey().contains("com/mojang/brigadier")) {
-												System.out.println(file.getKey());
-											}
-											if (!file.getKey().startsWith(packagePath))
+											if (!file.getKey().startsWith(packagePath + "/"))
 												continue;
-											list.add(new DirectClassFile(file.getKey().replace('/', '.'), file.getValue(), SSUtil.MC_OBF_UTIL));
+											String bin = file.getKey().replace('/', '.');
+											if (bin.endsWith(".class"))
+												bin = bin.substring(0, bin.length() - 6);
+											if (isPackageShadow(bin, cachedFilesInZip(pathPart).keySet()))
+												continue;
+											list.add(new DirectClassFile(bin, file.getValue(), SSUtil.MC_OBF_UTIL));
 										}
 									}
 								}
@@ -288,12 +326,37 @@ public class HotCplr {
 			return list;
 		}
 
+		private static boolean isPackageShadow(String binaryName, Set<String> jarEntries) {
+			int lastDot = binaryName.lastIndexOf('.');
+			if (lastDot < 0)
+				return false;
+			String clsSimple = binaryName.substring(lastDot + 1);
+			String pkgPart = binaryName.substring(0, lastDot);
+			int prevDot = pkgPart.lastIndexOf('.');
+			String pkgLast = prevDot < 0 ? pkgPart : pkgPart.substring(prevDot + 1);
+			return clsSimple.equals(pkgLast);
+		}
+
 		private Map<String, byte[]> cachedFilesInZip(Object jarOrPath) {
 			if (jarOrPath instanceof JarFile jar) {
 				return ZIP_CACHE.computeIfAbsent(jar.getName(), p -> PLZBase.filesInZip(p, ".class", true, false));
-			}else if (jarOrPath instanceof String jarPath)
+			} else if (jarOrPath instanceof String jarPath)
 				return ZIP_CACHE.computeIfAbsent(jarPath, p -> PLZBase.filesInZip(p, ".class", true, false));
 			return null;
+		}
+
+		@Override
+		public Iterable<JavaFileObject> list(Location location, String packageName, Set<Kind> kinds, boolean recurse) throws IOException {
+			Iterable<JavaFileObject> standard = super.list(location, packageName, kinds, recurse);
+			if (location == StandardLocation.CLASS_PATH && kinds.contains(Kind.CLASS)) {
+				Map<String, JavaFileObject> result = new HashMap<>();
+				standard.forEach(s -> result.put(s.getName(), s));
+				for (var o : buildPackageClasses(packageName)) {
+					result.put(o.getName(), o);
+				}
+				return result.values();
+			}
+			return standard;
 		}
 
 		@Override

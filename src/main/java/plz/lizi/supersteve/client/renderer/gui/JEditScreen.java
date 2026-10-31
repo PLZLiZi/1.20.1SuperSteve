@@ -14,6 +14,7 @@ import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.Agt;
 import plz.lizi.supersteve.power.HotCplr;
+import plz.lizi.supersteve.power.MethodPatcher;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +24,7 @@ import com.google.common.base.Objects;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 
 public class JEditScreen extends Screen {
+    private static final String NLSTR = "\n";
     private static final int SIDEBAR_WIDTH = 150;
     private static final int SIDEBAR_BG_WIDTH = SIDEBAR_WIDTH + 16;
     private static final int SEARCH_HEIGHT = 18;
@@ -40,7 +42,6 @@ public class JEditScreen extends Screen {
     private static final int TAB_PAD_R = 6;
     private static final int TAB_ICON_W = 8;
     private static final int TAB_BTN_W = 16;
-
     private static final int C_EDITOR_BG = 0xFF1E1E1E;
     private static final int C_SIDEBAR_BG = 0xFF252526;
     private static final int C_TAB_INACTIVE_BG = 0xFF2D2D2D;
@@ -59,7 +60,6 @@ public class JEditScreen extends Screen {
     private static final int C_ICON_EDITABLE = 0xFF4CAF50;
     private static final int C_ICON_READONLY = 0xFF9D9D9D;
     private static final int C_HIGHLIGHT_BG = 0x1AFFFFFF;
-
     private EditBox searchBox;
     private String query = null;
     private MyObjectSelectionList classList;
@@ -98,17 +98,14 @@ public class JEditScreen extends Screen {
         int consoleTop = this.height - STATUS_BAR_HEIGHT - CONSOLE_PANEL_HEIGHT;
         int editorY = EDITOR_TOP + 2;
         int editorHeight = consoleTop - editorY;
-
         this.searchBox = new ThemedBox(this.font, 8, 18, SIDEBAR_WIDTH - 14, SEARCH_HEIGHT, Component.translatable("item.supersteve.jedit"), "Search classes...");
         this.searchBox.setMaxLength(Integer.MAX_VALUE);
         this.searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(this.searchBox);
-
         int listY = 18 + SEARCH_HEIGHT + 8;
         int listBottom = this.height - 4;
         this.classList = new MyObjectSelectionList(this.minecraft, SIDEBAR_WIDTH, listBottom - listY, listY, listBottom, 18);
         this.addRenderableWidget(this.classList);
-
         this.codeEditor = new MultiLineBoxEx(this.font, rightAreaX, editorY, rightAreaWidth, editorHeight, Component.literal(""), Component.literal("Input"), C_EDITOR_BG);
         this.codeEditor.setSyntaxHighlight(true);
         this.codeEditor.setAutoGutter(true);
@@ -120,14 +117,12 @@ public class JEditScreen extends Screen {
             }
         });
         this.addRenderableWidget(this.codeEditor);
-
         int consoleY = consoleTop + CONSOLE_HEADER_HEIGHT;
         int consoleHeight = (consoleTop + CONSOLE_PANEL_HEIGHT - 4) - consoleY;
         this.consoleBox = new MultiLineBoxEx(this.font, rightAreaX, consoleY, rightAreaWidth, consoleHeight, Component.literal("Console"), Component.literal(""), C_PANEL_BG);
         this.consoleBox.setEdit(false);
         this.consoleBox.setValue("");
         this.addRenderableWidget(this.consoleBox);
-
         this.codeEditor.setValue(savedEditorContent);
         this.consoleBox.setValue(savedConsoleContent);
         this.classList.children().clear();
@@ -163,23 +158,18 @@ public class JEditScreen extends Screen {
         int rightX = SIDEBAR_BG_WIDTH;
         int statusY = this.height - STATUS_BAR_HEIGHT;
         int consoleTop = statusY - CONSOLE_PANEL_HEIGHT;
-
         guiGraphics.fill(0, 0, rightX, this.height, C_SIDEBAR_BG);
         guiGraphics.drawString(this.font, "CLASSES", 10, 6, C_TEXT_DIM, false);
         guiGraphics.vLine(rightX, 0, this.height, 0xFF1A1A1A);
-
         guiGraphics.fill(rightX, 0, this.width, statusY, C_EDITOR_BG);
-
         guiGraphics.fill(rightX, TAB_BAR_TOP, this.width, TAB_BAR_TOP + TAB_BAR_HEIGHT, C_TAB_INACTIVE_BG);
         guiGraphics.hLine(rightX, this.width, TAB_BAR_TOP + TAB_BAR_HEIGHT, C_BORDER);
-
         guiGraphics.fill(rightX, consoleTop, this.width, statusY, C_PANEL_BG);
         guiGraphics.fill(rightX, consoleTop, this.width, consoleTop + CONSOLE_HEADER_HEIGHT, C_PANEL_HEADER);
         guiGraphics.hLine(rightX, this.width, consoleTop + CONSOLE_HEADER_HEIGHT, C_BORDER);
         guiGraphics.drawString(this.font, "CONSOLE", rightX + 10, consoleTop + 6, C_TEXT_SECONDARY, false);
         boolean clearHover = mouseX >= this.width - CLEAR_BTN_WIDTH - 8 && mouseX <= this.width - 8 && mouseY >= consoleTop && mouseY <= consoleTop + CONSOLE_HEADER_HEIGHT;
         guiGraphics.drawString(this.font, "Clear", this.width - CLEAR_BTN_WIDTH - 6, consoleTop + 6, clearHover ? 0xFFFFFFFF : C_TEXT_DIM, false);
-
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         renderTabBar(guiGraphics, mouseX, mouseY);
         renderStatusBar(guiGraphics);
@@ -227,7 +217,6 @@ public class JEditScreen extends Screen {
             int textColor = active ? 0xFFFFFFFF : C_TEXT_SECONDARY;
             String label = this.font.plainSubstrByWidth(tab.title, tx + tw - TAB_PAD_R - TAB_BTN_W * 2 - (tab.exec != null ? TAB_BTN_W : 0) - 4 - TAB_PAD_L - TAB_ICON_W - 4);
             guiGraphics.drawString(this.font, label, textX, tabY + 5, textColor, false);
-
             int buttonsBottom = tx + tw - TAB_BTN_W;
             boolean showClose = active || hovered;
             if (tab.exec != null) {
@@ -266,23 +255,38 @@ public class JEditScreen extends Screen {
         guiGraphics.hLine(0, this.width, sy, C_STATUS_BORDER);
     }
 
-    public void compileSendToExec(String code) {
+    private void runMethodPatch(Tab tab) {
         consoleBox.setValue("");
         long ms = System.currentTimeMillis();
-        String err = null;
+        String report;
+        try {
+            report = MethodPatcher.patchAndApply(tab.originalContent, tab.content, tab.target);
+        } catch (Throwable e) {
+            String m = e.getMessage();
+            report = "§c" + (m != null && !m.isEmpty() ? m : e.toString());
+        }
+        consoleBox.setValue("> method-patch " + tab.target.getName() + NLSTR + report + NLSTR + NLSTR + "§7finished in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s§r");
+    }
+
+    public void compileSendToExec(String code) {
+        consoleBox.setValue("> compile executor" + NLSTR);
+        long ms = System.currentTimeMillis();
         byte[] buf = null;
+        String err = null;
         try {
             buf = SSUtil.MC_OBF_UTIL.obfB(HotCplr.compileToClassfile(code, SuperSteveMod.class.getClassLoader()));
             if (buf == null)
-                err = "Classfile is null";
+                err = "compiler produced no classfile";
         } catch (Throwable e) {
             err = e.getMessage();
         }
-        consoleBox.setValue((err != null ? err + "\n\n" : "") + "Client compile " + (err == null ? "SUCCESSFUL" : "FAILED") + " in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s\n\n");
-        if (err != null)
+        if (err != null) {
+            consoleBox.setValue(consoleBox.getValue() + err + NLSTR + "§ccompile FAILED in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s");
             return;
-        consoleBox.setValue(consoleBox.getValue() + "Sending classfile to server & execute\n\n");
+        }
+        consoleBox.setValue(consoleBox.getValue() + "§acompile OK§r in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s (" + buf.length + " bytes)" + NLSTR + "> sending classfile to server..." + NLSTR);
         SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.JCplrMsg(buf));
+        consoleBox.setValue(consoleBox.getValue() + "sent" + NLSTR);
     }
 
     @Override
@@ -369,6 +373,8 @@ public class JEditScreen extends Screen {
     private static class Tab {
         String title;
         String content;
+        String originalContent;
+        Class<?> target;
         boolean editable;
         Consumer<Tab> exec;
 
@@ -412,14 +418,16 @@ public class JEditScreen extends Screen {
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (button == 0) {
-                Tab tab = new Tab(getClassS1plName(clazz), "Preparing...", false, null);
-                if (tabs.contains(tab))
+                if (tabs.stream().anyMatch(t -> t.title.equals(getClassS1plName(clazz))))
                     return true;
-                tab.content = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(Agt.getClassBytes(clazz)));
+                String content = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(Agt.getClassBytes(clazz)));
+                Tab tab = new Tab(getClassS1plName(clazz), content, true, t -> runMethodPatch(t));
+                tab.originalContent = content;
+                tab.target = clazz;
                 tabs.add(tab);
                 activeTabindex = tabs.size() - 1;
                 JEditScreen.this.codeEditor.setValue(tab.content);
-                JEditScreen.this.codeEditor.setEdit(false);
+                JEditScreen.this.codeEditor.setEdit(true);
             }
             return true;
         }
@@ -429,7 +437,6 @@ public class JEditScreen extends Screen {
             return Component.literal(getClassS1plName(clazz));
         }
     }
-
     public static class MyObjectSelectionList extends ObjectSelectionList<ClassEntry> {
         public MyObjectSelectionList(Minecraft p_94442_, int p_94443_, int p_94444_, int p_94445_, int p_94446_, int p_94447_) {
             super(p_94442_, p_94443_, p_94444_, p_94445_, p_94446_, p_94447_);
@@ -478,7 +485,6 @@ public class JEditScreen extends Screen {
             return this.width - 6;
         }
     }
-
     private static class ThemedBox extends EditBox {
         private final Font fontRenderer;
         private final int fillColor = 0xFF2A2A2A;

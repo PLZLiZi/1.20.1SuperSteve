@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.MultiLineEditBox;
@@ -18,31 +19,32 @@ import com.google.common.base.Objects;
 public class MultiLineBoxEx extends MultiLineEditBox {
     private static final int SELECTION_COLOR = 0xFF264F78;
     private static final int SCROLLBAR_WIDTH = 4;
-
     private static final int J_DEFAULT = 0xFFD4D4D4;
     private static final int J_KEYWORD = 0xFF569CD6;
+    private static final int J_CONTROL = 0xFFC586C0;
     private static final int J_STRING = 0xFFCE9178;
     private static final int J_COMMENT = 0xFF6A9955;
     private static final int J_NUMBER = 0xFFB5CEA8;
-    private static final int J_ANNOTATION = 0xFF4EC9B0;
+    private static final int J_ANNOTATION = 0xFFDCDCAA;
     private static final int J_TYPE = 0xFF4EC9B0;
     private static final int J_MEMBER = 0xFFDCDCAA;
     private static final int J_VARIABLE = 0xFF9CDCFE;
+    private static final int J_CONSTANT = 0xFF4FC1FF;
     private static final int J_CURSOR = 0xFFD4D4D4;
     private static final int J_SELECT_BG = 0x50264F78;
     private static final int PLACEHOLDER_COLOR = -857677600;
-
+    private static final Set<String> JAVA_CONTROL = new HashSet<>(List.of(
+            "assert", "break", "case", "catch", "continue", "default", "do", "else", "finally", "for",
+            "goto", "if", "instanceof", "new", "return", "super", "switch", "throw", "try", "while", "yield"));
     private static final Set<String> JAVA_KEYWORDS = new HashSet<>(List.of(
-            "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const",
-            "continue", "default", "do", "double", "else", "enum", "exports", "extends", "final", "finally",
-            "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long",
-            "module", "native", "new", "open", "opens", "package", "permits", "private", "protected", "provides",
-            "public", "record", "requires", "return", "sealed", "short", "static", "strictfp", "super", "switch",
-            "synchronized", "this", "throw", "throws", "to", "transient", "transitive", "try", "uses", "var",
-            "void", "volatile", "while", "with", "yield", "true", "false", "null"));
-
+            "abstract", "boolean", "byte", "char", "class", "const", "double", "enum", "exports", "extends",
+            "false", "final", "float", "implements", "import", "int", "interface", "long", "module", "native",
+            "non-sealed", "null", "open", "opens", "package", "permits", "private", "protected", "provides",
+            "public", "record", "requires", "sealed", "short", "static", "strictfp", "this", "to", "transient",
+            "transitive", "true", "uses", "var", "void", "volatile", "with"));
     private boolean canEdit = true;
     private boolean dragScrollbar = false;
+    private double dragGrabOffset = 0.0;
     private boolean syntaxHighlight = false;
     private boolean autoGutter = false;
     private int bgColor = 0xFF1E1E1E;
@@ -52,9 +54,9 @@ public class MultiLineBoxEx extends MultiLineEditBox {
     private int lineNumberCurrentColor = 0xFFD4D4D4;
     private int scrollTrackColor = 0xFF262626;
     private int scrollThumbColor = 0xFF5A5A5A;
-
     private String lastTokenValue = null;
     private List<int[]> tokenRuns = null;
+    private Consumer<String> valueListenerChain = null;
 
     public MultiLineBoxEx(Font f, int x, int y, int w, int h, Component placeholder, Component message) {
         super(f, x, y, w, h, placeholder, message);
@@ -84,7 +86,15 @@ public class MultiLineBoxEx extends MultiLineEditBox {
             this.textField.setValue(content);
             this.textField.seekCursor(Whence.ABSOLUTE, cursor);
             this.textField.setCursorListener(this::scrollToCursor);
+            if (this.valueListenerChain != null)
+                this.textField.setValueListener(this.valueListenerChain);
         }
+    }
+
+    @Override
+    public void setValueListener(Consumer<String> consumer) {
+        this.valueListenerChain = consumer;
+        super.setValueListener(consumer);
     }
 
     public int getGutterWidth() {
@@ -202,14 +212,12 @@ public class MultiLineBoxEx extends MultiLineEditBox {
         int rowH = this.font.lineHeight;
         double scroll = this.scrollAmount();
         int cursorRow = this.textField.getLineAtCursor();
-
         if (this.gutterWidth > 0) {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(0.0, scroll, 0.0);
             guiGraphics.fill(this.getX(), this.getY(), this.getX() + this.gutterWidth, this.getY() + this.getHeight(), this.gutterBgColor);
             guiGraphics.fill(this.getX() + this.gutterWidth - 1, this.getY(), this.getX() + this.gutterWidth, this.getY() + this.getHeight(), 0xFF2B2B2B);
             guiGraphics.pose().popPose();
-
             int row = 0;
             int cursorLogical = -1;
             for (MultilineTextField.StringView sv : this.textField.iterateLines()) {
@@ -233,7 +241,6 @@ public class MultiLineBoxEx extends MultiLineEditBox {
                 row++;
             }
         }
-
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(this.gutterWidth, 0.0, 0.0);
         try {
@@ -442,16 +449,20 @@ public class MultiLineBoxEx extends MultiLineEditBox {
                 }
                 String w = value.substring(s, i);
                 int color;
-                if (JAVA_KEYWORDS.contains(w)) {
+                if (JAVA_CONTROL.contains(w)) {
+                    color = J_CONTROL;
+                } else if (JAVA_KEYWORDS.contains(w)) {
                     color = J_KEYWORD;
                     if (w.equals("import") || w.equals("package")) {
                         packageMode = true;
                     }
                 } else if (packageMode) {
                     color = J_TYPE;
+                } else if (isConstantName(w)) {
+                    color = J_CONSTANT;
                 } else if (Character.isUpperCase(value.charAt(s))) {
                     color = J_TYPE;
-                } else if (nextNonSpaceIs(value, i, '(') || prevNonSpaceIs(value, s, '.')) {
+                } else if (nextNonSpaceIs(value, i, '(')) {
                     color = J_MEMBER;
                 } else {
                     color = J_VARIABLE;
@@ -480,6 +491,22 @@ public class MultiLineBoxEx extends MultiLineEditBox {
         return c >= '0' && c <= '9';
     }
 
+    private static boolean isConstantName(String w) {
+        if (w.length() < 2)
+            return false;
+        boolean hasUpper = false;
+        for (int k = 0; k < w.length(); k++) {
+            char c = w.charAt(k);
+            if (c >= 'a' && c <= 'z')
+                return false;
+            if (c >= 'A' && c <= 'Z')
+                hasUpper = true;
+            if (c != '_' && !(c >= 'A' && c <= 'Z') && !(c >= '0' && c <= '9'))
+                return false;
+        }
+        return hasUpper;
+    }
+
     private static boolean nextNonSpaceIs(String value, int from, char target) {
         int n = value.length();
         int k = from;
@@ -489,17 +516,9 @@ public class MultiLineBoxEx extends MultiLineEditBox {
         return k < n && value.charAt(k) == target;
     }
 
-    private static boolean prevNonSpaceIs(String value, int before, char target) {
-        int k = before - 1;
-        while (k >= 0 && (value.charAt(k) == ' ' || value.charAt(k) == '\t' || value.charAt(k) == '\r' || value.charAt(k) == '\n')) {
-            k--;
-        }
-        return k >= 0 && value.charAt(k) == target;
-    }
-
     private static void addRun(List<int[]> runs, int begin, int end, int color) {
         if (end > begin) {
-            runs.add(new int[]{begin, end, color});
+            runs.add(new int[] { begin, end, color });
         }
     }
 
@@ -540,6 +559,13 @@ public class MultiLineBoxEx extends MultiLineEditBox {
         return false;
     }
 
+    public static double SCROLL_LINES = 3.0; // 滚轮每格滚动行数（原版为 0.5 行）
+
+    @Override
+    public double scrollRate() {
+        return this.font.lineHeight * SCROLL_LINES;
+    }
+
     public void setEdit(boolean edit) {
         canEdit = edit;
     }
@@ -555,7 +581,14 @@ public class MultiLineBoxEx extends MultiLineEditBox {
         if (button == 0 && this.isOverScrollbar(mouseX, mouseY)) {
             this.dragScrollbar = true;
             this.setFocused(true);
-            this.setScrollAmountForMouseY(mouseY);
+            int thumbH = this.getScrollThumbHeight();
+            int maxScroll = Math.max(1, this.getMaxScrollAmount());
+            int thumbY = this.getY() + (int) (this.scrollAmount() / (double) maxScroll * (double) (this.getHeight() - thumbH));
+            if (mouseY < thumbY || mouseY > thumbY + thumbH) {
+                this.setScrollAmountForMouseY(mouseY);
+                thumbY = this.getY() + (int) (this.scrollAmount() / (double) maxScroll * (double) (this.getHeight() - thumbH));
+            }
+            this.dragGrabOffset = mouseY - thumbY;
             return true;
         }
         if (button == 0 && this.withinContentAreaPoint(mouseX, mouseY)) {
@@ -574,7 +607,11 @@ public class MultiLineBoxEx extends MultiLineEditBox {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (this.dragScrollbar && button == 0) {
-            this.setScrollAmountForMouseY(mouseY);
+            int thumbH = this.getScrollThumbHeight();
+            int maxScroll = Math.max(1, this.getMaxScrollAmount());
+            double targetThumbY = mouseY - this.dragGrabOffset;
+            double f = (targetThumbY - (double) this.getY()) / (double) Math.max(1, this.getHeight() - thumbH);
+            this.setScrollAmount(f * maxScroll);
             return true;
         }
         if (this.withinContentAreaPoint(mouseX, mouseY) && button == 0) {
