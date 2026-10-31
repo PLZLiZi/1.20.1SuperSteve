@@ -289,7 +289,7 @@ public class Cutter extends Item {
                                 mn.instructions.insertBefore(insn, il);
                             }
                         }
-                    } else if (spcSign.equals("()V m_8119_")) {
+                    } else if (spcSign.equals("()V m_8119_Z")) {
                         InsnList il = new InsnList();
                         il.add(new VarInsnNode(Opcodes.ALOAD, 0));
                         il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "plz/lizi/supersteve/item/Cutter", "tick", "(Lnet/minecraft/world/entity/LivingEntity;)Z", false));

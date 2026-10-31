@@ -40,7 +40,7 @@ public class Agt {
         AGT = PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$AgtLoader", null, true, ClassOption.STRONG, ClassOption.NESTMATE);
         try {
             MH_START = PLZBase.LOOKUP.findStatic(AGT, "start", MethodType.methodType(void.class));
-            MH_RETRANSFORM = PLZBase.LOOKUP.findStatic(AGT, "retransform", MethodType.methodType(boolean.class, Object.class, EZTsf.class, boolean.class));
+            MH_RETRANSFORM = PLZBase.LOOKUP.findStatic(AGT, "retransform", MethodType.methodType(boolean.class, Object.class, EZTsf.class, boolean.class, boolean.class));
             MH_GETLOADEDCLASSES = PLZBase.LOOKUP.findStatic(AGT, "getLoadedClasses", MethodType.methodType(Class[].class));
             MH_RMTNEXTTI = PLZBase.LOOKUP.findStatic(AGT, "rmNextTi", MethodType.methodType(void.class));
         } catch (Exception e) {
@@ -61,13 +61,17 @@ public class Agt {
         }
     }
 
-    public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once) {
+    public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once, boolean err) {
         try {
-            return (boolean) MH_RETRANSFORM.invoke(obj, tsf, once);
+            return (boolean) MH_RETRANSFORM.invoke(obj, tsf, once, err);
         } catch (Throwable e) {
             PLZBase.throwEx(e);
             return false;
         }
+    }
+
+    public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once) {
+        return retransform(obj, tsf, once, false);
     }
 
     public static Class<?>[] getLoadedClasses() {
@@ -77,6 +81,18 @@ public class Agt {
             PLZBase.throwEx(e);
             throw null;
         }
+    }
+
+    public static byte[] getClassBytes(Class<?> clazz) {
+        byte[][] buf = { null };
+        try {
+            retransform(clazz, (ClassLoader loader, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) -> {
+                buf[0] = classfileBuffer;
+                return new byte[] { 0 };
+            }, false, false);
+        } catch (Throwable e) {
+        }
+        return buf[0];
     }
 
     public static void rmNextTi() {
@@ -235,7 +251,7 @@ public class Agt {
             }
         }
 
-        public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once) {
+        public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once, boolean err) {
             if (Agt.INST[0] == null || Agt.INST[1] == null)
                 return false;
             Class<?> clazz = null;
@@ -262,7 +278,8 @@ public class Agt {
                 if (once)
                     TSFD_CLASSES.add(clazz);
             } catch (Throwable e) {
-                System.err.println("SSAgt retransform " + clazz.getName() + " error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                if (err)
+                    System.err.println("SSAgt retransform " + clazz.getName() + " error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
             if (klass != 0)
                 PLZBase.UNSAFE.putInt(klass + 164, accessflags);

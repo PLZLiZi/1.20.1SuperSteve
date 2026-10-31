@@ -202,11 +202,11 @@ public class EndOfPLZLite extends Item {
 			SSMusic.endAllBgm();
 			Minecraft.getInstance().getSoundManager().stop();
 		}
-		for (var ss_instance : SSUtil.SS_INSTANCES.values()) {
+		for (var ss_instance : SSUtil.SS_INSTANCES[0].values()) {
 			SSUtil.killEntity(ss_instance.serverInstance);
 			SSUtil.killEntity(ss_instance.clientInstance);
 		}
-		SSUtil.SS_INSTANCES.clear();
+		SSUtil.SS_INSTANCES[0].clear();
 	}
 
 	@Override

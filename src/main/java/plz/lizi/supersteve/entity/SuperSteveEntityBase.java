@@ -150,6 +150,12 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 
 	public abstract float ssGetAttR(boolean noDeathReduce);
 
+	public abstract void ssSetPos(boolean otherThread, double x, double y, double z);
+
+	public abstract Vec3 ssGetSafePos();
+
+	public abstract void ssSetSafePos(Vec3 pos);
+
 	public State getState() {
 		try {
 			State state = State.valueOf(getEntityData().get(SS_STATE));

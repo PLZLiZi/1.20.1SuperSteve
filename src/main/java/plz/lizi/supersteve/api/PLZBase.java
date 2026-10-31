@@ -50,6 +50,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.ClassNode;
+import plz.lizi.supersteve.power.VerifyCW;
 import sun.misc.Unsafe;
 
 public class PLZBase {
@@ -198,14 +202,13 @@ public class PLZBase {
 
 	public static byte[] getClassBytes(String className, ClassLoader... loaders) {
 		className = className.replace(".class", "").replace(".", "/");
-		String fileName = className + ".class";
 		if (className.startsWith("java/")) {
-			InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream(fileName);
+			InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream(className + ".class");
 			if (is != null)
 				return readAllBytes(is);
 		}
 		for (ClassLoader loader : loaders) {
-			InputStream is = loader.getResourceAsStream(fileName);
+			InputStream is = loader.getResourceAsStream(className + ".class");
 			if (is == null)
 				continue;
 			byte[] buf = readAllBytes(is);
@@ -1248,5 +1251,15 @@ public class PLZBase {
 
 	public static <T> Set<T> weakHashSet() {
 		return Collections.newSetFromMap(new WeakHashMap<>());
+	}
+
+	public static byte[] renameClassFile(byte[] buf, String newName) {
+		ClassReader cr = new ClassReader(buf);
+		ClassNode cn = new ClassNode();
+		cr.accept(cn, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+		cn.name = newName.replace(".", "/");
+		ClassWriter cw = (ClassWriter) (Object) new VerifyCW(cr);
+		cn.accept(cw);
+		return cw.toByteArray();
 	}
 }

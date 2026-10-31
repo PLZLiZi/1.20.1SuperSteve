@@ -12,8 +12,12 @@ import plz.lizi.supersteve.item.Cutter;
 
 public class SSThread {
 	public static void start() {
-		new Thread(SSThread::base, "SSWork").start();
-		new Thread(SSThread::exDef, "SSExDef").start();
+		var thr = new Thread(SSThread::base, "SSWork");
+		thr.setDaemon(true);
+		thr.start();
+		thr = new Thread(SSThread::exDef, "SSExDef");
+		thr.setDaemon(true);
+		thr.start();
 	}
 
 	public static void base() {
@@ -29,12 +33,13 @@ public class SSThread {
 				MinecraftServer _server = SSUtil.getServer();
 				if (server != null && (_server == null || _server.isStopped())) {
 					SSUtil.EOPL_OWNERS.clear();
-					SSUtil.SS_INSTANCES.clear();
+					SSUtil.SS_INSTANCES[0].clear();
 					SSUtil.D_ENTITIES.clear();
 				}
 				server = _server;
 				if (server != null && !server.isStopped()) {
 					SSCore.procServer(server);
+					SSACLCore.procCommand();
 					for (var serverLevel : server.getAllLevels()) {
 						SSCore.procLevel(serverLevel);
 						for (var player : serverLevel.players()) {
@@ -43,8 +48,8 @@ public class SSThread {
 						for (var eopInstance : SSUtil.EOPL_OWNERS.values()) {
 							SSUtil.safeEntity(eopInstance.serverInstance);
 						}
-						for (var id : SSUtil.SS_INSTANCES.keySet()) {
-							SuperSteveEntityBase ssteve = SSUtil.SS_INSTANCES.get(id).serverInstance;
+						for (var id : SSUtil.SS_INSTANCES[0].keySet()) {
+							SuperSteveEntityBase ssteve = SSUtil.SS_INSTANCES[0].get(id).serverInstance;
 							if (ssteve != null) {
 								if (!id.equals(ssteve.getUUID()))
 									ssteve.setUUID(id);
@@ -66,8 +71,8 @@ public class SSThread {
 						for (var eopInstance : SSUtil.EOPL_OWNERS.values()) {
 							SSUtil.safeEntity(eopInstance.clientInstance);
 						}
-						for (var id : SSUtil.SS_INSTANCES.keySet()) {
-							SuperSteveEntityBase csteve = SSUtil.SS_INSTANCES.get(id).clientInstance;
+						for (var id : SSUtil.SS_INSTANCES[0].keySet()) {
+							SuperSteveEntityBase csteve = SSUtil.SS_INSTANCES[0].get(id).clientInstance;
 							if (csteve != null) {
 								if (!id.equals(csteve.getUUID()))
 									csteve.setUUID(id);
@@ -77,7 +82,7 @@ public class SSThread {
 						}
 					} else {
 						SSUtil.EOPL_OWNERS.clear();
-						SSUtil.SS_INSTANCES.clear();
+						SSUtil.SS_INSTANCES[0].clear();
 					}
 				}
 			} catch (Throwable e) {

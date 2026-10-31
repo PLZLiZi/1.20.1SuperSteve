@@ -378,9 +378,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				this.updateControlFlags();
 			}
 		}
-		if (this == SSUtil.SS_INSTANCES.getOrDefault(getUUID(), new EntityInstance<>()).serverInstance)
+		if (this == SSUtil.SS_INSTANCES[0].getOrDefault(getUUID(), new EntityInstance<>()).serverInstance)
 			SSCore.SERVER_TICK_MANAGER.put(this, System.currentTimeMillis());
-		if (this == SSUtil.SS_INSTANCES.getOrDefault(getUUID(), new EntityInstance<>()).clientInstance)
+		if (this == SSUtil.SS_INSTANCES[0].getOrDefault(getUUID(), new EntityInstance<>()).clientInstance)
 			SSCore.CLIENT_TICK_MANAGER.put(this, System.currentTimeMillis());
 	}
 
@@ -438,7 +438,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public synchronized void onAddedToWorld() {
-		var oldi = SSUtil.SS_INSTANCES.getOrDefault(getUUID(), new EntityInstance<>());
+		var oldi = SSUtil.SS_INSTANCES[0].getOrDefault(getUUID(), new EntityInstance<>());
 		var old = !level.isClientSide ? oldi.serverInstance : oldi.clientInstance;
 		if (old != null && old != this) {
 			old.level = level;
@@ -453,11 +453,11 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		isAddedToWorld = true;
 		if (!level.isClientSide) {
-			SSUtil.SS_INSTANCES.putIfAbsent(getUUID(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES.get(getUUID()).put(this);
+			SSUtil.SS_INSTANCES[0].putIfAbsent(getUUID(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES[0].get(getUUID()).put(this);
 		} else {
-			SSUtil.SS_INSTANCES.putIfAbsent(getUUID(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES.get(getUUID()).set(this);
+			SSUtil.SS_INSTANCES[0].putIfAbsent(getUUID(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES[0].get(getUUID()).set(this);
 		}
 	}
 

@@ -47,7 +47,7 @@ public class SSCore {
 	public static Iterable<Entity> getAllEntities(ServerLevel zhis) {
 		GETTERS.get(SCPort.of(zhis)).add(zhis.getEntities());
 		Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
-		for (var istc : SSUtil.SS_INSTANCES.values()) {
+		for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 			if (istc.serverInstance != null)
 				val.add(istc.serverInstance);
 		}
@@ -59,7 +59,7 @@ public class SSCore {
 	public static Iterable<Entity> entitiesForRendering(ClientLevel zhis) {
 		GETTERS.get(SCPort.of((Level) (Object) zhis)).add(zhis.getEntities());
 		Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
-		for (var istc : SSUtil.SS_INSTANCES.values()) {
+		for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 			if (istc.clientInstance != null)
 				val.add(istc.clientInstance);
 		}
@@ -76,12 +76,12 @@ public class SSCore {
 			val = new HashSet<>();
 		}
 		if (GETTERS.get(SCPort.SERVER).contains(zhis)) {
-			for (var istc : SSUtil.SS_INSTANCES.values()) {
+			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 				if (istc.serverInstance != null)
 					val.add(istc.serverInstance);
 			}
 		} else if (GETTERS.get(SCPort.CLIENT).contains(zhis)) {
-			for (var istc : SSUtil.SS_INSTANCES.values()) {
+			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 				if (istc.clientInstance != null)
 					val.add(istc.clientInstance);
 			}
@@ -102,7 +102,7 @@ public class SSCore {
 			}
 			return Continuation.CONTINUE;
 		});
-		for (var instance : SSUtil.SS_INSTANCES.values()) {
+		for (var instance : SSUtil.SS_INSTANCES[0].values()) {
 			if (instance != null && instance.serverInstance != null && !pOutput.contains(instance.serverInstance)) {
 				T t = pTypeTest.tryCast(instance.serverInstance);
 				if (t != null && pPredicate.test(t))
@@ -126,7 +126,7 @@ public class SSCore {
 			return Continuation.CONTINUE;
 		});
 		if (zhis instanceof ServerLevel) {
-			for (var istc : SSUtil.SS_INSTANCES.values()) {
+			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 				if (istc.serverInstance != null) {
 					T t = (T) (pEntityTypeTest.tryCast(istc.serverInstance));
 					if (t != null && t.getBoundingBox().intersects(pBounds) && pPredicate.test(t) && !pOutput.contains(t)) {
@@ -138,7 +138,7 @@ public class SSCore {
 				}
 			}
 		} else if (zhis instanceof ClientLevel) {
-			for (var istc : SSUtil.SS_INSTANCES.values()) {
+			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 				if (istc.clientInstance != null) {
 					T t = (T) (pEntityTypeTest.tryCast(istc.clientInstance));
 					if (t != null && t.getBoundingBox().intersects(pBounds) && pPredicate.test(t) && !pOutput.contains(t)) {
@@ -166,7 +166,7 @@ public class SSCore {
 	public static void mcTickStart(Minecraft zhis, boolean pRenderLevel) {
 		if (pRenderLevel) {
 			long now = System.currentTimeMillis();
-			for (var instance : SSUtil.SS_INSTANCES.values()) {
+			for (var instance : SSUtil.SS_INSTANCES[0].values()) {
 				if (instance.clientInstance != null && (now - CLIENT_TICK_MANAGER.getOrDefault(instance.clientInstance, now)) > 55 && instance.clientInstance.level instanceof ClientLevel cl) {
 					SSUtil.clientTickEntity(cl, instance.clientInstance);
 				}
@@ -178,7 +178,7 @@ public class SSCore {
 
 	public static void serverTickStart(MinecraftServer zhis, BooleanSupplier pHasTimeLeft) {
 		if (zhis.getPlayerCount() > 0) {
-			for (var instance : SSUtil.SS_INSTANCES.values()) {
+			for (var instance : SSUtil.SS_INSTANCES[0].values()) {
 				if (instance != null && instance.serverInstance != null)
 					SERVER_TICK_MANAGER.put(instance.serverInstance, 0L);
 			}

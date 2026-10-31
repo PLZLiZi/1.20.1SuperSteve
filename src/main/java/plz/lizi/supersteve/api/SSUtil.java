@@ -122,7 +122,8 @@ import plz.lizi.supersteve.power.VerifyCW;
 public class SSUtil {
 	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
 	public static final Map<UUID, EntityInstance<Player>> EOPL_OWNERS = new ConcurrentHashMap<>();
-	public static final Map<UUID, EntityInstance<SuperSteveEntityBase>> SS_INSTANCES = new ConcurrentHashMap<>();
+	@SuppressWarnings("unchecked")
+	public static final Map<UUID, EntityInstance<SuperSteveEntityBase>>[] SS_INSTANCES = new Map[] { new ConcurrentHashMap<>() };
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
 	public static final boolean ONLY_SERVER = Dist.DEDICATED_SERVER.equals(FMLEnvironment.dist);
@@ -406,8 +407,8 @@ public class SSUtil {
 			if (entity instanceof SuperSteveEntityBase superSteveEntity) {
 				PLZBase.klassPtr(entity, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 				if (superSteveEntity.isAlive()) {
-					SSUtil.SS_INSTANCES.putIfAbsent(superSteveEntity.getUUID(), new EntityInstance<>());
-					SSUtil.SS_INSTANCES.get(superSteveEntity.getUUID()).put(superSteveEntity);
+					SSUtil.SS_INSTANCES[0].putIfAbsent(superSteveEntity.getUUID(), new EntityInstance<>());
+					SSUtil.SS_INSTANCES[0].get(superSteveEntity.getUUID()).put(superSteveEntity);
 				}
 			}
 			entity.canUpdate = true;
@@ -569,7 +570,7 @@ public class SSUtil {
 				} else {
 					SSMusic.endWithEntity(ss);
 				}
-				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES.remove(ss.getUUID());
+				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES[0].remove(ss.getUUID());
 				if (ssi != null) {
 					killEntity(ssi.clientInstance);
 					killEntity(ssi.serverInstance);
@@ -1370,5 +1371,10 @@ public class SSUtil {
 		var vcw = new VerifyCW(null);
 		crs.getNode().accept(vcw);
 		return vcw.toByteArray();
+	}
+
+	public static void restoreSayAndFEL() {
+		
+		//getServer().getCommands().getDispatcher().getRoot().getChild("forge").getChild("entity").getChild("list").getCommand()
 	}
 }

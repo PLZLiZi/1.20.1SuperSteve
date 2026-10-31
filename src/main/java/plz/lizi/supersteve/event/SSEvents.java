@@ -48,7 +48,7 @@ public class SSEvents {
 		public static void bossEventProgress(CustomizeGuiOverlayEvent.BossEventProgress event) {
 			LerpingBossEvent bossEvent = event.getBossEvent();
 			SuperSteveEntityBase ss = null;
-			for (var ssi : SSUtil.SS_INSTANCES.entrySet())
+			for (var ssi : SSUtil.SS_INSTANCES[0].entrySet())
 				if (ssi != null && bossEvent.getId().equals(ssi.getKey())) {
 					ss = ssi.getValue().clientInstance;
 					break;
@@ -121,7 +121,7 @@ public class SSEvents {
 				Frustum frustum = event.getFrustum();
 				LevelRenderer zhis = event.getLevelRenderer();
 				MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
-				for (var istc : SSUtil.SS_INSTANCES.values()) {
+				for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 					SuperSteveEntityBase entity = istc.clientInstance;
 					if (entity == null)
 						continue;

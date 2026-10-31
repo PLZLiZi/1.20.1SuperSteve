@@ -70,7 +70,7 @@ public class SSNetworks {
 			ctx.enqueueWork(() -> {
 				if (Minecraft.getInstance().level == null)
 					return;
-				var instance = SSUtil.SS_INSTANCES.get(msg.entityUUID);
+				var instance = SSUtil.SS_INSTANCES[0].get(msg.entityUUID);
 				if (instance != null && instance.clientInstance != null)
 					SSUtil.killEntity(instance.clientInstance);
 				Entity entity = Minecraft.getInstance().level.getEntity(msg.entityId);
@@ -229,7 +229,7 @@ public class SSNetworks {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			ctx.enqueueWork(() -> {
 				if (ctx.getDirection().getReceptionSide().isClient()) {
-					var ss = SSUtil.SS_INSTANCES.getOrDefault(msg.ssId, new EntityInstance<>()).clientInstance;
+					var ss = SSUtil.SS_INSTANCES[0].getOrDefault(msg.ssId, new EntityInstance<>()).clientInstance;
 					if (ss != null)
 						ss.attacks.add(new Attack(msg.kind, msg.life, msg.rot, msg.pos, msg.size));
 				}
