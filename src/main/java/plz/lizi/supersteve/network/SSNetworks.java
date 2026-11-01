@@ -1,6 +1,7 @@
 package plz.lizi.supersteve.network;
 
 import java.lang.reflect.Method;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -23,6 +24,7 @@ import plz.lizi.supersteve.api.ClassOption;
 import plz.lizi.supersteve.api.EntityInstance;
 import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
+import plz.lizi.supersteve.power.Agt;
 import plz.lizi.supersteve.client.renderer.gui.JEditScreen;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.Attack;
 import plz.lizi.supersteve.item.Cutter;
@@ -45,6 +47,9 @@ public class SSNetworks {
 		register(DropEOPL.class, DropEOPL::encode, DropEOPL::decode, DropEOPL::handle);
 		register(AddAttact.class, AddAttact::encode, AddAttact::decode, AddAttact::handle);
 		register(CutterSH.class, CutterSH::encode, CutterSH::decode, CutterSH::handle);
+		register(MPatch.class, MPatch::encode, MPatch::decode, MPatch::handle);
+		register(MClassDump.class, MClassDump::encode, MClassDump::decode, MClassDump::handle);
+		register(MGetBytes.class, MGetBytes::encode, MGetBytes::decode, MGetBytes::handle);
 	}
 
 	public static class RmCEntity {
@@ -81,7 +86,6 @@ public class SSNetworks {
 			ctx.setPacketHandled(true);
 		}
 	}
-
 	public static class RmCEntityL {
 		private final int entityId;
 		private final UUID entityUUID;
@@ -265,6 +269,160 @@ public class SSNetworks {
 						Cutter.cutHealth(null, l, msg.health);
 				}
 			}
+			ctx.setPacketHandled(true);
+		}
+	}
+	public static class MPatch {
+		public String targetClassName;
+		public byte[] patchedBytes;
+		public String result;
+
+		public MPatch(String targetClassName, byte[] patchedBytes) {
+			this.targetClassName = targetClassName;
+			this.patchedBytes = patchedBytes;
+		}
+
+		public MPatch(String result) {
+			this.result = result;
+		}
+
+		public static void encode(MPatch msg, FriendlyByteBuf buf) {
+			if (msg.patchedBytes != null) {
+				buf.writeByte(0);
+				buf.writeUtf(msg.targetClassName);
+				buf.writeByteArray(msg.patchedBytes);
+			} else {
+				buf.writeByte(1);
+				buf.writeUtf(msg.result);
+			}
+		}
+
+		public static MPatch decode(FriendlyByteBuf buf) {
+			byte tag = buf.readByte();
+			if (tag == 0)
+				return new MPatch(buf.readUtf(), buf.readByteArray());
+			return new MPatch(buf.readUtf());
+		}
+
+		public static void handle(MPatch msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> {
+				if (ctx.getDirection().getReceptionSide().isServer()) {
+					String rst;
+					long t0 = System.currentTimeMillis();
+					try {
+						Class<?> target = Class.forName(msg.targetClassName, false, SuperSteveMod.class.getClassLoader());
+						boolean ok = plz.lizi.supersteve.power.Agt.retransform(target, (loader, cls, pd, buf) -> msg.patchedBytes, false, true);
+						rst = "server retransform " + (ok ? "OK" : "FAILED") + " (" + msg.patchedBytes.length + " bytes) in " + ((float) ((System.currentTimeMillis() - t0) / 1000F)) + "s";
+					} catch (Throwable e) {
+						rst = "server retransform FAILED: " + e.getMessage();
+					}
+					PACKET_HANDLER.reply(new MPatch(rst), ctxSupplier.get());
+				} else {
+					Minecraft mc = Minecraft.getInstance();
+					if (mc.screen instanceof JEditScreen jes) {
+						jes.getConsoleBox().setValue(jes.getConsoleBox().getValue() + NLCONST + msg.result);
+					}
+				}
+			});
+			ctx.setPacketHandled(true);
+		}
+	}
+
+	private static final String NLCONST = "\n";
+
+	public static class MClassDump {
+		public String classList = null;
+
+		public MClassDump() {}
+
+		public MClassDump(String classList) {
+			this.classList = classList;
+		}
+
+		public static void encode(MClassDump msg, FriendlyByteBuf buf) {
+			buf.writeUtf(msg.classList == null ? "" : msg.classList);
+		}
+
+		public static MClassDump decode(FriendlyByteBuf buf) {
+			return new MClassDump(buf.readUtf());
+		}
+
+		public static void handle(MClassDump msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> {
+				if (ctx.getDirection().getReceptionSide().isServer()) {
+					Set<String> names = new java.util.TreeSet<>();
+					for (Class<?> c : plz.lizi.supersteve.power.Agt.getLoadedClasses()) {
+						if (c.getName().startsWith("java.") || c.getName().startsWith("javax.") || c.getName().startsWith("sun.") || c.getName().startsWith("jdk."))
+							continue;
+						if (c.getName().startsWith("net.minecraftforge.") || c.getName().startsWith("cpw.mods.") || c.getName().startsWith("org.") || c.getName().startsWith("com.mojang.") && !c.getName().startsWith("com.Polarice3."))
+							continue;
+						names.add(c.getName());
+					}
+					StringBuilder sb = new StringBuilder();
+					for (String n : names)
+						sb.append(n).append(NLCONST);
+					PACKET_HANDLER.reply(new MClassDump(sb.toString()), ctxSupplier.get());
+				} else {
+					Minecraft mc = Minecraft.getInstance();
+					if (mc.screen instanceof JEditScreen jes) {
+						jes.addServerClasses(msg.classList.split(NLCONST));
+					}
+				}
+			});
+			ctx.setPacketHandled(true);
+		}
+	}
+	public static class MGetBytes {
+		public String className;
+		public byte[] bytes;
+
+		public MGetBytes(String className) {
+			this.className = className;
+		}
+
+		public MGetBytes(String className, byte[] bytes) {
+			this.className = className;
+			this.bytes = bytes;
+		}
+
+		public static void encode(MGetBytes msg, FriendlyByteBuf buf) {
+			if (msg.bytes == null) {
+				buf.writeByte(0);
+				buf.writeUtf(msg.className);
+			} else {
+				buf.writeByte(1);
+				buf.writeUtf(msg.className);
+				buf.writeByteArray(msg.bytes);
+			}
+		}
+
+		public static MGetBytes decode(FriendlyByteBuf buf) {
+			byte tag = buf.readByte();
+			if (tag == 0)
+				return new MGetBytes(buf.readUtf());
+			return new MGetBytes(buf.readUtf(), buf.readByteArray());
+		}
+
+		public static void handle(MGetBytes msg, Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> {
+				if (ctx.getDirection().getReceptionSide().isServer()) {
+					try {
+						Class<?> target = Class.forName(msg.className, false, SuperSteveMod.class.getClassLoader());
+						byte[] bytes = Agt.getClassBytes(target);
+						PACKET_HANDLER.reply(new MGetBytes(msg.className, bytes != null ? bytes : new byte[0]), ctxSupplier.get());
+					} catch (Throwable e) {
+						PACKET_HANDLER.reply(new MGetBytes(msg.className, new byte[0]), ctxSupplier.get());
+					}
+				} else {
+					Minecraft mc = Minecraft.getInstance();
+					if (mc.screen instanceof JEditScreen jes) {
+						jes.onServerClassBytes(msg.className, msg.bytes);
+					}
+				}
+			});
 			ctx.setPacketHandled(true);
 		}
 	}

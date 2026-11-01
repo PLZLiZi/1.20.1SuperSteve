@@ -60,6 +60,8 @@ public class JEditScreen extends Screen {
     private static final int C_ICON_EDITABLE = 0xFF4CAF50;
     private static final int C_ICON_READONLY = 0xFF9D9D9D;
     private static final int C_HIGHLIGHT_BG = 0x1AFFFFFF;
+    private static final int TOGGLE_BTN_W = 70;
+    private static final int TOGGLE_BTN_H = 14;
     private EditBox searchBox;
     private String query = null;
     private MyObjectSelectionList classList;
@@ -67,9 +69,13 @@ public class JEditScreen extends Screen {
     private final List<Tab> tabs = new ArrayList<>();
     private int activeTabindex = -1;
     public MultiLineBoxEx consoleBox;
+    private boolean isRemote;
+    private boolean remoteMode;
 
     public JEditScreen() {
         super(Component.translatable("item.supersteve.jedit"));
+        this.isRemote = plz.lizi.supersteve.api.SSUtil.getServer() == null;
+        this.remoteMode = isRemote;
         if (!tabs.isEmpty())
             activeTabindex = 0;
     }
@@ -128,7 +134,15 @@ public class JEditScreen extends Screen {
         this.classList.children().clear();
         this.classList.children().addAll(savedSearchQuery);
         onSearchChanged("");
+        if (remoteMode)
+            requestServerClassDump();
         this.setInitialFocus(this.codeEditor);
+    }
+
+    private void toggleRemoteMode() {
+        remoteMode = !remoteMode;
+        if (remoteMode)
+            requestServerClassDump();
     }
 
     private void onSearchChanged(String query) {
@@ -143,7 +157,9 @@ public class JEditScreen extends Screen {
         for (ClassLoader cl = ILaunchPluginService.class.getClassLoader(); cl != null; cl = cl.getParent()) {
             classes.addAll(PLZBase.loadedClasses(cl));
         }
-        for (var clazz : classes) {
+        List<Class<?>> sorted = new ArrayList<>(classes);
+        sorted.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        for (var clazz : sorted) {
             if (clazz == null || getClassS1plName(clazz).isEmpty() || !clazz.getName().contains(query))
                 continue;
             classList.addEntry(new ClassEntry(clazz));
@@ -160,6 +176,18 @@ public class JEditScreen extends Screen {
         int consoleTop = statusY - CONSOLE_PANEL_HEIGHT;
         guiGraphics.fill(0, 0, rightX, this.height, C_SIDEBAR_BG);
         guiGraphics.drawString(this.font, "CLASSES", 10, 6, C_TEXT_DIM, false);
+        {
+            int tglX = SIDEBAR_WIDTH - TOGGLE_BTN_W - 6;
+            int tglY = 4;
+            boolean tglHover = mouseX >= tglX && mouseX <= tglX + TOGGLE_BTN_W && mouseY >= tglY && mouseY <= tglY + TOGGLE_BTN_H;
+            int tglBg = tglHover ? C_TAB_HOVER_BG : C_SIDEBAR_BG;
+            guiGraphics.fill(tglX, tglY, tglX + TOGGLE_BTN_W, tglY + TOGGLE_BTN_H, tglBg);
+            guiGraphics.hLine(tglX, tglX + TOGGLE_BTN_W, tglY, C_BORDER);
+            guiGraphics.hLine(tglX, tglX + TOGGLE_BTN_W, tglY + TOGGLE_BTN_H, C_BORDER);
+            String label = remoteMode ? "SERVER" : "CLIENT";
+            int lblC = remoteMode ? C_RUN_GREEN : C_TEXT_DIM;
+            guiGraphics.drawString(this.font, label, tglX + (TOGGLE_BTN_W - this.font.width(label)) / 2, tglY + 3, lblC, false);
+        }
         guiGraphics.vLine(rightX, 0, this.height, 0xFF1A1A1A);
         guiGraphics.fill(rightX, 0, this.width, statusY, C_EDITOR_BG);
         guiGraphics.fill(rightX, TAB_BAR_TOP, this.width, TAB_BAR_TOP + TAB_BAR_HEIGHT, C_TAB_INACTIVE_BG);
@@ -260,16 +288,90 @@ public class JEditScreen extends Screen {
         long ms = System.currentTimeMillis();
         String report;
         try {
-            report = MethodPatcher.patchAndApply(tab.originalContent, tab.content, tab.target);
+            report = MethodPatcher.patchAndApply(tab.originalContent, tab.content, tab.target, remoteMode ? (className, patchedBytes) -> {
+                SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.MPatch(className, patchedBytes));
+            } : null);
         } catch (Throwable e) {
             String m = e.getMessage();
             report = "§c" + (m != null && !m.isEmpty() ? m : e.toString());
         }
-        consoleBox.setValue("> method-patch " + tab.target.getName() + NLSTR + report + NLSTR + NLSTR + "§7finished in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s§r");
+        consoleBox.setValue("method-patch " + tab.target.getName() + NLSTR + report + NLSTR + NLSTR + "§7finished in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s§r");
+    }
+
+    public void addServerClasses(String[] classNames) {
+        for (String name : classNames) {
+            if (name.isEmpty() || name.contains("$"))
+                continue;
+            String shortName = name.substring(name.lastIndexOf('.') + 1);
+            boolean exists = tabs.stream().anyMatch(t -> t.title.equals(shortName));
+            boolean alreadyListed = false;
+            for (var entry : classList.children()) {
+                if (entry.clazz != null && entry.clazz.getName().equals(name)) {
+                    alreadyListed = true;
+                    break;
+                }
+            }
+            if (!exists && !alreadyListed) {
+                classList.addEntry(new ClassEntry(name));
+            }
+        }
+    }
+
+    public void openServerClassTab(String className, String source) {
+        String shortName = className.substring(className.lastIndexOf('.') + 1);
+        if (tabs.stream().anyMatch(t -> t.title.equals(shortName)))
+            return;
+        Tab tab = new Tab(shortName, source, true, t -> runMethodPatch(t));
+        tab.originalContent = source;
+        try {
+            tab.target = Class.forName(className, false, Minecraft.getInstance().getClass().getClassLoader());
+        } catch (Throwable e) {
+            consoleBox.setValue(consoleBox.getValue() + "§ccannot load class: " + className + "\n");
+            return;
+        }
+        tabs.add(tab);
+        activeTabindex = tabs.size() - 1;
+        codeEditor.setValue(tab.content);
+        codeEditor.setEdit(true);
+    }
+
+    public void onServerClassBytes(String className, byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            consoleBox.setValue(consoleBox.getValue() + "§cserver returned empty bytes for " + className + "\n");
+            return;
+        }
+        try {
+            byte[] deobf = SSUtil.MC_OBF_UTIL.deobfB(bytes);
+            String source = CfrBridge.decompile(deobf);
+            Class<?> target = Class.forName(className, false, Minecraft.getInstance().getClass().getClassLoader());
+            String shortName = className.substring(className.lastIndexOf('.') + 1);
+            Tab existing = null;
+            for (Tab t : tabs) {
+                if (t.title.equals(shortName)) {
+                    existing = t;
+                    break;
+                }
+            }
+            if (existing != null) {
+                existing.content = source;
+                existing.originalContent = source;
+                existing.target = target;
+                codeEditor.setValue(source);
+                codeEditor.setEdit(true);
+            } else {
+                openServerClassTab(className, source);
+            }
+        } catch (Throwable e) {
+            consoleBox.setValue(consoleBox.getValue() + "§cdecompile failed for " + className + ": " + e.getMessage() + "\n");
+        }
+    }
+
+    public void requestServerClassDump() {
+        SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.MClassDump());
     }
 
     public void compileSendToExec(String code) {
-        consoleBox.setValue("> compile executor" + NLSTR);
+        consoleBox.setValue("compile executor" + NLSTR);
         long ms = System.currentTimeMillis();
         byte[] buf = null;
         String err = null;
@@ -284,7 +386,7 @@ public class JEditScreen extends Screen {
             consoleBox.setValue(consoleBox.getValue() + err + NLSTR + "§ccompile FAILED in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s");
             return;
         }
-        consoleBox.setValue(consoleBox.getValue() + "§acompile OK§r in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s (" + buf.length + " bytes)" + NLSTR + "> sending classfile to server..." + NLSTR);
+        consoleBox.setValue(consoleBox.getValue() + "§acompile OK§r in " + ((float) ((System.currentTimeMillis() - ms) / 1000F)) + "s (" + buf.length + " bytes)" + NLSTR + "sending classfile to server..." + NLSTR);
         SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.JCplrMsg(buf));
         consoleBox.setValue(consoleBox.getValue() + "sent" + NLSTR);
     }
@@ -293,6 +395,11 @@ public class JEditScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         int statusY = this.height - STATUS_BAR_HEIGHT;
         int consoleTop = statusY - CONSOLE_PANEL_HEIGHT;
+        if (button == 0 && mouseX >= SIDEBAR_WIDTH - TOGGLE_BTN_W - 6 && mouseX <= SIDEBAR_WIDTH - 6 && mouseY >= 4 && mouseY <= 4 + TOGGLE_BTN_H) {
+            toggleRemoteMode();
+            Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+            return true;
+        }
         if (button == 0 && mouseX >= this.width - CLEAR_BTN_WIDTH - 8 && mouseX <= this.width - 8 && mouseY >= consoleTop && mouseY <= consoleTop + CONSOLE_HEADER_HEIGHT) {
             consoleBox.setValue("");
             Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
@@ -401,9 +508,21 @@ public class JEditScreen extends Screen {
 
     private class ClassEntry extends ObjectSelectionList.Entry<ClassEntry> {
         private final Class<?> clazz;
+        private final String fullClassName;
 
         ClassEntry(Class<?> clazz) {
             this.clazz = clazz;
+            this.fullClassName = clazz.getName();
+        }
+
+        ClassEntry(String fullClassName) {
+            this.fullClassName = fullClassName;
+            Class<?> c = null;
+            try {
+                c = Class.forName(fullClassName, false, Minecraft.getInstance().getClass().getClassLoader());
+            } catch (Throwable ignored) {
+            }
+            this.clazz = c;
         }
 
         @Override
@@ -411,30 +530,55 @@ public class JEditScreen extends Screen {
             if (isMouseOver) {
                 guiGraphics.fill(left, top, left + width, top + height, C_HIGHLIGHT_BG);
             }
-            guiGraphics.fill(left + 4, top + (height - 8) / 2, left + 10, top + (height - 8) / 2 + 6, 0xFF2D8CC7);
-            guiGraphics.drawString(JEditScreen.this.font, getClassS1plName(clazz), left + 14, top + 4, isMouseOver ? 0xFFFFFFFF : 0xFFA6A6A6, false);
+            boolean isServer = clazz == null;
+            guiGraphics.fill(left + 4, top + (height - 8) / 2, left + 10, top + (height - 8) / 2 + 6, isServer ? 0xFFC7A32D : 0xFF2D8CC7);
+            String label = getClassS1plName(clazz) != null ? getClassS1plName(clazz) : fullClassName.substring(fullClassName.lastIndexOf('.') + 1);
+            int textC = isServer ? 0xFFC7A32D : (isMouseOver ? 0xFFFFFFFF : 0xFFA6A6A6);
+            guiGraphics.drawString(JEditScreen.this.font, label, left + 14, top + 4, textC, false);
         }
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (button == 0) {
-                if (tabs.stream().anyMatch(t -> t.title.equals(getClassS1plName(clazz))))
-                    return true;
-                String content = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(Agt.getClassBytes(clazz)));
-                Tab tab = new Tab(getClassS1plName(clazz), content, true, t -> runMethodPatch(t));
-                tab.originalContent = content;
-                tab.target = clazz;
-                tabs.add(tab);
-                activeTabindex = tabs.size() - 1;
-                JEditScreen.this.codeEditor.setValue(tab.content);
-                JEditScreen.this.codeEditor.setEdit(true);
+                String shortName = fullClassName.substring(fullClassName.lastIndexOf('.') + 1);
+                Tab existing = null;
+                for (Tab t : tabs) {
+                    if (t.title.equals(shortName)) {
+                        existing = t;
+                        break;
+                    }
+                }
+                if (clazz != null) {
+                    String content = CfrBridge.decompile(SSUtil.MC_OBF_UTIL.deobfB(Agt.getClassBytes(clazz)));
+                    if (existing != null) {
+                        existing.content = content;
+                        existing.originalContent = content;
+                        existing.target = clazz;
+                        activeTabindex = tabs.indexOf(existing);
+                        codeEditor.setValue(content);
+                        codeEditor.setEdit(true);
+                    } else {
+                        Tab tab = new Tab(shortName, content, true, t -> runMethodPatch(t));
+                        tab.originalContent = content;
+                        tab.target = clazz;
+                        tabs.add(tab);
+                        activeTabindex = tabs.size() - 1;
+                        JEditScreen.this.codeEditor.setValue(tab.content);
+                        JEditScreen.this.codeEditor.setEdit(true);
+                    }
+                } else if (existing == null) {
+                    if (remoteMode)
+                        SSNetworks.PACKET_HANDLER.sendToServer(new SSNetworks.MGetBytes(fullClassName));
+                    else
+                        consoleBox.setValue(consoleBox.getValue() + "§c" + fullClassName + " is not loaded on the client (enable SERVER to request from server)\n");
+                }
             }
             return true;
         }
 
         @Override
         public Component getNarration() {
-            return Component.literal(getClassS1plName(clazz));
+            return Component.literal(fullClassName);
         }
     }
     public static class MyObjectSelectionList extends ObjectSelectionList<ClassEntry> {

@@ -15,7 +15,7 @@ public class AgtCallback {
                 try {
                     Field f = clazz.getDeclaredField("INST");
                     f.setAccessible(true);
-                    ((Object[]) f.get(null))[0] = inst;
+                    f.set(null, inst);
                 } catch (Throwable e) {
                     System.out.print("SSAgt callback err: ");
                     e.printStackTrace();

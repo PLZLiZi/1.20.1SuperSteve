@@ -53,6 +53,10 @@ public class MethodPatcher {
     }
 
     public static String patchAndApply(String originalSource, String editedSource, Class<?> target) throws Throwable {
+        return patchAndApply(originalSource, editedSource, target, null);
+    }
+
+    public static String patchAndApply(String originalSource, String editedSource, Class<?> target, java.util.function.BiConsumer<String, byte[]> remoteApply) throws Throwable {
         StringBuilder report = new StringBuilder();
         report.append("target: ").append(target.getName()).append("\n");
         List<Member> origMembers = scanMembers(originalSource);
@@ -264,7 +268,7 @@ public class MethodPatcher {
             report.append("no method was successfully spliced, retransform skipped.\n");
             return report.toString();
         }
-        ObjCW cw = new ObjCW(new ClassReader(runtimeBytes));
+        VerifyCW cw = new VerifyCW(new ClassReader(runtimeBytes));
         obfCN.accept(cw);
         byte[] patchedBytes = cw.toByteArray();
         // dumpFile("07_patched.class", patchedBytes);
@@ -274,6 +278,8 @@ public class MethodPatcher {
         // log("retransform submitted=" + submitted);
         report.append("retransform ").append(submitted ? "OK" : "FAILED").append(" (").append(patchedBytes.length).append(" bytes, ").append(patched).append(" method(s))\n");
         report.append("note: retransform is atomic - invalid bytecode keeps the original class\n");
+        if (remoteApply != null)
+            remoteApply.accept(target.getName(), patchedBytes);
         return report.toString();
     }
 

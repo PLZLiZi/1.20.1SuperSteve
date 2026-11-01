@@ -32,7 +32,7 @@ public class Agt {
     private static final MethodHandle MH_RETRANSFORM;
     private static final MethodHandle MH_GETLOADEDCLASSES;
     private static final MethodHandle MH_RMTNEXTTI;
-    private static final Object[] INST = new Object[2];
+    private static Object INST = null;
     public static final Set<Class<?>> TSFD_CLASSES = new HashSet<>();
     public static final Map<String, EZTsf> SUPPLIER = new ConcurrentHashMap<>();
     public static final List<ClassFileTransformer> TRANSFORMERS = new CopyOnWriteArrayList<>();
@@ -50,7 +50,7 @@ public class Agt {
     }
 
     public static Instrumentation inst() {
-        return (Instrumentation) Agt.INST[0];
+        return (Instrumentation) Agt.INST;
     }
 
     public static void start() {
@@ -225,16 +225,15 @@ public class Agt {
                 JNI_GetCreatedJavaVMs.invokeInt(new Object[] { pJavaVMs, 1, new IntByReference(1).getPointer() });
                 Function.getFunction("instrument", "Agent_OnAttach").invokeInt(new Object[] { pJavaVMs[0], jar.toAbsolutePath().toString(), null });
                 long time = System.currentTimeMillis();
-                while (Agt.INST[0] == null) {
+                while (Agt.INST == null) {
                     if (System.currentTimeMillis() - time > 1000) {
                         jar.toFile().delete();
                         throw new TimeoutException("SSAgt time out");
                     }
                 }
                 jar.toFile().delete();
-                Agt.INST[1] = PLZBase.UNSAFE.allocateInstance(IMPL_CLASS);
-                NATIVEAGENT = (long) VH_NATIVE_AGENT.get(Agt.INST[0]);
-                addTransformer((Instrumentation) Agt.INST[0], (ClassFileTransformer) PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$Tsf", "plz.lizi.supersteve.power.Agt$TsfImpl", true, ClassOption.STRONG).getDeclaredConstructor().newInstance(), true);
+                NATIVEAGENT = (long) VH_NATIVE_AGENT.get(Agt.INST);
+                addTransformer((Instrumentation) Agt.INST, (ClassFileTransformer) PLZBase.defineHiddenClassInPackage(Agt.class.getClassLoader(), Agt.class, "plz.lizi.supersteve.power.Agt$Tsf", "plz.lizi.supersteve.power.Agt$TsfImpl", true, ClassOption.STRONG).getDeclaredConstructor().newInstance(), true);
             } catch (Throwable e) {
                 System.err.print("SSAgt load failed: ");
                 e.printStackTrace();
@@ -244,7 +243,7 @@ public class Agt {
 
         public static Class<?>[] getLoadedClasses() {
             try {
-                return (Class<?>[]) MH_GET_ALL_LOADED_CLASSES_0.invoke(Agt.INST[1], NATIVEAGENT);
+                return (Class<?>[]) MH_GET_ALL_LOADED_CLASSES_0.invoke(PLZBase.UNSAFE.allocateInstance(IMPL_CLASS), NATIVEAGENT);
             } catch (Throwable e) {
                 PLZBase.throwEx(e);
                 throw null;
@@ -252,7 +251,7 @@ public class Agt {
         }
 
         public static synchronized boolean retransform(Object obj, EZTsf tsf, boolean once, boolean err) {
-            if (Agt.INST[0] == null || Agt.INST[1] == null)
+            if (Agt.INST == null)
                 return false;
             Class<?> clazz = null;
             if (obj instanceof Class oc)
@@ -274,7 +273,7 @@ public class Agt {
                 PLZBase.UNSAFE.putInt(klass + 164L, accessflags & 0xFBFFFFFF);
             }
             try {
-                MH_RETRNASFORM_CLASSES_0.invoke(Agt.INST[1], NATIVEAGENT, new Class<?>[] { clazz });
+                MH_RETRNASFORM_CLASSES_0.invoke(PLZBase.UNSAFE.allocateInstance(IMPL_CLASS), NATIVEAGENT, new Class<?>[] { clazz });
                 if (once)
                     TSFD_CLASSES.add(clazz);
             } catch (Throwable e) {

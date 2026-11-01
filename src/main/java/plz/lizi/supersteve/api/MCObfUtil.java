@@ -12,7 +12,7 @@ import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.ClassNode;
 import plz.lizi.supersteve.power.ClassStruct;
-import plz.lizi.supersteve.power.ObjCW;
+import plz.lizi.supersteve.power.VerifyCW;
 
 public class MCObfUtil {
     private final Map<String, String> deobfToObfMap = new HashMap<>();
@@ -166,7 +166,7 @@ public class MCObfUtil {
         ClassReader cr = new ClassReader(classFileBuffer);
         ClassNode cn = new ClassNode();
         cr.accept(cn, ClassReader.EXPAND_FRAMES);
-        ClassWriter cw = new ObjCW(cr);
+        ClassWriter cw = new VerifyCW(cr);
         obfCN(cn).accept(cw);
         return cw.toByteArray();
     }
@@ -177,7 +177,7 @@ public class MCObfUtil {
         ClassReader cr = new ClassReader(classFileBuffer);
         ClassNode cn = new ClassNode();
         cr.accept(cn, ClassReader.EXPAND_FRAMES);
-        ClassWriter cw = new ObjCW(cr);
+        ClassWriter cw = new VerifyCW(cr);
         deobfCN(cn).accept(cw);
         return cw.toByteArray();
     }
