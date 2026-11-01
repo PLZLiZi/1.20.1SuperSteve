@@ -78,6 +78,7 @@ import plz.lizi.supersteve.item.Cutter;
 import plz.lizi.supersteve.level.SSBossEvent;
 import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.SSCore;
+import plz.lizi.supersteve.power.Stacker;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -221,6 +222,45 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (!level.isClientSide) {
 			bossEvent = new SSBossEvent(getUUID(), getCustomName(), ServerBossEvent.BossBarColor.WHITE, ServerBossEvent.BossBarOverlay.PROGRESS);
 		}
+	}
+
+	public Object ssHealth(Object... o) {
+		if (o.length == 2 && LVRF.contains(o[0]) && o[1] instanceof Float fhealth) {
+			Class<?>[] stacks = Stacker.getStackTrace();
+			if (stacks.length < 2 || !(stacks[1] == SSUtil.class || stacks[1] == Cutter.class || stacks[1] == this.getClass()))
+				return null;
+			try {
+				int hash = getUUID().hashCode();
+				getEntityData().set(SS_HEALTH, "SSH" + hash + "@" + (String) HEALTH_MATH.operate(fhealth, hash));
+				// getEntityData().set(SS_HEALTH, "SSH" + hash + (Integer.rotateLeft(Float.floatToRawIntBits(fhealth > MAX_HEALTH ? MAX_HEALTH : (fhealth < 0 ? 0 : fhealth)) ^ hash, 13) ^ -hash));
+				// int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
+				// getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
+				// getEntityData().set(SS_HEALTH, "SSH=" + String.format("%08X", Float.floatToRawIntBits(Math.max(0, fhealth)) ^ 0xF917813F));
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		} else if (o.length == 0) {
+			try {
+				String ssh = getEntityData().get(SuperSteveEntityBase.SS_HEALTH);
+				int hash = getUUID().hashCode();
+				String verify = "SSH" + hash + "@";
+				if (ssh.startsWith(verify)) {
+					// float h = Float.intBitsToFloat(Integer.rotateRight((Integer.parseInt(ssh.substring(verify.length(), ssh.length())) + hash) ^ -hash, 13) ^ hash);
+					float h = (float) HEALTH_MATH.operate(ssh.substring(verify.length(), ssh.length()), hash);
+					float lh = h > MAX_HEALTH ? MAX_HEALTH : (h < 0 ? 0 : h);
+					if (lh != h)
+						ssHealth(VRF[SSUtil.randint(0, VRF.length - 1)], lh);
+					return lh;
+					// byte[] data = Base64.getUrlDecoder().decode(ssh.substring(4, ssh.length()));
+					// return Float.intBitsToFloat(Integer.rotateRight((((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16) | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF)) ^ 0x917813, 13) ^ 0x114514);
+					// return Float.intBitsToFloat((int) Long.parseLong(ssh.substring(4, ssh.length()), 16) ^ 0xF917813F);
+				}
+			} catch (Throwable e) {
+			}
+			ssHealth(VRF[SSUtil.randint(0, VRF.length - 1)], MAX_HEALTH);
+			return MAX_HEALTH;
+		}
+		return null;
 	}
 
 	@Override
@@ -751,7 +791,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 							((ServerLevel) level).addFreshEntity(new ItemEntity(level, getX(), getY(), getZ(), new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), new Random().nextDouble() * 0.2 - 0.1, 0.2, new Random().nextDouble() * 0.2 - 0.1));
 							player.sendSystemMessage(Component.translatable("entity.supersteve.special_message").withStyle(ChatFormatting.YELLOW));
 						}
-						health.operate(SuperSteveEntityBase.VRF[0], 0F);
+						ssHealth(SuperSteveEntityBase.VRF[0], 0F);
 						return true;
 					}
 				}
@@ -760,7 +800,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 					attackPst = 1F;
 				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
-					health.operate(SuperSteveEntityBase.VRF[1], (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
+					ssHealth(SuperSteveEntityBase.VRF[1], (float) ssHealth() - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 				super.hurt(damagesource, 0F);
 				SSUtil.forceHurtEx(player, damageSources().generic(), amount);
 				return true;
@@ -769,7 +809,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			Entity attacker = damagesource.getEntity();
 			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 			if (!level.isClientSide)
-				health.operate(SuperSteveEntityBase.VRF[2], (float) health.operate() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
+				ssHealth(SuperSteveEntityBase.VRF[2], (float) ssHealth() - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
 			super.hurt(damagesource, 0F);
 			doHurtTarget(attacker);
 			return true;
@@ -963,7 +1003,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public float getHealth() {
-		return (float) health.operate();
+		return (float) ssHealth();
 	}
 
 	@Override
@@ -1039,7 +1079,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void remove(RemovalReason p_276115_) {
-		if ((float) health.operate() <= 0.0F) {
+		if ((float) ssHealth() <= 0.0F) {
 			setRemoved(p_276115_);
 			brain.clearMemories();
 		}
@@ -1047,7 +1087,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isAlive() {
-		return (float) health.operate() > 0.0F;
+		return (float) ssHealth() > 0.0F;
 	}
 
 	@Override
@@ -1070,7 +1110,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public void dropAllDeathLoot(DamageSource p_21192_) {
 		if (level.isClientSide)
 			return;
-		if ((float) health.operate() <= 0F) {
+		if ((float) ssHealth() <= 0F) {
 			synchronized (idrops) {
 				for (var drop : idrops) {
 					drop.setPos(position());
@@ -1313,7 +1353,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
 			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
-			health.operate(SuperSteveEntityBase.VRF[3], MAX_HEALTH);
+			ssHealth(SuperSteveEntityBase.VRF[3], MAX_HEALTH);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
 			setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
