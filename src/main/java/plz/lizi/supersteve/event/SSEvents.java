@@ -102,7 +102,7 @@ public class SSEvents {
 				BufferUploader.drawWithShader(builder.end());
 				RenderStateShard.TRANSLUCENT_TRANSPARENCY.clearRenderState();
 				poseStack.popPose();
-				guiGraphics.drawCenteredString(mc.font, Component.literal(ss.getCustomName().getString() + " " + (float) ss.ssHealth() + "/" + ss.getMaxHealth()).withStyle(Style.EMPTY.withBold(true).withItalic(true)), (int) x, (int) (y - barHeight / 2F), Color.HSBtoRGB(SSUtil.getRainbowHue(3000), 1, 1));
+				guiGraphics.drawCenteredString(mc.font, Component.literal(ss.getCustomName().getString() + " " + (float) ss.ssHealth()[0] + "/" + ss.getMaxHealth()).withStyle(Style.EMPTY.withBold(true).withItalic(true)), (int) x, (int) (y - barHeight / 2F), Color.HSBtoRGB(SSUtil.getRainbowHue(3000), 1, 1));
 				RenderSystem.disableBlend();
 			}
 		}

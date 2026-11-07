@@ -25,7 +25,7 @@ import plz.lizi.supersteve.level.SSBossEvent;
 import plz.lizi.supersteve.power.Operator;
 
 public abstract class SuperSteveEntityBase extends PathfinderMob {
-	protected  static final Operator HEALTH_MATH = o2 -> {
+	protected static final Operator HEALTH_MATH = o2 -> {
 		if (o2.length == 2 && o2[0] instanceof Float f && o2[1] instanceof Integer vrf) {
 			int bits = Float.floatToRawIntBits(f);
 			int mixed = Integer.rotateLeft(bits ^ vrf, 13) ^ vrf;
@@ -66,7 +66,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			if (actualCheck != expectedCheck)
 				return null;
 			int bits = Integer.rotateRight(mixed ^ vrf, 13) ^ vrf;
-			return Float.valueOf(Float.intBitsToFloat(bits));
+			return new float[] { Float.valueOf(Float.intBitsToFloat(bits)) };
 		}
 		return null;
 	};
@@ -104,7 +104,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 		return builder;
 	}
 
-	public abstract Object ssHealth(Object... o);
+	public abstract Object[] ssHealth(Object... o);
 
 	public abstract void ssTick(boolean threadCall);
 

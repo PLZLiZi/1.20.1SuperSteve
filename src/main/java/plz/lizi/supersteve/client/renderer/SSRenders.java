@@ -11,8 +11,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GL11C;
+import org.lwjgl.opengl.GL30C;
+import org.lwjgl.opengl.GL43C;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.platform.NativeImage.Format;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -73,6 +76,7 @@ public class SSRenders {
 			RenderSystem.setShaderTexture(0, tex.getId());
 	}, () -> {
 	}) {}).setWriteMaskState(WriteMaskStateShard.COLOR_WRITE).setTransparencyState(TransparencyStateShard.TRANSLUCENT_TRANSPARENCY).setCullState(CullStateShard.CULL).setLightmapState(LightmapStateShard.NO_LIGHTMAP).createCompositeState(false)));
+	public static final Map<Integer, Integer> ATLAS_FBOS = new HashMap<>();
 	public static AbstractTexture ENV_GLYPH_BIND;
 	public static final RenderType ENV_MASK = RenderType.create("supersteve:env_mask", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 4096, false, true, RenderType.CompositeState.builder().setShaderState(RenderStateShard.POSITION_COLOR_SHADER).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setWriteMaskState(RenderStateShard.COLOR_WRITE).setCullState(RenderStateShard.NO_CULL).createCompositeState(false));
 	public static final RenderType ENV_GLYPH = RenderType.create("supersteve:env_glyph", DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, Mode.QUADS, 4096, false, false, RenderType.CompositeState.builder().setShaderState(RenderStateShard.RENDERTYPE_TEXT_SHADER).setTextureState(new EmptyTextureStateShard(() -> {
@@ -235,57 +239,52 @@ public class SSRenders {
 		return quads;
 	}
 
-	public static void updateRegion(TextureAtlasSprite sprite, DynamicTexture tex) {
-		TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(sprite.atlasLocation());
-		int textureId = atlas.getId();
-		int width = atlas.getWidth();
-		int height = atlas.getHeight();
-		NativeImage full = new NativeImage(width, height, true);
-		RenderSystem.bindTexture(textureId);
-		full.downloadTexture(0, false);
-		int x = Math.round(sprite.getU0() * (float) width);
-		int y = Math.round(sprite.getV0() * (float) height);
-		int w = Math.round((sprite.getU1() - sprite.getU0()) * (float) width);
-		int h = Math.round((sprite.getV1() - sprite.getV0()) * (float) height);
-		NativeImage pixels = tex.getPixels();
-		if (w == pixels.getWidth() && h == pixels.getHeight()) {
-			for (int py = 0; py < w; ++py) {
-				for (int px = 0; px < h; ++px) {
-					pixels.setPixelRGBA(px, py, full.getPixelRGBA(x + px, y + py));
-				}
-			}
-			tex.upload();
-			full.close();
-		} else {
-			full.close();
-		}
-	}
-
 	public static DynamicTexture getRegion(TextureAtlasSprite sprite) {
 		TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(sprite.atlasLocation());
-		int textureId = atlas.getId();
 		int width = atlas.getWidth();
 		int height = atlas.getHeight();
-		NativeImage full = new NativeImage(width, height, true);
-		RenderSystem.bindTexture(textureId);
-		full.downloadTexture(0, false);
-		int x = Math.round(sprite.getU0() * (float) width);
-		int y = Math.round(sprite.getV0() * (float) height);
-		int w = Math.round((sprite.getU1() - sprite.getU0()) * (float) width);
-		int h = Math.round((sprite.getV1() - sprite.getV0()) * (float) height);
-		if (w > 0 && h > 0) {
-			NativeImage region = new NativeImage(Format.RGBA, w, h, false);
-			for (int py = 0; py < w; ++py) {
-				for (int px = 0; px < h; ++px) {
-					region.setPixelRGBA(px, py, full.getPixelRGBA(x + px, y + py));
-				}
-			}
-			full.close();
-			return new DynamicTexture(region);
-		} else {
-			full.close();
+		int x = Math.round(sprite.getU0() * width);
+		int y = Math.round(sprite.getV0() * height);
+		int w = Math.round((sprite.getU1() - sprite.getU0()) * width);
+		int h = Math.round((sprite.getV1() - sprite.getV0()) * height);
+		if (w <= 0 || h <= 0) {
 			return null;
 		}
+		DynamicTexture tex = new DynamicTexture(new NativeImage(NativeImage.Format.RGBA, w, h, false));
+		copyRegion(atlas, x, y, w, h, tex);
+		return tex;
+	}
+
+	public static void updateRegion(TextureAtlasSprite sprite, DynamicTexture tex) {
+		TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(sprite.atlasLocation());
+		NativeImage pixels = tex.getPixels();
+		int width = atlas.getWidth();
+		int x = Math.round(sprite.getU0() * width);
+		int y = Math.round(sprite.getV0() * atlas.getHeight());
+		int w = Math.round((sprite.getU1() - sprite.getU0()) * width);
+		int h = Math.round((sprite.getV1() - sprite.getV0()) * atlas.getHeight());
+		if (w != pixels.getWidth() || h != pixels.getHeight()) {
+			return;
+		}
+		copyRegion(atlas, x, y, w, h, tex);
+	}
+
+	public static void copyRegion(TextureAtlas atlas, int x, int y, int w, int h, DynamicTexture tex) {
+		if (GL.getCapabilities().OpenGL43 || GL.getCapabilities().GL_ARB_copy_image) {
+			GL43C.glCopyImageSubData(atlas.getId(), GL30C.GL_TEXTURE_2D, 0, x, y, 0, tex.getId(), GL30C.GL_TEXTURE_2D, 0, 0, 0, 0, w, h, 1);
+			return;
+		}
+		int fbo = ATLAS_FBOS.computeIfAbsent(atlas.getId(), id -> {
+			int f = GL30C.glGenFramebuffers();
+			GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, f);
+			GL30C.glFramebufferTexture2D(GL30C.GL_FRAMEBUFFER, GL30C.GL_COLOR_ATTACHMENT0, GL30C.GL_TEXTURE_2D, id, 0);
+			GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, 0);
+			return f;
+		});
+		GL30C.glBindFramebuffer(GL30C.GL_READ_FRAMEBUFFER, fbo);
+		RenderSystem.bindTexture(tex.getId());
+		GL11C.glCopyTexSubImage2D(GL30C.GL_TEXTURE_2D, 0, 0, 0, x, y, w, h);
+		GL30C.glBindFramebuffer(GL30C.GL_READ_FRAMEBUFFER, 0);
 	}
 
 	public static LinkedList<float[]> bakeDataModelUV01(TextureAtlasSprite sprite) {
