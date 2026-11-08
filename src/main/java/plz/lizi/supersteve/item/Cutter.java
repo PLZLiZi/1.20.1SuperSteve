@@ -3,13 +3,13 @@ package plz.lizi.supersteve.item;
 import java.security.ProtectionDomain;
 import java.util.Collections;
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
+import com.google.common.collect.MapMaker;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.CrashReport;
@@ -49,10 +49,10 @@ import plz.lizi.supersteve.power.VerifyCW;
 
 public class Cutter extends Item {
     public static boolean ERD_TDF = false;
-    public static final Map<Entity, Float> SHEALTH_PROCESS = Collections.synchronizedMap(new WeakHashMap<>());
-    public static final Map<Entity, Integer> SDEATH_TICKS = Collections.synchronizedMap(new WeakHashMap<>());
-    public static final Map<Entity, Float> CHEALTH_PROCESS = Collections.synchronizedMap(new WeakHashMap<>());
-    public static final Map<Entity, Integer> CDEATH_TICKS = Collections.synchronizedMap(new WeakHashMap<>());
+    public static final Map<Entity, Float> SHEALTH_PROCESS = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());
+    public static final Map<Entity, Integer> SDEATH_TICKS = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());
+    public static final Map<Entity, Float> CHEALTH_PROCESS = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());
+    public static final Map<Entity, Integer> CDEATH_TICKS = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());
     private static float PARTIAL_TICK = 0;
     static {
         new Thread(() -> {

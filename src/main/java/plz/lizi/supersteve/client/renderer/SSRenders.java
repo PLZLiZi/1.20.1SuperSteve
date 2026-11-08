@@ -86,10 +86,12 @@ public class SSRenders {
 	}) {}).setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY).setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST).setWriteMaskState(RenderStateShard.COLOR_WRITE).setCullState(RenderStateShard.NO_CULL).setLightmapState(LightmapStateShard.LIGHTMAP).createCompositeState(false));
 	public static ShaderInstance RAINBOW_OUTLINE_SHADER;
 	public static ShaderInstance MC_SHADER;
+	public static ShaderInstance COLOR_BLOCKS_SHADER;
 
 	public static void register(ResourceProvider provider) throws Throwable {
 		RAINBOW_OUTLINE_SHADER = new ShaderInstance(provider, ResourceLocation.tryBuild("supersteve", "rainbowol"), DefaultVertexFormat.POSITION);
 		MC_SHADER = new ShaderInstance(provider, ResourceLocation.tryBuild("supersteve", "mc"), DefaultVertexFormat.POSITION);
+		COLOR_BLOCKS_SHADER = new ShaderInstance(provider, ResourceLocation.tryBuild("supersteve", "colorblocks"), DefaultVertexFormat.POSITION);
 	}
 
 	public static void renderStretchAtt(VertexConsumer vc, PoseStack poseStack, float progress, float r, float g, float b, float a) {

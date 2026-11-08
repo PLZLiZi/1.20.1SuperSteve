@@ -2,7 +2,6 @@
 
 uniform sampler2D Sampler0;
 uniform float GameTime;
-uniform vec2 ScreenSize;
 
 in vec2 texCoord0;
 out vec4 fragColor;
@@ -94,8 +93,7 @@ int getMap(vec3 pos) {
 
     float n = posf.x + posf.y * 517.0 + 1313.0 * posf.z;
     float h = hash(n);
-
-    // sqrt(sqrt(x)) == x^0.25；GPU 上两个 sqrt 比 pow 更快
+    
     if(h > sqrt(sqrt(dot(posf.yz, posf.yz) * 0.16)) - 0.8) {
         return 0;
     }
@@ -120,7 +118,7 @@ vec3 renderMinecraft(vec2 uv) {
 
     vec3 opos = vec3(32.5 + GameTime * 1000. * 6.4, 32.5, 32.5);
 
-    float gggxd = (uv.x - 0.5) * (ScreenSize.x / ScreenSize.y);
+    float gggxd = (uv.x - 0.5);
     float ggyd = (1. - uv.y - 0.5);
     float ggzd = 1.;
 
@@ -190,7 +188,7 @@ void main() {
     vec2 uv = texCoord0.xy;
     vec4 mask = texture(Sampler0, texCoord0);
 
-    if(mask.a <= 0.1)
+    if(mask.a <= 0.0)
         discard;
 
     fragColor = vec4(renderMinecraft(uv), mask.a);
