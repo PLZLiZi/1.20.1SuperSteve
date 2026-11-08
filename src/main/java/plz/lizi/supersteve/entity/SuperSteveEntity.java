@@ -596,6 +596,28 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
+	public State getState() {
+		try {
+			State state = State.valueOf(getEntityData().get(SS_STATE));
+			State newState = state;
+			int stateTime = stateTime();
+			var fh = ssHealth();
+			if (state == State.ENTER && stateTime > ENTER_ACTIVE[0])
+				newState = State.ALIVE;
+			else if (state == State.ALIVE && (float) fh[0] <= 0F)
+				newState = State.EXIT;
+			else if (state == State.EXIT && (float) fh[0] > 0F)
+				newState = State.ALIVE;
+			if (state != newState)
+				setState(newState);
+			return newState;
+		} catch (Throwable e) {
+			setState(State.ALIVE);
+			return State.ALIVE;
+		}
+	}
+
+	@Override
 	public void registerGoals() {
 		SuperSteveEntityBase.registerGoals(this);
 	}

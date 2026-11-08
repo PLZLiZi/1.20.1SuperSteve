@@ -2,7 +2,6 @@ package plz.lizi.supersteve.power;
 
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +20,8 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import com.google.common.collect.Iterables;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.MinecraftServer;
@@ -69,26 +70,27 @@ public class SSCore {
 	}
 
 	public static Iterable<Entity> getAll(LevelEntityGetter<Entity> zhis) {
-		Set<Entity> val = null;
+		Int2ObjectMap<Entity> val = null;
 		if (zhis instanceof LevelEntityGetterAdapter<Entity> lega) {
-			val = StreamSupport.stream(lega.visibleEntities.byId.values().spliterator(), false).collect(Collectors.toSet());
+			val = SSUtil.copyInt2ObjectMap(lega.visibleEntities.byId);
 		} else {
-			val = new HashSet<>();
+			val = new Int2ObjectOpenHashMap<>();
 		}
 		if (GETTERS.get(SCPort.SERVER).contains(zhis)) {
 			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 				if (istc.serverInstance != null)
-					val.add(istc.serverInstance);
+					val.put(istc.serverInstance.getId(), istc.serverInstance);
 			}
 		} else if (GETTERS.get(SCPort.CLIENT).contains(zhis)) {
 			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
 				if (istc.clientInstance != null)
-					val.add(istc.clientInstance);
+					val.put(istc.clientInstance.getId(), istc.clientInstance);
 			}
 		}
-		val.removeAll(SSUtil.D_ENTITIES);
-		val.removeAll(SSUtil.dsrtEntities(val));
-		return Iterables.unmodifiableIterable(val);
+		var vval = val.values();
+		vval.removeAll(SSUtil.D_ENTITIES);
+		vval.removeAll(SSUtil.dsrtEntities(vval));
+		return Iterables.unmodifiableIterable(vval);
 	}
 
 	public static <T extends Entity> void getEntities(ServerLevel zhis, EntityTypeTest<Entity, T> pTypeTest, Predicate<? super T> pPredicate, List<? super T> pOutput, int pMaxResults) {
