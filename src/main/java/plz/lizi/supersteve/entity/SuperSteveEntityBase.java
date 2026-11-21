@@ -44,7 +44,7 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 			System.arraycopy(buf, pos, result, 0, mainLen);
 			result[mainLen] = buf[10];
 			result[mainLen + 1] = buf[11];
-			return new String(result);
+			return result;
 		} else if (o2.length == 2 && o2[0] instanceof String s && o2[1] instanceof Integer vrf) {
 			if (s == null || s.length() < 3)
 				return null;
@@ -87,9 +87,11 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 	public final List<Attack> attacks = new ArrayList<>();
 	public long[/* 0: tick, 1: llmax - time */] hurtData = { 0, Long.MAX_VALUE - System.currentTimeMillis() };
 	public SSBossEvent bossEvent;
+	public Level ilevel = null;
 
 	protected SuperSteveEntityBase(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {
 		super(p_21683_, p_21684_);
+		ilevel = p_21684_;
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
@@ -108,21 +110,17 @@ public abstract class SuperSteveEntityBase extends PathfinderMob {
 
 	public abstract void ssTick(boolean threadCall);
 
-	public abstract SSMode ssGetMode();
-
-	public abstract void ssSetMode(SSMode mode);
+	public abstract SSMode ssMode(SSMode... mode);
 
 	public abstract int ssGetTick();
 
 	public abstract float ssGetAttR(boolean noDeathReduce);
 
-	public abstract void ssSetPos(boolean otherThread, double x, double y, double z);
+	public abstract State ssGetState();
 
-	public abstract Vec3 ssGetSafePos();
-
-	public abstract void ssSetSafePos(Vec3 pos);
-
-	public abstract State getState();
+	public long ssId() {
+		return getUUID().getMostSignificantBits() + getUUID().getLeastSignificantBits();
+	}
 
 	public void setState(State state) {
 		getEntityData().set(SS_STATE, state.name());

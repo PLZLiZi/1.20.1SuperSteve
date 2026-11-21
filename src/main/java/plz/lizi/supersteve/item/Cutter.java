@@ -83,7 +83,7 @@ public class Cutter extends Item {
                                 var entity = entry.getKey();
                                 if (entity.level instanceof ServerLevel sl)
                                     makePoofParticles(sl, entity);
-                                SSUtil.killEntity(entity);
+                                SSUtil.rmEntity(entity);
                                 if (!(entity instanceof Player))
                                     SHEALTH_PROCESS.remove(entity);
                                 itr.remove();
@@ -103,7 +103,7 @@ public class Cutter extends Item {
                             entry.setValue(tick + 1);
                             if (tick + 1 == 30) {
                                 var entity = entry.getKey();
-                                SSUtil.killEntity(entity);
+                                SSUtil.rmEntity(entity);
                                 if (!(entity instanceof Player))
                                     CHEALTH_PROCESS.remove(entity);
                                 itr.remove();

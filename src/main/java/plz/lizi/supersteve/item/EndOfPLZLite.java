@@ -134,7 +134,7 @@ public class EndOfPLZLite extends Item {
 		}
 		if (entityIn instanceof LivingEntity le)
 			SSUtil.forceHurt(le, player.level.damageSources.playerAttack(player), 0);
-		SSUtil.killEntity(entityIn);
+		SSUtil.rmEntity(entityIn);
 	}
 
 	@Override
@@ -202,9 +202,9 @@ public class EndOfPLZLite extends Item {
 			SSMusic.endAllBgm();
 			Minecraft.getInstance().getSoundManager().stop();
 		}
-		for (var ss_instance : SSUtil.SS_INSTANCES[0].values()) {
-			SSUtil.killEntity(ss_instance.serverInstance);
-			SSUtil.killEntity(ss_instance.clientInstance);
+		for (var ssi : SSUtil.SS_INSTANCES[0].values()) {
+			SSUtil.rmEntity(ssi.serverInstance());
+			SSUtil.rmEntity(ssi.clientInstance());
 		}
 		SSUtil.SS_INSTANCES[0].clear();
 	}
@@ -216,13 +216,16 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public boolean hurtEnemy(ItemStack itemstack, LivingEntity entity, LivingEntity sourceentity) {
-		SSUtil.killEntity(entity);
+		SSUtil.rmEntity(entity);
 		return false;
 	}
 
 	@Override
 	public boolean onEntitySwing(ItemStack itemstack, LivingEntity entity) {
 		if (!entity.level.isClientSide && entity instanceof ServerPlayer player) {
+			for (var x : SSUtil.SS_INSTANCES[0]) {
+				x.getValue().clientInstance = null;
+			}
 			Vec3 lookVec = player.getLookAngle();
 			Level level = player.level;
 			BlockPos blockPos = player.level.clip(new ClipContext(player.getEyePosition(1f), player.getEyePosition(1f).add(player.getViewVector(1f).scale(player.getBlockReach())), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos();
@@ -251,7 +254,7 @@ public class EndOfPLZLite extends Item {
 		try {
 			if (entity instanceof Player player) {
 				SSUtil.checkEOPLOwner(player);
-				SSUtil.safeEntity(player);
+				SSUtil.sfEntity(player);
 			}
 		} catch (Throwable e) {
 			e.printStackTrace();

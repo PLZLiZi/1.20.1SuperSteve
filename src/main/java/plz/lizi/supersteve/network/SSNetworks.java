@@ -53,17 +53,17 @@ public class SSNetworks {
 	}
 
 	public static class RmCEntity {
-		private final int entityId;
-		private final UUID entityUUID;
+		private final int id;
+		private final UUID uuid;
 
 		public RmCEntity(int entityId, UUID entityUUID) {
-			this.entityId = entityId;
-			this.entityUUID = entityUUID;
+			this.id = entityId;
+			this.uuid = entityUUID;
 		}
 
 		public static void encode(RmCEntity msg, FriendlyByteBuf buf) {
-			buf.writeInt(msg.entityId);
-			buf.writeUUID(msg.entityUUID);
+			buf.writeInt(msg.id);
+			buf.writeUUID(msg.uuid);
 		}
 
 		public static RmCEntity decode(FriendlyByteBuf buf) {
@@ -75,12 +75,12 @@ public class SSNetworks {
 			ctx.enqueueWork(() -> {
 				if (Minecraft.getInstance().level == null)
 					return;
-				var instance = SSUtil.SS_INSTANCES[0].get(msg.entityUUID);
-				if (instance != null && instance.clientInstance != null)
-					SSUtil.killEntity(instance.clientInstance);
-				Entity entity = Minecraft.getInstance().level.getEntity(msg.entityId);
+				var instance = SSUtil.SS_INSTANCES[0].get(msg.uuid.toString());
+				if (instance != null && instance.clientInstance() != null)
+					SSUtil.rmEntity(instance.clientInstance());
+				Entity entity = Minecraft.getInstance().level.getEntity(msg.id);
 				if (entity != null) {
-					SSUtil.killEntity(entity);
+					SSUtil.rmEntity(entity);
 				}
 			});
 			ctx.setPacketHandled(true);
@@ -233,7 +233,7 @@ public class SSNetworks {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			ctx.enqueueWork(() -> {
 				if (ctx.getDirection().getReceptionSide().isClient()) {
-					var ss = SSUtil.SS_INSTANCES[0].getOrDefault(msg.ssId, new EntityInstance<>()).clientInstance;
+					var ss = SSUtil.SS_INSTANCES[0].getOrDefault(msg.ssId.getMostSignificantBits() + msg.ssId.getLeastSignificantBits(), new EntityInstance<>()).clientInstance();
 					if (ss != null)
 						ss.attacks.add(new Attack(msg.kind, msg.life, msg.rot, msg.pos, msg.size));
 				}

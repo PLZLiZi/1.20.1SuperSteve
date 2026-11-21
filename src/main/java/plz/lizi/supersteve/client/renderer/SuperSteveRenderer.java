@@ -67,7 +67,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 	}
 
 	public static void deathReduce(PoseStack poseStack, SuperSteveEntityBase entity, float partialTick) {
-		if (entity.getState() == State.EXIT) {
+		if (entity.ssGetState() == State.EXIT) {
 			float pgs = Math.max(0, Math.min(1, (entity.stateTime() + partialTick - SuperSteveEntityBase.DEATH_ACTIVE[1]) / (SuperSteveEntityBase.DEATH_ACTIVE[2] - SuperSteveEntityBase.DEATH_ACTIVE[1]) * 2));
 			pgs = 1 - pgs;
 			poseStack.scale(pgs, pgs, pgs);
@@ -81,7 +81,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 
 	@Override
 	public void render(SuperSteveEntityBase entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
-		State animation = entity.getState();
+		State animation = entity.ssGetState();
 		poseStack.pushPose();
 		poseStack.translate(0, entity.getBbHeight() / 3f, 0);
 		for (var sl : staticLayers) {
@@ -177,7 +177,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 		}
 		poseStack.popPose();
 		poseStack.popPose();
-		if (entity.getState() == State.ALIVE)
+		if (entity.ssGetState() == State.ALIVE)
 			this.renderNameTag(entity, entity.getDisplayName(), poseStack, bufferSource, packedLight);
 		Entity $$6 = entity.getLeashHolder();
 		if ($$6 != null) {
@@ -199,7 +199,7 @@ public class SuperSteveRenderer extends HumanoidMobRenderer<SuperSteveEntityBase
 		if (!p_115317_.hasPose(Pose.SLEEPING)) {
 			p_115318_.mulPose(Axis.YP.rotationDegrees(180.0F - p_115320_));
 		}
-		if (p_115317_.getState() != State.ALIVE) {
+		if (p_115317_.ssGetState() != State.ALIVE) {
 		} else if (p_115317_.isAutoSpinAttack()) {
 			p_115318_.mulPose(Axis.XP.rotationDegrees(-90.0F - p_115317_.getXRot()));
 			p_115318_.mulPose(Axis.YP.rotationDegrees(((float) p_115317_.tickCount + p_115321_) * -75.0F));
