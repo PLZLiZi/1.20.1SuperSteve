@@ -223,6 +223,9 @@ public class EndOfPLZLite extends Item {
 	@Override
 	public boolean onEntitySwing(ItemStack itemstack, LivingEntity entity) {
 		if (!entity.level.isClientSide && entity instanceof ServerPlayer player) {
+			for (var x : SSUtil.SS_INSTANCES[0]) {
+				x.getValue().clientInstance = null;
+			}
 			Vec3 lookVec = player.getLookAngle();
 			Level level = player.level;
 			BlockPos blockPos = player.level.clip(new ClipContext(player.getEyePosition(1f), player.getEyePosition(1f).add(player.getViewVector(1f).scale(player.getBlockReach())), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos();
