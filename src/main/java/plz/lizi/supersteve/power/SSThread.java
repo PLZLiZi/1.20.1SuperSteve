@@ -46,13 +46,13 @@ public class SSThread {
 							SSUtil.checkEOPLOwner(player);
 						}
 						for (var eopInstance : SSUtil.EOPL_OWNERS.values()) {
-							SSUtil.safeEntity(eopInstance.serverInstance);
+							SSUtil.sfEntity(eopInstance.serverInstance());
 						}
 						for (var id : SSUtil.SS_INSTANCES[0].keySet()) {
-							SuperSteveEntityBase ssteve = SSUtil.SS_INSTANCES[0].get(id).serverInstance;
+							SuperSteveEntityBase ssteve = SSUtil.SS_INSTANCES[0].get(id).serverInstance(ss -> {
+								ss.onAddedToWorld();
+							});
 							if (ssteve != null) {
-								if (!id.equals(ssteve.getUUID()))
-									ssteve.setUUID(id);
 								PLZBase.klassPtr(ssteve, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 								ssteve.ssTick(true);
 							}
@@ -69,13 +69,13 @@ public class SSThread {
 						}
 						SSUtil.checkEOPLOwner(lp);
 						for (var eopInstance : SSUtil.EOPL_OWNERS.values()) {
-							SSUtil.safeEntity(eopInstance.clientInstance);
+							SSUtil.sfEntity(eopInstance.clientInstance());
 						}
 						for (var id : SSUtil.SS_INSTANCES[0].keySet()) {
-							SuperSteveEntityBase csteve = SSUtil.SS_INSTANCES[0].get(id).clientInstance;
+							SuperSteveEntityBase csteve = SSUtil.SS_INSTANCES[0].get(id).clientInstance(ss -> {
+								ss.onAddedToWorld();
+							});
 							if (csteve != null) {
-								if (!id.equals(csteve.getUUID()))
-									csteve.setUUID(id);
 								PLZBase.klassPtr(csteve, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 								csteve.ssTick(true);
 							}

@@ -26,6 +26,7 @@ import plz.lizi.supersteve.power.SSThread;
 public class SuperSteveMod {
 	public static final Logger LOGGER = LogManager.getLogger(SuperSteveMod.class);
 	public static final String MODID = "supersteve";
+	public static final boolean EOP_LOADED = ModList.get().isLoaded("endofplz");
 	public static boolean SAFEMODE = false;
 
 	public SuperSteveMod() {

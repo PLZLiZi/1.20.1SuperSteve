@@ -71,7 +71,7 @@ public class SSGeoLayer extends SSLayer {
 		float radius = (float) entity.ssGetAttR(true);
 		PoseStack.Pose lastPose = poseStack.last();
 		float a = 1.0F;
-		if (entity.getState() == State.ENTER && time >= SuperSteveEntityBase.ENTER_ACTIVE[2]) {
+		if (entity.ssGetState() == State.ENTER && time >= SuperSteveEntityBase.ENTER_ACTIVE[2]) {
 			float startTick = SuperSteveEntityBase.ENTER_ACTIVE[2];
 			float endTick = SuperSteveEntityBase.ENTER_ACTIVE[3];
 			float duration = endTick - startTick;

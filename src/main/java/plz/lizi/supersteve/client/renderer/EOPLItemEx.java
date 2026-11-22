@@ -9,6 +9,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
@@ -43,10 +44,12 @@ public class EOPLItemEx implements IClientItemExtensions {
 		if (player.isUsingItem() && itemInHand.getUseAnimation() == UseAnim.BLOCK) {
 			int horizontal = (arm == HumanoidArm.RIGHT) ? 1 : -1;
 			poseStack.translate((float) horizontal * 0.56F, -0.52F + equipProcess * -0.6F, -0.72F);
-			poseStack.translate(horizontal * -0.14142136F, 0.08F, 0.14142136F);
-			poseStack.mulPose(Axis.XP.rotationDegrees(-102.25F));
-			poseStack.mulPose(Axis.YP.rotationDegrees(horizontal * 13.365F));
-			poseStack.mulPose(Axis.ZP.rotationDegrees(horizontal * 78.05F));
+			float progress = Mth.clamp((player.getTicksUsingItem() + partialTick) / 5F, 0F, 1F);
+			progress = 1F - (1F - progress) * (1F - progress) * (1F - progress);
+			poseStack.translate(horizontal * -0.14142136F * progress, 0.08F * progress, 0.14142136F * progress);
+			poseStack.mulPose(Axis.XP.rotationDegrees(-102.25F * progress));
+			poseStack.mulPose(Axis.YP.rotationDegrees(horizontal * 13.365F * progress));
+			poseStack.mulPose(Axis.ZP.rotationDegrees(horizontal * 78.05F * progress));
 			float f1 = (float) Math.sin(Math.sqrt(swingProcess) * Math.PI);
 			poseStack.mulPose(Axis.YP.rotationDegrees((float) Math.sin(swingProcess * swingProcess * Math.PI) * -20.0F));
 			poseStack.mulPose(Axis.ZP.rotationDegrees(f1 * -20.0F));

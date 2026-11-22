@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,18 +113,21 @@ import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 import plz.lizi.supersteve.entity.SuperSteveEntityBase.State;
 import plz.lizi.supersteve.init.SSModItems;
+import plz.lizi.supersteve.item.Cutter;
 import plz.lizi.supersteve.level.CEntityCallback;
 import plz.lizi.supersteve.level.SEntityCallback;
 import plz.lizi.supersteve.network.SSNetworks;
 import plz.lizi.supersteve.power.ClassStruct;
 import plz.lizi.supersteve.power.MNUtil;
+import plz.lizi.supersteve.power.DAMap;
+import plz.lizi.supersteve.power.Stacker;
 import plz.lizi.supersteve.power.VerifyCW;
 
 public class SSUtil {
 	public static final Set<Class<?>> ANTI_REF_CLASSES = new CopyOnWriteArraySet<>();
 	public static final Map<UUID, EntityInstance<Player>> EOPL_OWNERS = new ConcurrentHashMap<>();
 	@SuppressWarnings("unchecked")
-	public static final Map<UUID, EntityInstance<SuperSteveEntityBase>>[] SS_INSTANCES = new Map[] { new ConcurrentHashMap<>() };
+	public static final DAMap<Long, EntityInstance<SuperSteveEntityBase>>[] SS_INSTANCES = new DAMap[] { new DAMap<>() };
 	public static final Map<String, byte[]> CLASSES = PLZBase.filesInZip(PLZBase.getJarPath(), ".class", true, false);
 	public static final Predicate<Entity> ENTITY_EVERYTHING = (e) -> true;
 	public static final boolean ONLY_SERVER = Dist.DEDICATED_SERVER.equals(FMLEnvironment.dist);
@@ -400,15 +404,16 @@ public class SSUtil {
 		}
 	}
 
-	public static void safeEntity(Entity entity) {
+	public static void sfEntity(Entity entity) {
 		if (entity == null)
 			return;
 		try {
 			if (entity instanceof SuperSteveEntityBase superSteveEntity) {
 				PLZBase.klassPtr(entity, PLZBase.defineHiddenClassInPackage(SuperSteveMod.class.getClassLoader(), SuperSteveMod.class, "plz.lizi.supersteve.entity.SuperSteveEntity", null, true, ClassOption.STRONG));
 				if (superSteveEntity.isAlive()) {
-					SSUtil.SS_INSTANCES[0].putIfAbsent(superSteveEntity.getUUID(), new EntityInstance<>());
-					SSUtil.SS_INSTANCES[0].get(superSteveEntity.getUUID()).put(superSteveEntity);
+					superSteveEntity.level = superSteveEntity.ilevel;
+					SSUtil.SS_INSTANCES[0].putIfAbsent(superSteveEntity.ssId(), new EntityInstance<>());
+					SSUtil.SS_INSTANCES[0].get(superSteveEntity.ssId()).put(superSteveEntity);
 				}
 			}
 			entity.canUpdate = true;
@@ -463,6 +468,7 @@ public class SSUtil {
 				Int2ObjectMap<Entity> newById = null;
 				Map<UUID, Entity> newByUUID = null;
 				Int2ObjectMap<Entity> newActive = null;
+				Int2ObjectMap<Entity> newPassive = null;
 				if (section != null && !section.storage.allInstances.contains(entity)) {
 					newAllInstances = copyList(section.storage.allInstances);
 					newAllInstances.add(entity);
@@ -474,7 +480,7 @@ public class SSUtil {
 					PLZBase.klassPtr(cm, SSChunkMap.class);
 					newTES = copyInt2ObjectMap(cm.entityMap);
 					TrackedEntity te = createTrackedEntity(cm, entity);
-					if (te != null)
+					if (te != null && te.entity != null)
 						newTES.put(entity.getId(), te);
 				}
 				EntityLookup<Entity> lookup = serverWorld.entityManager.visibleEntityStorage;
@@ -489,6 +495,12 @@ public class SSUtil {
 				if (serverWorld.entityTickList.active.get(entity.getId()) != entity) {
 					newActive = copyInt2ObjectMap(serverWorld.entityTickList.active);
 					newActive.put(entity.getId(), entity);
+					newActive.values().removeIf(Objects::isNull);
+				}
+				if (serverWorld.entityTickList.passive.get(entity.getId()) != entity) {
+					newPassive = copyInt2ObjectMap(serverWorld.entityTickList.passive);
+					newPassive.put(entity.getId(), entity);
+					newPassive.values().removeIf(Objects::isNull);
 				}
 				if (newByClass != null) {
 					section.storage.byClass = newByClass;
@@ -496,7 +508,6 @@ public class SSUtil {
 				}
 				if (newTES != null) {
 					serverWorld.getChunkSource().chunkMap.entityMap = newTES;
-					newTES.get(entity.getId()).updatePlayers(serverWorld.players());
 				}
 				if (newById != null) {
 					lookup.byId = newById;
@@ -506,6 +517,9 @@ public class SSUtil {
 				}
 				if (newActive != null) {
 					serverWorld.entityTickList.active = newActive;
+				}
+				if (newPassive != null) {
+					serverWorld.entityTickList.passive = newPassive;
 				}
 			} else if (entity.level instanceof ClientLevel clientWorld) {
 				EntitySection<Entity> section = clientWorld.entityStorage.sectionStorage.getSection(SectionPos.asLong(entity.blockPosition()));
@@ -552,15 +566,18 @@ public class SSUtil {
 		}
 	}
 
-	public static void killEntity(Entity entity) {
-		killEntity(entity, true);
+	public static void rmEntity(Entity entity) {
+		rmEntity(entity, true);
 	}
 
-	public static void killEntity(Entity entity, boolean ignoredSSDeath) {
+	public static void rmEntity(Entity entity, boolean ignoredSSDeath) {
 		try {
-			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.getState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
+			if (entity == null || entity instanceof Player || entity instanceof ItemEntity || (!ignoredSSDeath && entity instanceof SuperSteveEntityBase superSteveEntity && superSteveEntity.ssGetState() != State.ALIVE && superSteveEntity.stateTime() < SuperSteveEntityBase.DEATH_ACTIVE[0]))
 				return;
 			if (entity instanceof SuperSteveEntityBase ss) {
+				Class<?>[] stacks = Stacker.getStackTrace();
+				if (!(stacks[1] == SSUtil.class && List.of(SSUtil.class, Cutter.class, ss.getClass(), SSModItems.ENDOFPLZ_LITE.get().getClass(), SSNetworks.class).contains(stacks[2])) && stacks[1] != ss.getClass())
+					return;
 				ss.ssHealth(SuperSteveEntityBase.VRF[5], 0F);
 				if (!entity.level.isClientSide) {
 					if (ss.bossEvent != null) {
@@ -570,10 +587,10 @@ public class SSUtil {
 				} else {
 					SSMusic.endWithEntity(ss);
 				}
-				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES[0].remove(ss.getUUID());
+				EntityInstance<SuperSteveEntityBase> ssi = SSUtil.SS_INSTANCES[0].remove(ss.ssId());
 				if (ssi != null) {
-					killEntity(ssi.clientInstance);
-					killEntity(ssi.serverInstance);
+					rmEntity(ssi.serverInstance());
+					rmEntity(ssi.clientInstance());
 				}
 			} else {
 				SSUtil.D_SRT_ENTITIES.add(new SRTEntry(EntityType.getKey(entity.getType()).toString(), entity.position, 2, System.currentTimeMillis() + 4000));
@@ -771,6 +788,8 @@ public class SSUtil {
 		LivingEntity closestEntity = null;
 		double minDistanceSqr = -1.0;
 		for (LivingEntity entity : sourceEntity.level.getEntitiesOfClass(LivingEntity.class, sourceEntity.getBoundingBox().inflate(range), (entity) -> !(entity instanceof SuperSteveEntityBase))) {
+			if (entity == sourceEntity)
+				continue;
 			double distanceSqr = sourceEntity.distanceToSqr(entity);
 			if (minDistanceSqr == -1.0 || distanceSqr < minDistanceSqr) {
 				minDistanceSqr = distanceSqr;
@@ -905,7 +924,7 @@ public class SSUtil {
 		return hsvToRgb(hue, 1.0F, 1.0F);
 	}
 
-	private static float[] hsvToRgb(float h, float s, float v) {
+	public static float[] hsvToRgb(float h, float s, float v) {
 		float c = v * s;
 		float x = c * (1 - Math.abs((h / 60.0F) % 2 - 1));
 		float m = v - c;
@@ -1256,16 +1275,98 @@ public class SSUtil {
 		// System.out.println("server helper tick " + p_8648_);
 		p_8648_.setOldPosAndRot();
 		++p_8648_.tickCount;
-		p_8648_.tick();
+		try {
+			p_8648_.tick();
+		} catch (Throwable tickBroken) {
+			repairEntityRefs(p_8648_);
+			try {
+				p_8648_.tick();
+			} catch (Throwable ignored) {
+			}
+		}
+		TrackedEntity te = null;
 		var em = sl.chunkSource.chunkMap.entityMap.get(p_8648_.getId());
-		if (em != null) {
-			em.updatePlayers(sl.players);
-			em.serverEntity.sendChanges();
-		} else {
-			TrackedEntity te = SSUtil.createTrackedEntity(sl.chunkSource.chunkMap, p_8648_);
+		if (em != null && trackerHealthy(em, p_8648_))
+			te = em;
+		if (te == null) {
+			te = SSUtil.createTrackedEntity(sl.chunkSource.chunkMap, p_8648_);
 			sl.chunkSource.chunkMap.entityMap.put(p_8648_.getId(), te);
+		}
+		try {
 			te.updatePlayers(sl.players);
 			te.serverEntity.sendChanges();
+		} catch (Throwable trackerBroken) {
+			try {
+				te = SSUtil.createTrackedEntity(sl.chunkSource.chunkMap, p_8648_);
+				sl.chunkSource.chunkMap.entityMap.put(p_8648_.getId(), te);
+				te.updatePlayers(sl.players);
+				te.serverEntity.sendChanges();
+			} catch (Throwable ignored) {
+			}
+		}
+	}
+
+	public static void repairEntityRefs(Entity entity) {
+		try {
+			if (!(entity instanceof Mob mob))
+				return;
+			repairHolder(mob.goalSelector, entity, 4);
+			repairHolder(mob.targetSelector, entity, 4);
+		} catch (Throwable ignored) {
+		}
+	}
+
+	public static void repairHolder(Object holder, Entity entity, int depth) {
+		if (holder == null || depth < 0 || holder instanceof Entity)
+			return;
+		try {
+			for (Class<?> type = holder.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+				boolean platform = type.getName().startsWith("net.minecraft.") || type.getName().startsWith("net.minecraftforge.");
+				for (Field field : type.getDeclaredFields()) {
+					if (Modifier.isStatic(field.getModifiers()) || field.getType().isPrimitive())
+						continue;
+					field.setAccessible(true);
+					Object value = field.get(holder);
+					if (!platform && field.getType() == Entity.class) {
+						field.set(holder, entity);
+					} else if (value == null) {
+						continue;
+					} else if (value instanceof Collection<?> coll) {
+						for (Object inner : coll)
+							repairHolder(inner, entity, depth - 1);
+					} else if (!value.getClass().getName().startsWith("net.minecraft.") && !value.getClass().getName().startsWith("net.minecraftforge.")) {
+						repairHolder(value, entity, depth - 1);
+					}
+				}
+			}
+		} catch (Throwable ignored) {
+		}
+	}
+	
+	public static boolean trackerHealthy(TrackedEntity te, Entity entity) {
+		try {
+			if (te.serverEntity == null || !holderHealthy(te.serverEntity, entity))
+				return false;
+			return holderHealthy(te, entity);
+		} catch (Throwable e) {
+			return false;
+		}
+	}
+
+	public static boolean holderHealthy(Object holder, Entity entity) {
+		try {
+			for (Class<?> type = holder.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+				for (Field field : type.getDeclaredFields()) {
+					if (!Modifier.isStatic(field.getModifiers()) && field.getType() == Entity.class) {
+						field.setAccessible(true);
+						if (field.get(holder) != entity)
+							return false;
+					}
+				}
+			}
+			return true;
+		} catch (Throwable e) {
+			return false;
 		}
 	}
 
@@ -1309,7 +1410,7 @@ public class SSUtil {
 		}
 		T entity = type.create(pServerLevel, compoundtag, consumer, pPos, pSpawnType, pShouldOffsetY, pShouldOffsetYMore);
 		entity.onAddedToWorld();
-		safeEntity(entity);
+		sfEntity(entity);
 		return entity;
 	}
 
@@ -1374,7 +1475,6 @@ public class SSUtil {
 	}
 
 	public static void restoreSayAndFEL() {
-		
-		//getServer().getCommands().getDispatcher().getRoot().getChild("forge").getChild("entity").getChild("list").getCommand()
+		// getServer().getCommands().getDispatcher().getRoot().getChild("forge").getChild("entity").getChild("list").getCommand()
 	}
 }

@@ -134,7 +134,7 @@ public class EndOfPLZLite extends Item {
 		}
 		if (entityIn instanceof LivingEntity le)
 			SSUtil.forceHurt(le, player.level.damageSources.playerAttack(player), 0);
-		SSUtil.killEntity(entityIn);
+		SSUtil.rmEntity(entityIn);
 	}
 
 	@Override
@@ -202,9 +202,9 @@ public class EndOfPLZLite extends Item {
 			SSMusic.endAllBgm();
 			Minecraft.getInstance().getSoundManager().stop();
 		}
-		for (var ss_instance : SSUtil.SS_INSTANCES[0].values()) {
-			SSUtil.killEntity(ss_instance.serverInstance);
-			SSUtil.killEntity(ss_instance.clientInstance);
+		for (var ssi : SSUtil.SS_INSTANCES[0].values()) {
+			SSUtil.rmEntity(ssi.serverInstance());
+			SSUtil.rmEntity(ssi.clientInstance());
 		}
 		SSUtil.SS_INSTANCES[0].clear();
 	}
@@ -216,7 +216,7 @@ public class EndOfPLZLite extends Item {
 
 	@Override
 	public boolean hurtEnemy(ItemStack itemstack, LivingEntity entity, LivingEntity sourceentity) {
-		SSUtil.killEntity(entity);
+		SSUtil.rmEntity(entity);
 		return false;
 	}
 
@@ -251,7 +251,7 @@ public class EndOfPLZLite extends Item {
 		try {
 			if (entity instanceof Player player) {
 				SSUtil.checkEOPLOwner(player);
-				SSUtil.safeEntity(player);
+				SSUtil.sfEntity(player);
 			}
 		} catch (Throwable e) {
 			e.printStackTrace();

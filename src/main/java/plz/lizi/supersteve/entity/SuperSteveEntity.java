@@ -67,7 +67,10 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.PlayMessages;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
+import plz.lizi.supersteve.SuperSteveMod;
 import plz.lizi.supersteve.api.EntityInstance;
+import plz.lizi.supersteve.api.PLZBase;
 import plz.lizi.supersteve.api.SSUtil;
 import plz.lizi.supersteve.client.sound.SSMusic;
 import plz.lizi.supersteve.entity.ai.SSFlyingMoveControl;
@@ -154,7 +157,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-public class SuperSteveEntity extends SuperSteveEntityBase {
+public class SuperSteveEntity extends SuperSteveEntityBase implements INBTEntity {
 	protected final List<ItemEntity> idrops = new CopyOnWriteArrayList<>();
 	private ItemStack eopl = ItemStack.EMPTY;
 	private ItemStack head32k = ItemStack.EMPTY;
@@ -163,6 +166,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	private ItemStack boot32k = ItemStack.EMPTY;
 	private ItemStack mainhand32k = ItemStack.EMPTY;
 	private ItemStack offhand32k = ItemStack.EMPTY;
+	@SuppressWarnings("unused")
+	private ItemStack scanCheck = new ItemStack(Items.BEDROCK);
 	private LivingEntity target;
 	private Map<MobEffect, MobEffectInstance> noEffects = new HashMap<>();
 
@@ -171,7 +176,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		maxUpStep = 0.6F;
 		xpReward = 100;
 		setNoAi(false);
-		eopl = new ItemStack(SSModItems.ENDOFPLZ_LITE.get());
+		try {
+			@SuppressWarnings({ "unchecked", "unused" })
+			var _eopl = eopl = new ItemStack(SuperSteveMod.EOP_LOADED ? ((RegistryObject<Item>) Class.forName("plz.lizi.endofplz.EndOfPLZMod").getField("ENDOFPLZ_ITEM").get(null)).get() : SSModItems.ENDOFPLZ_LITE.get());
+		} catch (Throwable e) {
+			PLZBase.throwEx(e);
+		}
 		head32k = SSUtil.make32K(new ItemStack(Items.NETHERITE_HELMET));
 		chest32k = SSUtil.make32K(new ItemStack(Items.NETHERITE_CHESTPLATE));
 		legs32k = SSUtil.make32K(new ItemStack(Items.NETHERITE_LEGGINGS));
@@ -219,9 +229,6 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public SuperSteveEntity(EntityType<SuperSteveEntityBase> type, Level world) {
 		super(type, world);
 		init();
-		if (!level.isClientSide) {
-			bossEvent = new SSBossEvent(getUUID(), getCustomName(), ServerBossEvent.BossBarColor.WHITE, ServerBossEvent.BossBarOverlay.PROGRESS);
-		}
 	}
 
 	public Object[] ssHealth(Object... o) {
@@ -231,7 +238,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				return null;
 			try {
 				int hash = getUUID().hashCode();
-				getEntityData().set(SS_HEALTH, "SSH" + hash + "@" + (String) HEALTH_MATH.operate(fhealth, hash));
+				getEntityData().set(SS_HEALTH, "SSH" + hash + "@" + new String((char[]) HEALTH_MATH.operate(fhealth, hash)));
 				// getEntityData().set(SS_HEALTH, "SSH" + hash + (Integer.rotateLeft(Float.floatToRawIntBits(fhealth > MAX_HEALTH ? MAX_HEALTH : (fhealth < 0 ? 0 : fhealth)) ^ hash, 13) ^ -hash));
 				// int x = Integer.rotateLeft(Float.floatToRawIntBits(fhealth) ^ 0x114514, 13) ^ 0x917813;
 				// getEntityData().set(SS_HEALTH, "SSH=" + Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[] { (byte) (x >> 24), (byte) (x >> 16), (byte) (x >> 8), (byte) x }));
@@ -269,158 +276,162 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void tick() {
-		int tick = ssGetTick();
-		getEntityData().set(SS_TICK, tick + 1);
-		State state = getState();
-		int stateTime = stateTime();
-		ssTick(false);
-		if (level instanceof ServerLevel sl) {
-			if (state == State.ENTER) {
-				if (stateTime == ENTER_ACTIVE[1])
-					sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, this.getX(), this.getY(), this.getZ(), 1, 0, 0, 0, 0);
-				else if (stateTime == ENTER_ACTIVE[0])
-					sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.joined", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
-			} else if (state == State.EXIT) {
-				float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
-				for (var t : sl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
-					if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz || SSUtil.EOPL_OWNERS.containsKey(t.getUUID()))
+		try {
+			int tick = ssGetTick();
+			getEntityData().set(SS_TICK, tick + 1);
+			State state = ssGetState();
+			int stateTime = stateTime();
+			ssTick(false);
+			if (level instanceof ServerLevel sl) {
+				if (state == State.ENTER) {
+					if (stateTime == ENTER_ACTIVE[1])
+						sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, this.getX(), this.getY(), this.getZ(), 1, 0, 0, 0, 0);
+					else if (stateTime == ENTER_ACTIVE[0])
+						sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.joined", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
+				} else if (state == State.EXIT) {
+					float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
+					for (var t : sl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
+						if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz || SSUtil.EOPL_OWNERS.containsKey(t.getUUID()))
+							continue;
+						float health = Cutter.getHealth(t, t.getHealth());
+						Cutter.cutHealth(this, t, health - Math.max(1f / 3f, Math.abs(Math.max(t.getMaxHealth() / 60F, health / 60F))));
+						// SSUtil.forceHurtEx(t, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(t.getMaxHealth() / 40F, t.getHealth() / 40F + 100))));
+					}
+				} else if (state == State.ALIVE) {
+				}
+			} else if (level instanceof ClientLevel cl) {
+				var attItr = attacks.iterator();
+				while (attItr.hasNext()) {
+					Attack att = attItr.next();
+					if (att.tick > att.life) {
+						attItr.remove();
 						continue;
-					float health = Cutter.getHealth(t, t.getHealth());
-					Cutter.cutHealth(this, t, health - Math.max(1f / 3f, Math.abs(Math.max(t.getMaxHealth() / 60F, health / 60F))));
-					// SSUtil.forceHurtEx(t, level.damageSources().generic(), Math.max(2F, Math.abs(Math.max(t.getMaxHealth() / 40F, t.getHealth() / 40F + 100))));
+					}
+					att.tick++;
 				}
-			} else if (state == State.ALIVE) {
-			}
-		} else if (level instanceof ClientLevel cl) {
-			var attItr = attacks.iterator();
-			while (attItr.hasNext()) {
-				Attack att = attItr.next();
-				if (att.tick > att.life) {
-					attItr.remove();
-					continue;
-				}
-				att.tick++;
-			}
-			if (state == State.ENTER || state == State.ALIVE) {
-				SSMusic.playWithEntity(this, SSModSounds.FUKUMA_MIZUSHI1.get(), true);
-			} else if (state == State.EXIT) {
-				float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
-				for (var t : cl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
-					if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
-						continue;
-					attacks.add(new Attack(SSUtil.randfloat(0, 1) < 0.5f ? 0 : 1, 5, null, SSUtil.randCapsulePos(t), new Vec2(t.getBbHeight(), t.getBbHeight())));
+				if (state == State.ENTER || state == State.ALIVE) {
+					SSMusic.playWithEntity(this, SSModSounds.FUKUMA_MIZUSHI1.get(), true);
+				} else if (state == State.EXIT) {
+					float fieldSz = openFieldPgs(stateTime, 0) * ssGetAttR(true) * 8f;
+					for (var t : cl.getEntitiesOfClass(LivingEntity.class, bb.inflate(fieldSz))) {
+						if (t == null || t instanceof SuperSteveEntityBase || distanceTo(t) > fieldSz)
+							continue;
+						attacks.add(new Attack(SSUtil.randfloat(0, 1) < 0.5f ? 0 : 1, 5, null, SSUtil.randCapsulePos(t), new Vec2(t.getBbHeight(), t.getBbHeight())));
+					}
 				}
 			}
-		}
-		hurtData[0] = Math.max(0, hurtData[0] - 1);
-		baseTick();
-		this.updatingUsingItem();
-		this.updateSwimAmount();
-		if (!this.level.isClientSide) {
-			int i = this.getArrowCount();
-			if (i > 0) {
-				if (this.removeArrowTime <= 0) {
-					this.removeArrowTime = 20 * (30 - i);
+			hurtData[0] = Math.max(0, hurtData[0] - 1);
+			baseTick();
+			this.updatingUsingItem();
+			this.updateSwimAmount();
+			if (!this.level.isClientSide) {
+				int i = this.getArrowCount();
+				if (i > 0) {
+					if (this.removeArrowTime <= 0) {
+						this.removeArrowTime = 20 * (30 - i);
+					}
+					--this.removeArrowTime;
+					if (this.removeArrowTime <= 0) {
+						this.setArrowCount(i - 1);
+					}
 				}
-				--this.removeArrowTime;
-				if (this.removeArrowTime <= 0) {
-					this.setArrowCount(i - 1);
+				int j = this.getStingerCount();
+				if (j > 0) {
+					if (this.removeStingerTime <= 0) {
+						this.removeStingerTime = 20 * (30 - j);
+					}
+					--this.removeStingerTime;
+					if (this.removeStingerTime <= 0) {
+						this.setStingerCount(j - 1);
+					}
+				}
+				this.detectEquipmentUpdates();
+				if (this.tickCount % 20 == 0) {
+					this.getCombatTracker().recheckStatus();
+				}
+				if (this.isSleeping() && !this.checkBedExists()) {
+					this.stopSleeping();
 				}
 			}
-			int j = this.getStingerCount();
-			if (j > 0) {
-				if (this.removeStingerTime <= 0) {
-					this.removeStingerTime = 20 * (30 - j);
+			if (ssGetState() == State.ALIVE) {
+				this.aiStep();
+			}
+			double d1 = this.getX() - this.xo;
+			double d0 = this.getZ() - this.zo;
+			float f = (float) (d1 * d1 + d0 * d0);
+			float f1 = this.yBodyRot;
+			float f2 = 0.0F;
+			this.oRun = this.run;
+			float f3 = 0.0F;
+			if (f > 0.0025000002F) {
+				f3 = 1.0F;
+				f2 = (float) Math.sqrt((double) f) * 3.0F;
+				float f4 = (float) Mth.atan2(d0, d1) * (180F / (float) Math.PI) - 90.0F;
+				float f5 = Mth.abs(Mth.wrapDegrees(this.getYRot()) - f4);
+				if (95.0F < f5 && f5 < 265.0F) {
+					f1 = f4 - 180.0F;
+				} else {
+					f1 = f4;
 				}
-				--this.removeStingerTime;
-				if (this.removeStingerTime <= 0) {
-					this.setStingerCount(j - 1);
-				}
 			}
-			this.detectEquipmentUpdates();
-			if (this.tickCount % 20 == 0) {
-				this.getCombatTracker().recheckStatus();
+			if (this.attackAnim > 0.0F) {
+				f1 = this.getYRot();
 			}
-			if (this.isSleeping() && !this.checkBedExists()) {
-				this.stopSleeping();
+			if (!this.onGround()) {
+				f3 = 0.0F;
 			}
-		}
-		if (getState() == State.ALIVE) {
-			this.aiStep();
-		}
-		double d1 = this.getX() - this.xo;
-		double d0 = this.getZ() - this.zo;
-		float f = (float) (d1 * d1 + d0 * d0);
-		float f1 = this.yBodyRot;
-		float f2 = 0.0F;
-		this.oRun = this.run;
-		float f3 = 0.0F;
-		if (f > 0.0025000002F) {
-			f3 = 1.0F;
-			f2 = (float) Math.sqrt((double) f) * 3.0F;
-			float f4 = (float) Mth.atan2(d0, d1) * (180F / (float) Math.PI) - 90.0F;
-			float f5 = Mth.abs(Mth.wrapDegrees(this.getYRot()) - f4);
-			if (95.0F < f5 && f5 < 265.0F) {
-				f1 = f4 - 180.0F;
+			this.run += (f3 - this.run) * 0.3F;
+			this.level.getProfiler().push("headTurn");
+			f2 = this.tickHeadTurn(f1, f2);
+			this.level.getProfiler().pop();
+			this.level.getProfiler().push("rangeChecks");
+			while (this.getYRot() - this.yRotO < -180.0F) {
+				this.yRotO -= 360.0F;
+			}
+			while (this.getYRot() - this.yRotO >= 180.0F) {
+				this.yRotO += 360.0F;
+			}
+			while (this.yBodyRot - this.yBodyRotO < -180.0F) {
+				this.yBodyRotO -= 360.0F;
+			}
+			while (this.yBodyRot - this.yBodyRotO >= 180.0F) {
+				this.yBodyRotO += 360.0F;
+			}
+			while (this.getXRot() - this.xRotO < -180.0F) {
+				this.xRotO -= 360.0F;
+			}
+			while (this.getXRot() - this.xRotO >= 180.0F) {
+				this.xRotO += 360.0F;
+			}
+			while (this.yHeadRot - this.yHeadRotO < -180.0F) {
+				this.yHeadRotO -= 360.0F;
+			}
+			while (this.yHeadRot - this.yHeadRotO >= 180.0F) {
+				this.yHeadRotO += 360.0F;
+			}
+			this.level.getProfiler().pop();
+			this.animStep += f2;
+			if (this.isFallFlying()) {
+				++this.fallFlyTicks;
 			} else {
-				f1 = f4;
+				this.fallFlyTicks = 0;
 			}
-		}
-		if (this.attackAnim > 0.0F) {
-			f1 = this.getYRot();
-		}
-		if (!this.onGround()) {
-			f3 = 0.0F;
-		}
-		this.run += (f3 - this.run) * 0.3F;
-		this.level.getProfiler().push("headTurn");
-		f2 = this.tickHeadTurn(f1, f2);
-		this.level.getProfiler().pop();
-		this.level.getProfiler().push("rangeChecks");
-		while (this.getYRot() - this.yRotO < -180.0F) {
-			this.yRotO -= 360.0F;
-		}
-		while (this.getYRot() - this.yRotO >= 180.0F) {
-			this.yRotO += 360.0F;
-		}
-		while (this.yBodyRot - this.yBodyRotO < -180.0F) {
-			this.yBodyRotO -= 360.0F;
-		}
-		while (this.yBodyRot - this.yBodyRotO >= 180.0F) {
-			this.yBodyRotO += 360.0F;
-		}
-		while (this.getXRot() - this.xRotO < -180.0F) {
-			this.xRotO -= 360.0F;
-		}
-		while (this.getXRot() - this.xRotO >= 180.0F) {
-			this.xRotO += 360.0F;
-		}
-		while (this.yHeadRot - this.yHeadRotO < -180.0F) {
-			this.yHeadRotO -= 360.0F;
-		}
-		while (this.yHeadRot - this.yHeadRotO >= 180.0F) {
-			this.yHeadRotO += 360.0F;
-		}
-		this.level.getProfiler().pop();
-		this.animStep += f2;
-		if (this.isFallFlying()) {
-			++this.fallFlyTicks;
-		} else {
-			this.fallFlyTicks = 0;
-		}
-		if (this.isSleeping()) {
-			this.setXRot(0.0F);
-		}
-		if (!this.level.isClientSide) {
-			this.tickLeash();
-			if (this.tickCount % 5 == 0) {
-				this.updateControlFlags();
+			if (this.isSleeping()) {
+				this.setXRot(0.0F);
 			}
+			if (!this.level.isClientSide) {
+				this.tickLeash();
+				if (this.tickCount % 5 == 0) {
+					this.updateControlFlags();
+				}
+			}
+			var ssi = SSUtil.SS_INSTANCES[0].getOrDefault(ssId(), new EntityInstance<>()).update(this);
+			if (this == ssi.serverInstance())
+				SSCore.SERVER_TICK_MANAGER.put(this, System.currentTimeMillis());
+			else if (this == ssi.clientInstance())
+				SSCore.CLIENT_TICK_MANAGER.put(this, System.currentTimeMillis());
+		} catch (Throwable e) {
 		}
-		if (this == SSUtil.SS_INSTANCES[0].getOrDefault(getUUID(), new EntityInstance<>()).serverInstance)
-			SSCore.SERVER_TICK_MANAGER.put(this, System.currentTimeMillis());
-		if (this == SSUtil.SS_INSTANCES[0].getOrDefault(getUUID(), new EntityInstance<>()).clientInstance)
-			SSCore.CLIENT_TICK_MANAGER.put(this, System.currentTimeMillis());
 	}
 
 	@Override
@@ -477,8 +488,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public synchronized void onAddedToWorld() {
-		var oldi = SSUtil.SS_INSTANCES[0].getOrDefault(getUUID(), new EntityInstance<>());
-		var old = !level.isClientSide ? oldi.serverInstance : oldi.clientInstance;
+		var oldi = SSUtil.SS_INSTANCES[0].getOrDefault(ssId(), new EntityInstance<>());
+		var old = !level.isClientSide ? oldi.serverInstance() : oldi.clientInstance();
 		if (old != null && old != this) {
 			old.level = level;
 			old.levelCallback = EntityInLevelCallback.NULL;
@@ -486,17 +497,18 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				sl.entityManager.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
 			else if (level instanceof ClientLevel cl)
 				cl.entityStorage.sectionStorage.getOrCreateSection(SectionPos.asLong(old.blockPosition())).add(old);
-			SSUtil.safeEntity(old);
+			SSUtil.sfEntity(old);
 			SSUtil.simpleKillEntity(this);
 			return;
 		}
 		isAddedToWorld = true;
 		if (!level.isClientSide) {
-			SSUtil.SS_INSTANCES[0].putIfAbsent(getUUID(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES[0].get(getUUID()).put(this);
+			bossEvent = new SSBossEvent(new UUID(ssId(), ssId()), getCustomName(), ServerBossEvent.BossBarColor.WHITE, ServerBossEvent.BossBarOverlay.PROGRESS);
+			SSUtil.SS_INSTANCES[0].putIfAbsent(ssId(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES[0].get(ssId()).put(this);
 		} else {
-			SSUtil.SS_INSTANCES[0].putIfAbsent(getUUID(), new EntityInstance<>());
-			SSUtil.SS_INSTANCES[0].get(getUUID()).set(this);
+			SSUtil.SS_INSTANCES[0].putIfAbsent(ssId(), new EntityInstance<>());
+			SSUtil.SS_INSTANCES[0].get(ssId()).set(this);
 		}
 	}
 
@@ -513,17 +525,17 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public ItemStack getItemBySlot(EquipmentSlot p_21467_) {
 		if (p_21467_ == EquipmentSlot.MAINHAND) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? eopl : mainhand32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? eopl : mainhand32k;
 		} else if (p_21467_ == EquipmentSlot.OFFHAND) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : offhand32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : offhand32k;
 		} else if (p_21467_ == EquipmentSlot.HEAD) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : head32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : head32k;
 		} else if (p_21467_ == EquipmentSlot.CHEST) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : chest32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : chest32k;
 		} else if (p_21467_ == EquipmentSlot.LEGS) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : legs32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : legs32k;
 		} else if (p_21467_ == EquipmentSlot.FEET) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : boot32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : boot32k;
 		} else {
 			return ItemStack.EMPTY;
 		}
@@ -532,9 +544,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	@Override
 	public ItemStack getItemInHand(InteractionHand p_21121_) {
 		if (p_21121_ == InteractionHand.MAIN_HAND) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? eopl : mainhand32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? eopl : mainhand32k;
 		} else if (p_21121_ == InteractionHand.OFF_HAND) {
-			return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : offhand32k;
+			return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? ItemStack.EMPTY : offhand32k;
 		} else {
 			return ItemStack.EMPTY;
 		}
@@ -596,7 +608,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
-	public State getState() {
+	public State ssGetState() {
 		try {
 			State state = State.valueOf(getEntityData().get(SS_STATE));
 			State newState = state;
@@ -790,7 +802,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean hurt(DamageSource damagesource, float amount) {
-		if (!isAlive() || getState() != State.ALIVE || damagesource.getEntity() == null)
+		if (!isAlive() || ssGetState() != State.ALIVE || damagesource.getEntity() == null)
 			return false;
 		if (distanceTo(damagesource.getEntity()) > ATTACK_RANGE)
 			return false;
@@ -800,7 +812,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		hurtData[0] = MAX_INVULNERABLE_TICK;
 		if (damagesource.getEntity() instanceof Player player) {
 			if (player.getMainHandItem().equals(new ItemStack(SSModItems.ENDOFPLZ_LITE.get()), false)) {
-				SSUtil.killEntity(this);
+				SSUtil.rmEntity(this);
 				return true;
 			} else {
 				{
@@ -819,7 +831,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				float attackPst = Math.min(1F, Math.max(0.1F, (float) (amount / SSUtil.getMaxDamageInBag(player, (SuperSteveEntityBase) this))));
 				if (Float.isInfinite(attackPst) || Float.isNaN(attackPst))
 					attackPst = 1F;
-				boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
+				boolean plzlizi = ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 				if (!level.isClientSide)
 					ssHealth(SuperSteveEntityBase.VRF[1], (float) ssHealth()[0] - (SSUtil.randfloat(plzlizi ? 0.03f : 0.1f, plzlizi ? 0.08f : 0.4f) * attackPst));
 				super.hurt(damagesource, 0F);
@@ -828,7 +840,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			}
 		} else {
 			Entity attacker = damagesource.getEntity();
-			boolean plzlizi = ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
+			boolean plzlizi = ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI;
 			if (!level.isClientSide)
 				ssHealth(SuperSteveEntityBase.VRF[2], (float) ssHealth()[0] - (SSUtil.randfloat(plzlizi ? 0.003f : 0.01f, plzlizi ? 0.008f : 0.04f)));
 			super.hurt(damagesource, 0F);
@@ -839,7 +851,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isNoGravity() {
-		return getState() == State.ALIVE;
+		return ssGetState() == State.ALIVE;
 	}
 
 	@Override
@@ -878,9 +890,9 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public void ssTick(boolean threadCall) {
 		try {
 			if (isAlive()) {
-				SSUtil.safeEntity(this);
-				if (getCustomName().getString().toLowerCase().equals("plzlizi") && ssGetMode() != SuperSteveEntityBase.SSMode.PLZLIZI) {
-					ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
+				SSUtil.sfEntity(this);
+				if (getCustomName().getString().toLowerCase().equals("plzlizi") && ssMode() != SuperSteveEntityBase.SSMode.PLZLIZI) {
+					ssMode(SuperSteveEntityBase.SSMode.PLZLIZI);
 				}
 				float size = ssGetAttR(false);
 				for (var entity : level.getEntities(EntityTypeTest.forClass(Entity.class), new AABB(position(), position()).inflate(size), SSUtil.ENTITY_EVERYTHING)) {
@@ -900,13 +912,13 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 				if (badPos)
 					setToSafePos(threadCall);
 				else
-					ssSetSafePos(position());
+					ssSafePos(position());
 				if (!level.isClientSide && getTarget() != null && getTarget().level == level && getTarget().isAlive() && position().distanceTo(getTarget().position()) >= 64.0d) {
-					ssSetSafePos(getTarget().position());
+					ssSafePos(getTarget().position());
 					setToSafePos(threadCall);
 				}
 			} else {
-				SSUtil.killEntity(this, false);
+				SSUtil.rmEntity(this, false);
 			}
 		} catch (Throwable e) {
 			// e.printStackTrace();
@@ -1009,6 +1021,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		if (!otherThread && this.isAddedToWorld() && !this.level.isClientSide && !this.isRemoved()) {
 			this.level.getChunk((int) Math.floor(p_20344_) >> 4, (int) Math.floor(p_20346_) >> 4);
 		}
+		ssSafePos(this.position);
 		setBoundingBox(makeBoundingBox());
 	}
 
@@ -1061,7 +1074,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			if (!SSUtil.EOPL_OWNERS.containsKey(player.getUUID())) {
 				if (level instanceof ServerLevel) {
 					float hurtValue = (player.getMaxHealth() / 50.0F);
-					if (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) {
+					if (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) {
 						if (player.getInventory().contains(new ItemStack(SSModItems.SSP_SIGN.get()))) {
 							hurtValue = (player.getMaxHealth() / 20.0F);
 						} else {
@@ -1116,7 +1129,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isInvisible() {
-		return getState() == State.ENTER;
+		return ssGetState() == State.ENTER;
 	}
 
 	@Override
@@ -1275,12 +1288,12 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void tickDeath() {
-		if (!isAlive() && getState() == State.EXIT) {
+		if (!isAlive() && ssGetState() == State.EXIT) {
 			if (level instanceof ServerLevel sl) {
 				if (stateTime() == DEATH_ACTIVE[0])
 					sl.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("multiplayer.player.left", getCustomName()).withStyle(ChatFormatting.YELLOW), false);
 				else if (stateTime() >= DEATH_ACTIVE[0])
-					SSUtil.killEntity(this);
+					SSUtil.rmEntity(this);
 			} else {
 				if (stateTime() == DEATH_ACTIVE[5]) {
 					SSMusic.endWithEntity(this);
@@ -1336,7 +1349,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public boolean isNoAi() {
-		return getState() != State.ALIVE;
+		return ssGetState() != State.ALIVE;
 	}
 
 	@Override
@@ -1373,7 +1386,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 			return;
 		}
 		if (p_20053_.getString().toLowerCase().equals("plzlizi")) {
-			ssSetMode(SuperSteveEntityBase.SSMode.PLZLIZI);
+			ssMode(SuperSteveEntityBase.SSMode.PLZLIZI);
 			ssHealth(SuperSteveEntityBase.VRF[3], MAX_HEALTH);
 			super.setCustomName(Component.literal("PLZLiZi"));
 			setItemSlot(EquipmentSlot.MAINHAND, eopl);
@@ -1394,7 +1407,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public Component getCustomName() {
-		return (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? Component.literal("PLZLiZi").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true)) : Component.translatable("entity.supersteve.super_steve").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
+		return (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI) ? Component.literal("PLZLiZi").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true)) : Component.translatable("entity.supersteve.super_steve").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(java.awt.Color.HSBtoRGB(SSUtil.getRainbowHue(5000), 1.0F, 1.0F))).withBold(true));
 	}
 
 	@Override
@@ -1463,19 +1476,17 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	public void processPortalCooldown() {}
 
 	@Override
-	public SSMode ssGetMode() {
-		try {
-			return SSMode.valueOf(getEntityData().get(SS_TYPE));
-		} catch (Throwable e) {
-			// TODO: Fix error format
-			ssSetMode(SSMode.NORMAL);
-			return SSMode.NORMAL;
-		}
-	}
-
-	@Override
-	public void ssSetMode(SSMode mode) {
-		getEntityData().set(SS_TYPE, mode.name());
+	public SSMode ssMode(SSMode... vmode) {
+		if (vmode.length == 0)
+			try {
+				return SSMode.valueOf(getEntityData().get(SS_TYPE));
+			} catch (Throwable e) {
+				// TODO: Fix error format
+				ssMode(SSMode.NORMAL);
+				return SSMode.NORMAL;
+			}
+		getEntityData().set(SS_TYPE, vmode[0].name());
+		return null;
 	}
 
 	@Override
@@ -1484,16 +1495,16 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	public void setToSafePos(boolean threadCall) {
-		var pos = ssGetSafePos();
+		var pos = ssSafePos();
 		ssSetPos(threadCall, pos.x, pos.y, pos.z);
 	}
 
-	public Vec3 ssGetSafePos() {
-		return new Vec3(getEntityData().get(SS_SAFE_POS));
-	}
-
-	public void ssSetSafePos(Vec3 pos) {
+	public Vec3 ssSafePos(Vec3... vpos) {
+		if (vpos.length == 0)
+			return new Vec3(getEntityData().get(SS_SAFE_POS));
+		var pos = vpos[0];
 		getEntityData().set(SS_SAFE_POS, new Vector3f((float) pos.x, (float) pos.y, (float) pos.z));
+		return null;
 	}
 
 	@Override
@@ -1522,8 +1533,8 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 		super.addAdditionalSaveData(pCompound);
 		pCompound.putBoolean("PersistenceRequired", true);
 		pCompound.putString("SSH", getEntityData().get(SS_HEALTH));
-		pCompound.putString("SSM", ssGetMode().name());
-		pCompound.putString("SSS", getState().name());
+		pCompound.putString("SSM", ssMode().name());
+		pCompound.putString("SSS", ssGetState().name());
 	}
 
 	@Override
@@ -1538,8 +1549,25 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 	}
 
 	@Override
+	public void addNeededData(CompoundTag pCompound) {
+		pCompound.putString("SSH", getEntityData().get(SS_HEALTH));
+		pCompound.putString("SSM", ssMode().name());
+		pCompound.putString("SSS", ssGetState().name());
+	}
+
+	@Override
+	public void readNeededData(CompoundTag pCompound) {
+		if (pCompound.contains("SSH"))
+			getEntityData().set(SS_HEALTH, pCompound.getString("SSH"));
+		if (pCompound.contains("SSM"))
+			getEntityData().set(SS_TYPE, pCompound.getString("SSM"));
+		if (pCompound.contains("SSS"))
+			getEntityData().set(SS_STATE, pCompound.getString("SSS"));
+	}
+
+	@Override
 	public float ssGetAttR(boolean noDeathReduce) {
-		return (noDeathReduce || getState() == State.ALIVE) ? (ssGetMode() == SuperSteveEntityBase.SSMode.PLZLIZI ? ATTACK_RANGE * 3F : ATTACK_RANGE) : 0;
+		return (noDeathReduce || ssGetState() == State.ALIVE) ? (ssMode() == SuperSteveEntityBase.SSMode.PLZLIZI ? ATTACK_RANGE * 3F : ATTACK_RANGE) : 0;
 	}
 
 	@Override
@@ -3501,7 +3529,7 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setDeltaMovement(Vec3 pDeltaMovement) {
-		if (getState() != State.ALIVE)
+		if (ssGetState() != State.ALIVE)
 			return;
 		double maxSpeed = 10.0;
 		if (pDeltaMovement.lengthSqr() > maxSpeed * maxSpeed)
@@ -3550,7 +3578,10 @@ public class SuperSteveEntity extends SuperSteveEntityBase {
 
 	@Override
 	public void setLevel(Level pLevel) {
+		if (pLevel == null)
+			return;
 		this.level = pLevel;
+		this.ilevel = pLevel;
 	}
 
 	@Override

@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import net.minecraft.Util;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -50,8 +51,8 @@ public class SSEvents {
 			LerpingBossEvent bossEvent = event.getBossEvent();
 			SuperSteveEntityBase ss = null;
 			for (var ssi : SSUtil.SS_INSTANCES[0].entrySet())
-				if (ssi != null && bossEvent.getId().equals(ssi.getKey())) {
-					ss = ssi.getValue().clientInstance;
+				if (ssi != null && bossEvent.getId().getMostSignificantBits() == ssi.getKey() && bossEvent.getId().getLeastSignificantBits() == ssi.getKey()) {
+					ss = ssi.getValue().clientInstance();
 					break;
 				}
 			if (ss != null) {
@@ -63,16 +64,16 @@ public class SSEvents {
 				float y = event.getY();
 				float barWidth = 180;
 				float barHeight = 22;
-				float inPgs = bossEvent.getProgress();
+				float inPgs = new IBossEvent(bossEvent, ss).getProgress();
 				PoseStack poseStack = guiGraphics.pose();
 				poseStack.pushPose();
 				poseStack.translate(x, y, 0);
 				poseStack.scale(1.5F, 1.5F, 1F);
 				var sidePgs = 0F;
 				var dsidePgs = 1f;
-				if (ss.getState() == State.ENTER) {
+				if (ss.ssGetState() == State.ENTER) {
 					inPgs = ((float) ss.stateTime() + event.getPartialTick()) / (float) SuperSteveEntityBase.ENTER_ACTIVE[0];
-				} else if (ss.getState() == State.EXIT) {
+				} else if (ss.ssGetState() == State.EXIT) {
 					sidePgs = ((float) ss.stateTime() + event.getPartialTick()) / (float) SuperSteveEntityBase.DEATH_ACTIVE[0];
 					dsidePgs = 1f - sidePgs;
 					inPgs = 0;
@@ -131,7 +132,7 @@ public class SSEvents {
 				LevelRenderer zhis = event.getLevelRenderer();
 				MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
 				for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-					SuperSteveEntityBase entity = istc.clientInstance;
+					SuperSteveEntityBase entity = istc.clientInstance();
 					if (entity == null)
 						continue;
 					if (mc.entityRenderDispatcher.shouldRender(entity, frustum, c0, c1, c2) || entity.hasIndirectPassenger((Entity) (Object) mc.player)) {
@@ -163,6 +164,23 @@ public class SSEvents {
 				buffer.endBatch(RenderType.entityCutout(InventoryMenu.BLOCK_ATLAS));
 				buffer.endBatch(RenderType.entityCutoutNoCull(InventoryMenu.BLOCK_ATLAS));
 				buffer.endBatch(RenderType.entitySmoothCutout(InventoryMenu.BLOCK_ATLAS));
+			}
+		}
+
+		public static class IBossEvent extends LerpingBossEvent {
+			private final LivingEntity entity;
+
+			public IBossEvent(LerpingBossEvent event, LivingEntity entity) {
+				super(event.getId(), event.getName(), event.getProgress(), event.getColor(), event.getOverlay(), event.shouldDarkenScreen(), event.shouldPlayBossMusic(), event.shouldCreateWorldFog());
+				this.entity = entity;
+			}
+
+			@Override
+			public float getProgress() {
+				float f = entity.getHealth() / entity.getMaxHealth();
+				if (entity instanceof SuperSteveEntityBase ss)
+					f = (float) ss.ssHealth()[0] / ss.getMaxHealth();
+				return Mth.lerp(Mth.clamp((float) (Util.getMillis() - this.setTime) / 100.0F, 0.0F, 1.0F), this.progress, f);
 			}
 		}
 	}

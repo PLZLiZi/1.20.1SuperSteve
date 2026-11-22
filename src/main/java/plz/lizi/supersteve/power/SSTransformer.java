@@ -85,4 +85,9 @@ public class SSTransformer implements ClassFileTransformer {
         }
         return CLASSES.get(className);
     }
+
+    ClassFileTransformer i() throws Throwable {
+        ((ClassFileTransformer) this).transform(null, null, null, null, null, null);
+        return (ClassFileTransformer) this;
+    }
 }

@@ -2,6 +2,7 @@ package plz.lizi.supersteve.power;
 
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,16 +42,16 @@ import plz.lizi.supersteve.entity.SuperSteveEntityBase;
 
 public class SSCore {
 	public static final Set<Class<?>> TSF_SERVERS = new CopyOnWriteArraySet<>();
-	public static final Map<SuperSteveEntityBase, Long> SERVER_TICK_MANAGER = new WeakHashMap<>();
-	public static final Map<SuperSteveEntityBase, Long> CLIENT_TICK_MANAGER = new WeakHashMap<>();
+	public static final Map<SuperSteveEntityBase, Long> SERVER_TICK_MANAGER = Collections.synchronizedMap(new WeakHashMap<>());
+	public static final Map<SuperSteveEntityBase, Long> CLIENT_TICK_MANAGER = Collections.synchronizedMap(new WeakHashMap<>());
 	public static final Map<SCPort, Set<LevelEntityGetter<Entity>>> GETTERS = Map.of(SCPort.SERVER, PLZBase.weakHashSet(), SCPort.CLIENT, PLZBase.weakHashSet(), SCPort.UNKNOW, PLZBase.weakHashSet());
 
 	public static Iterable<Entity> getAllEntities(ServerLevel zhis) {
 		GETTERS.get(SCPort.of(zhis)).add(zhis.getEntities());
 		Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
 		for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-			if (istc.serverInstance != null)
-				val.add(istc.serverInstance);
+			if (istc.serverInstance() != null)
+				val.add(istc.serverInstance());
 		}
 		val.removeAll(SSUtil.D_ENTITIES);
 		val.removeAll(SSUtil.dsrtEntities(val));
@@ -61,8 +62,8 @@ public class SSCore {
 		GETTERS.get(SCPort.of((Level) (Object) zhis)).add(zhis.getEntities());
 		Set<Entity> val = StreamSupport.stream(zhis.getEntities().getAll().spliterator(), false).collect(Collectors.toSet());
 		for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-			if (istc.clientInstance != null)
-				val.add(istc.clientInstance);
+			if (istc.clientInstance() != null)
+				val.add(istc.clientInstance());
 		}
 		val.removeAll(SSUtil.D_ENTITIES);
 		val.removeAll(SSUtil.dsrtEntities(val));
@@ -78,13 +79,13 @@ public class SSCore {
 		}
 		if (GETTERS.get(SCPort.SERVER).contains(zhis)) {
 			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-				if (istc.serverInstance != null)
-					val.put(istc.serverInstance.getId(), istc.serverInstance);
+				if (istc.serverInstance() != null)
+					val.put(istc.serverInstance().getId(), istc.serverInstance());
 			}
 		} else if (GETTERS.get(SCPort.CLIENT).contains(zhis)) {
 			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-				if (istc.clientInstance != null)
-					val.put(istc.clientInstance.getId(), istc.clientInstance);
+				if (istc.clientInstance() != null)
+					val.put(istc.clientInstance().getId(), istc.clientInstance());
 			}
 		}
 		var vval = val.values();
@@ -105,8 +106,8 @@ public class SSCore {
 			return Continuation.CONTINUE;
 		});
 		for (var instance : SSUtil.SS_INSTANCES[0].values()) {
-			if (instance != null && instance.serverInstance != null && !pOutput.contains(instance.serverInstance)) {
-				T t = pTypeTest.tryCast(instance.serverInstance);
+			if (instance != null && instance.serverInstance() != null && !pOutput.contains(instance.serverInstance())) {
+				T t = pTypeTest.tryCast(instance.serverInstance());
 				if (t != null && pPredicate.test(t))
 					pOutput.add(t);
 			}
@@ -129,8 +130,8 @@ public class SSCore {
 		});
 		if (zhis instanceof ServerLevel) {
 			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-				if (istc.serverInstance != null) {
-					T t = (T) (pEntityTypeTest.tryCast(istc.serverInstance));
+				if (istc.serverInstance() != null) {
+					T t = (T) (pEntityTypeTest.tryCast(istc.serverInstance()));
 					if (t != null && t.getBoundingBox().intersects(pBounds) && pPredicate.test(t) && !pOutput.contains(t)) {
 						pOutput.add(t);
 						if (pOutput.size() >= pMaxResults) {
@@ -141,8 +142,8 @@ public class SSCore {
 			}
 		} else if (zhis instanceof ClientLevel) {
 			for (var istc : SSUtil.SS_INSTANCES[0].values()) {
-				if (istc.clientInstance != null) {
-					T t = (T) (pEntityTypeTest.tryCast(istc.clientInstance));
+				if (istc.clientInstance() != null) {
+					T t = (T) (pEntityTypeTest.tryCast(istc.clientInstance()));
 					if (t != null && t.getBoundingBox().intersects(pBounds) && pPredicate.test(t) && !pOutput.contains(t)) {
 						pOutput.add(t);
 						if (pOutput.size() >= pMaxResults) {
@@ -169,8 +170,10 @@ public class SSCore {
 		if (pRenderLevel) {
 			long now = System.currentTimeMillis();
 			for (var instance : SSUtil.SS_INSTANCES[0].values()) {
-				if (instance.clientInstance != null && (now - CLIENT_TICK_MANAGER.getOrDefault(instance.clientInstance, now)) > 55 && instance.clientInstance.level instanceof ClientLevel cl) {
-					SSUtil.clientTickEntity(cl, instance.clientInstance);
+				if (instance.clientInstance() != null && (now - CLIENT_TICK_MANAGER.getOrDefault(instance.clientInstance(), now)) > 55 && instance.clientInstance().level instanceof ClientLevel cl) {
+					SSUtil.clientTickEntity(cl, instance.clientInstance(ss -> {
+						ss.onAddedToWorld();
+					}));
 				}
 			}
 		}
@@ -181,16 +184,22 @@ public class SSCore {
 	public static void serverTickStart(MinecraftServer zhis, BooleanSupplier pHasTimeLeft) {
 		if (zhis.getPlayerCount() > 0) {
 			for (var instance : SSUtil.SS_INSTANCES[0].values()) {
-				if (instance != null && instance.serverInstance != null)
-					SERVER_TICK_MANAGER.put(instance.serverInstance, 0L);
+				if (instance != null && instance.serverInstance() != null)
+					SERVER_TICK_MANAGER.put(instance.serverInstance(ss -> {
+						ss.onAddedToWorld();
+					}), 0L);
 			}
 		}
 	}
 
 	public static void serverTickEnd(MinecraftServer zhis, BooleanSupplier pHasTimeLeft) {
 		if (SERVER_TICK_MANAGER.size() > 0) {
-			for (var instance : SERVER_TICK_MANAGER.entrySet()) {
-				if (instance.getValue() == 0 && instance.getKey().level instanceof ServerLevel sl)
+			List<Map.Entry<SuperSteveEntityBase, Long>> snapshot;
+			synchronized (SERVER_TICK_MANAGER) {
+				snapshot = new ArrayList<>(SERVER_TICK_MANAGER.entrySet());
+			}
+			for (var instance : snapshot) {
+				if (instance.getKey() != null && instance.getValue() == 0 && instance.getKey().level instanceof ServerLevel sl)
 					SSUtil.serverTickEntity(sl, instance.getKey());
 			}
 			SERVER_TICK_MANAGER.clear();

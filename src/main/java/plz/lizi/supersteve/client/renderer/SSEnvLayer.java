@@ -61,7 +61,7 @@ public class SSEnvLayer extends SSLayer {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cam = camera.getPosition();
         Vec3 pos = entity.getPosition(partialTick);
-        State st = entity.getState();
+        State st = entity.ssGetState();
         float currentTick = (float) entity.stateTime() + partialTick;
         float maskA = ALPHA;
         if (st == State.ENTER) {
